@@ -56,7 +56,7 @@ Page({
   },
 
   onLoad(options) {
-    console.log('========= 联系人表单页面加载 =========', options);
+    console.log('联系人表单页面加载', options);
     
     const mode = options.mode || 'add';
     const contactId = options.id || '';
@@ -77,9 +77,7 @@ Page({
   },
 
   onShow() {
-    console.log('========= 联系人表单页面显示 =========');
-    // 确保按钮状态正确
-    console.log('saving状态:', this.data.saving);
+    console.log('联系人表单页面显示');
   },
 
   onReady() {
@@ -208,7 +206,6 @@ Page({
    * 添加标签
    */
   onAddTag() {
-    console.log('点击添加标签按钮');
     this.setData({ showTagInput: true });
   },
 
@@ -252,9 +249,7 @@ Page({
    * 确认添加标签
    */
   onConfirmAddTag() {
-    console.log('点击确认添加标签按钮');
     const tagValue = this.data.tagInputValue.trim();
-    console.log('标签值:', tagValue);
     
     if (!tagValue) {
       wx.showToast({
@@ -354,7 +349,6 @@ Page({
       errors.asset_level = '请选择正确的资产水平';
     }
     
-    console.log('表单验证结果:', { errors, hasErrors: Object.keys(errors).length > 0 });
     
     this.setData({ formErrors: errors });
     
@@ -384,28 +378,16 @@ Page({
    * 保存联系人
    */
   async onSave() {
-    console.log('🚀🚀🚀========= onSave方法被调用 =========🚀🚀🚀');
-    console.log('当前时间:', new Date().toISOString());
-    console.log('保存状态:', this.data.saving);
-    console.log('表单模式:', this.data.mode);
-    
-    // 立即显示一个toast确保方法被调用
-    wx.showToast({
-      title: 'onSave被调用了',
-      icon: 'none',
-      duration: 1000
-    });
+    console.log('保存联系人...');
     
     if (this.data.saving) {
       console.log('正在保存中，忽略重复点击');
       return;
     }
     
-    console.log('当前表单数据:', JSON.stringify(this.data.formData, null, 2));
     
     // 验证表单
     if (!this.validateForm()) {
-      console.log('表单验证失败:', this.data.formErrors);
       wx.showToast({
         title: '请检查表单内容',
         icon: 'none'
@@ -414,7 +396,6 @@ Page({
     }
     
     try {
-      console.log('开始保存联系人...');
       this.setData({ saving: true });
       
       wx.showLoading({
@@ -444,8 +425,6 @@ Page({
         personality: (formData.personality || '').trim()
       };
       
-      console.log('提交数据:', submitData);
-      
       let result;
       
       if (this.data.mode === 'edit') {
@@ -456,7 +435,6 @@ Page({
         result = await dataManager.createProfile(submitData);
       }
       
-      console.log('API调用成功，结果:', result);
       
       wx.hideLoading();
       
@@ -574,16 +552,5 @@ Page({
    */
   onStopPropagation() {
     // 阻止事件冒泡
-  },
-
-  /**
-   * 测试按钮点击
-   */
-  testButtonClick() {
-    console.log('========= 测试按钮被点击了！ =========');
-    wx.showToast({
-      title: '测试按钮工作正常！',
-      icon: 'success'
-    });
   }
 });
