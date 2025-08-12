@@ -119,6 +119,25 @@
   border-color: #000000;
 }
 
+/* 选择器样式 */
+.picker-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64rpx;
+  padding: 0 20rpx;
+  background: #F8F8F8;
+  border-radius: 6rpx;
+  font-size: 28rpx;
+  color: #000000;
+  border: 1rpx solid transparent;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #999999;
+}
+
 /* 错误消息 */
 .error-message {
   display: block;

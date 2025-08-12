@@ -238,8 +238,8 @@ export function isValidMaritalStatus(status) {
   if (!status) return true; // 婚姻状况是可选的
   
   const validStatuses = [
-    '单身', '已婚', '离异', '丧偶', '已婚已育', '已婚未育',
-    'single', 'married', 'divorced', 'widowed', 'married_with_children', 'married_no_children'
+    '未婚', '已婚已育', '已婚未育', '离异', '未知',
+    'single', 'married', 'divorced', 'widowed', 'married_with_children', 'married_no_children', 'unknown'
   ];
   
   return validStatuses.includes(status);
@@ -251,7 +251,7 @@ export function isValidMaritalStatus(status) {
 export function isValidAssetLevel(level) {
   if (!level) return true; // 资产水平是可选的
   
-  const validLevels = ['低', '中等', '高', '很高', 'low', 'medium', 'high', 'very_high'];
+  const validLevels = ['高', '中', '低', '未知', 'low', 'medium', 'high', 'very_high', 'unknown'];
   return validLevels.includes(level);
 }
 

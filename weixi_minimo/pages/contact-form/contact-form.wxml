@@ -239,7 +239,7 @@
             <text class="button-text">取消</text>
           </view>
           <view 
-            class="input-button confirm {{!tagInputValue.trim() ? 'disabled' : ''}}" 
+            class="input-button confirm {{!tagInputValue ? 'disabled' : ''}}" 
             bindtap="onConfirmAddTag"
           >
             <text class="button-text">确定</text>

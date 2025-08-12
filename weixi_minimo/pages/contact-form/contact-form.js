@@ -1,5 +1,5 @@
 import { PAGE_ROUTES } from '../../utils/constants';
-import { isValidPhoneNumber, isValidEmail, isNotEmpty } from '../../utils/validator';
+import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, isValidGender } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 
@@ -205,6 +205,7 @@ Page({
    * 添加标签
    */
   onAddTag() {
+    console.log('点击添加标签按钮');
     this.setData({ showTagInput: true });
   },
 
@@ -248,7 +249,9 @@ Page({
    * 确认添加标签
    */
   onConfirmAddTag() {
+    console.log('点击确认添加标签按钮');
     const tagValue = this.data.tagInputValue.trim();
+    console.log('标签值:', tagValue);
     
     if (!tagValue) {
       wx.showToast({
@@ -319,12 +322,12 @@ Page({
     }
     
     // 验证手机号
-    if (formData.phone && !isValidPhoneNumber(formData.phone)) {
+    if (formData.phone && !isPhone(formData.phone)) {
       errors.phone = '请输入正确的手机号码';
     }
     
     // 验证邮箱
-    if (formData.email && !isValidEmail(formData.email)) {
+    if (formData.email && !isEmail(formData.email)) {
       errors.email = '请输入正确的邮箱地址';
     }
     
@@ -332,6 +335,23 @@ Page({
     if (formData.wechat_id && formData.wechat_id.length < 6) {
       errors.wechat_id = '微信号长度至少6位';
     }
+    
+    // 验证性别
+    if (formData.gender && !isValidGender(formData.gender)) {
+      errors.gender = '请选择正确的性别';
+    }
+    
+    // 验证婚姻状况
+    if (formData.marital_status && !isValidMaritalStatus(formData.marital_status)) {
+      errors.marital_status = '请选择正确的婚姻状况';
+    }
+    
+    // 验证资产水平
+    if (formData.asset_level && !isValidAssetLevel(formData.asset_level)) {
+      errors.asset_level = '请选择正确的资产水平';
+    }
+    
+    console.log('表单验证结果:', { errors, hasErrors: Object.keys(errors).length > 0 });
     
     this.setData({ formErrors: errors });
     

@@ -732,6 +732,80 @@ class DataManager {
       stats: this.stats
     };
   }
+
+  /**
+   * 创建联系人
+   * @param {Object} profileData - 联系人数据
+   */
+  async createProfile(profileData) {
+    console.log('========= DataManager.createProfile =========');
+    console.log('传入数据:', JSON.stringify(profileData, null, 2));
+    console.log('API Client:', typeof apiClient, !!apiClient.createProfile);
+    
+    try {
+      // 调用API创建联系人
+      console.log('开始调用 apiClient.createProfile...');
+      const result = await apiClient.createProfile(profileData);
+      console.log('API调用完成，原始结果:', result);
+      
+      if (result.success) {
+        console.log('联系人创建成功:', result);
+        
+        // 清除缓存，强制下次重新加载
+        this.clearCache();
+        
+        // 通知监听器
+        this.notifyListeners('contact_created', result.profile);
+        
+        return result;
+      } else {
+        throw new Error(result.message || '创建失败');
+      }
+    } catch (error) {
+      console.error('创建联系人失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新联系人
+   * @param {string|number} profileId - 联系人ID
+   * @param {Object} profileData - 更新的数据
+   */
+  async updateProfile(profileId, profileData) {
+    console.log('DataManager: 更新联系人', profileId, profileData);
+    
+    try {
+      // 调用API更新联系人
+      const result = await apiClient.updateProfile(profileId, profileData);
+      
+      if (result.success) {
+        console.log('联系人更新成功:', result);
+        
+        // 更新本地缓存
+        if (result.profile) {
+          const index = this.contacts.findIndex(c => c.id === profileId);
+          if (index !== -1) {
+            this.contacts[index] = result.profile;
+            this.contactsMap.set(profileId, result.profile);
+          }
+        }
+        
+        // 清除缓存，强制下次重新加载
+        this.clearCache();
+        
+        // 通知监听器
+        this.notifyListeners('contact_updated', result.profile);
+        
+        return result;
+      } else {
+        throw new Error(result.message || '更新失败');
+      }
+    } catch (error) {
+      console.error('更新联系人失败:', error);
+      throw error;
+    }
+  }
 }
 
 // 创建单例实例
