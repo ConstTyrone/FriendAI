@@ -1,0 +1,577 @@
+/* 设置页面 - 扁平设计风格 */
+
+/* 页面容器 */
+.settings-page {
+  min-height: 100vh;
+  background: #FAFAFA;
+  padding-bottom: 200rpx;
+}
+
+/* 用户信息区域 */
+.user-section {
+  padding: 32rpx;
+}
+
+.user-card {
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  border: 1rpx solid #E5E5E5;
+}
+
+.user-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  background: #F0F0F0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-text {
+  font-size: 40rpx;
+  font-weight: 500;
+  color: #666666;
+}
+
+.user-info {
+  flex: 1;
+  margin-left: 24rpx;
+  min-width: 0;
+}
+
+.user-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 8rpx;
+}
+
+.user-id-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4rpx;
+}
+
+.user-id {
+  font-size: 26rpx;
+  color: #999999;
+}
+
+.user-id-value {
+  font-size: 26rpx;
+  color: #333333;
+  margin-left: 8rpx;
+  word-break: break-all;
+  flex: 1;
+}
+
+.login-time {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+  margin-top: 8rpx;
+}
+
+.user-stats {
+  display: flex;
+  align-items: center;
+  margin-left: 24rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80rpx;
+}
+
+.stat-number {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #000000;
+  line-height: 1;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #999999;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
+.stat-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: #E5E5E5;
+  margin: 0 20rpx;
+}
+
+/* 登录区域 */
+.login-section {
+  padding: 32rpx;
+}
+
+.login-card {
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  padding: 40rpx 32rpx;
+  border: 1rpx solid #E5E5E5;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.login-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 12rpx;
+}
+
+.login-subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* 登录按钮 */
+.login-button {
+  padding: 24rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  text-align: center;
+  position: relative;
+}
+
+.login-button.primary {
+  background: #000000;
+}
+
+.login-button.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.login-button:active {
+  opacity: 0.7;
+}
+
+.button-text {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333333;
+}
+
+.login-button.primary .button-text {
+  color: #FFFFFF;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 分隔线 */
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 32rpx 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+  background: #E5E5E5;
+}
+
+.divider-text {
+  background: #FFFFFF;
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  color: #999999;
+  position: relative;
+  z-index: 1;
+}
+
+/* 输入框 */
+.login-input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 24rpx;
+  background: #F5F5F5;
+  border-radius: 8rpx;
+  font-size: 30rpx;
+  color: #000000;
+  box-sizing: border-box;
+}
+
+/* 快速选择 */
+.quick-select {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.quick-label {
+  font-size: 26rpx;
+  color: #999999;
+}
+
+.quick-link {
+  font-size: 26rpx;
+  color: #000000;
+  margin-left: 16rpx;
+  text-decoration: underline;
+}
+
+/* 测试登录区域 */
+.test-login-section {
+  margin-top: 32rpx;
+}
+
+.quick-login-section {
+  margin: 24rpx 0;
+}
+
+.quick-login-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  margin-bottom: 16rpx;
+}
+
+.quick-login-buttons {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.quick-login-buttons t-button {
+  --td-button-small-height: 60rpx;
+  --td-button-small-font-size: 24rpx;
+  --td-button-border-radius: 12rpx;
+  margin-bottom: 0;
+}
+
+.quick-button {
+  padding: 16rpx 24rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+}
+
+.quick-button.mock {
+  background: #000000;
+}
+
+.quick-button:active {
+  opacity: 0.7;
+}
+
+.quick-button-text {
+  font-size: 26rpx;
+  color: #333333;
+}
+
+.quick-button.mock .quick-button-text {
+  color: #FFFFFF;
+}
+
+/* 设置选项 */
+.settings-options {
+  padding: 0;
+}
+
+/* 选项组 */
+.option-group {
+  background: #FFFFFF;
+  margin-top: 16rpx;
+}
+
+.option-group:first-child {
+  margin-top: 0;
+}
+
+.group-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  padding: 24rpx 32rpx 16rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.option-list {
+  padding: 0;
+}
+
+/* 选项项 */
+.option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.option-item:last-child {
+  border-bottom: none;
+}
+
+.option-item:active {
+  background: #F8F8F8;
+}
+
+.option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.option-title {
+  display: block;
+  font-size: 32rpx;
+  color: #000000;
+  margin-bottom: 4rpx;
+}
+
+.option-title.danger {
+  color: #FF3B30;
+}
+
+.option-note {
+  display: block;
+  font-size: 26rpx;
+  color: #999999;
+}
+
+.option-arrow {
+  font-size: 36rpx;
+  color: #999999;
+  margin-left: 16rpx;
+}
+
+/* 开关 */
+.option-switch {
+  transform: scale(0.8);
+}
+
+/* 确认对话框 */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.confirm-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.confirm-dialog {
+  width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 12rpx;
+  padding: 40rpx;
+}
+
+.confirm-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #000000;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.confirm-message {
+  display: block;
+  font-size: 30rpx;
+  color: #666666;
+  text-align: center;
+  margin-bottom: 40rpx;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.confirm-button {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 6rpx;
+  text-align: center;
+}
+
+.confirm-button.cancel {
+  background: #F5F5F5;
+}
+
+.confirm-button.danger {
+  background: #FF3B30;
+}
+
+.confirm-button:active {
+  opacity: 0.7;
+}
+
+.confirm-button.cancel .button-text {
+  color: #333333;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.confirm-button.danger .button-text {
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+/* 响应式调整 */
+@media (max-width: 375px) {
+  .user-section,
+  .login-section {
+    padding: 24rpx;
+  }
+  
+  .user-card {
+    padding: 24rpx;
+  }
+  
+  .user-avatar {
+    width: 80rpx;
+    height: 80rpx;
+  }
+  
+  .avatar-text {
+    font-size: 32rpx;
+  }
+  
+  .user-name {
+    font-size: 30rpx;
+  }
+  
+  .user-id,
+  .user-id-value {
+    font-size: 24rpx;
+  }
+  
+  .login-time {
+    font-size: 22rpx;
+  }
+  
+  .stat-number {
+    font-size: 28rpx;
+  }
+  
+  .stat-label {
+    font-size: 20rpx;
+  }
+  
+  .login-card {
+    padding: 32rpx 24rpx;
+  }
+  
+  .login-title {
+    font-size: 32rpx;
+  }
+  
+  .login-subtitle {
+    font-size: 26rpx;
+  }
+  
+  .login-button {
+    padding: 20rpx;
+  }
+  
+  .button-text {
+    font-size: 28rpx;
+  }
+  
+  .login-input {
+    height: 64rpx;
+    font-size: 28rpx;
+    padding: 0 20rpx;
+  }
+  
+  .quick-button {
+    padding: 14rpx 20rpx;
+  }
+  
+  .quick-button-text {
+    font-size: 24rpx;
+  }
+  
+  .option-item {
+    padding: 20rpx 24rpx;
+  }
+  
+  .option-title {
+    font-size: 30rpx;
+  }
+  
+  .option-note {
+    font-size: 24rpx;
+  }
+  
+  .confirm-dialog {
+    width: 520rpx;
+    padding: 32rpx;
+  }
+}
+
+/* TDesign Switch 样式 */
+t-switch {
+  --td-switch-on-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --td-switch-off-color: #e5e5e5;
+  --td-switch-border-radius: 20rpx;
+}

@@ -1,0 +1,269 @@
+<!--设置页面-->
+<view class="settings-page">
+  <!-- 用户信息区域 -->
+  <view class="user-section" wx:if="{{isLoggedIn}}">
+    <view class="user-card">
+      <view class="user-avatar">
+        <text class="avatar-text">{{userInfo.wechatUserId ? userInfo.wechatUserId.charAt(0).toUpperCase() : 'U'}}</text>
+      </view>
+      
+      <view class="user-info">
+        <text class="user-name">{{userInfo.wechatUserId ? '微信用户' : '未知用户'}}</text>
+        <view class="user-id-wrapper">
+          <text class="user-id">微信ID: </text>
+          <text class="user-id-value">{{userInfo.wechatUserId || 'N/A'}}</text>
+        </view>
+        <view class="user-id-wrapper" wx:if="{{userInfo.userId}}">
+          <text class="user-id">系统ID: </text>
+          <text class="user-id-value">{{userInfo.userId}}</text>
+        </view>
+        <text class="login-time">登录时间: {{formatLoginTime(userInfo.loginTime)}}</text>
+      </view>
+      
+      <view class="user-stats">
+        <view class="stat-item">
+          <text class="stat-number">{{stats.total_profiles || 0}}</text>
+          <text class="stat-label">联系人</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{stats.today_profiles || 0}}</text>
+          <text class="stat-label">今日新增</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 登录区域 -->
+  <view class="login-section" wx:if="{{!isLoggedIn}}">
+    <view class="login-card">
+      <view class="login-header">
+        <text class="login-title">登录账户</text>
+        <text class="login-subtitle">使用微信账户一键登录</text>
+      </view>
+      
+      <view class="login-form">
+        <!-- 真正的微信登录按钮 -->
+        <view 
+          class="login-button primary {{loginLoading ? 'disabled' : ''}}"
+          bind:tap="onRealWechatLogin"
+        >
+          <text class="button-text">{{loginLoading ? '登录中...' : '微信一键登录'}}</text>
+          <view class="loading-spinner" wx:if="{{loginLoading}}"></view>
+        </view>
+        
+        <!-- 分隔线 -->
+        <view class="divider">
+          <text class="divider-text">或手动输入微信ID</text>
+        </view>
+        
+        <!-- 手动输入微信ID -->
+        <input
+          class="login-input"
+          value="{{wechatIdInput}}"
+          placeholder="请输入微信用户ID（OpenID）"
+          bindinput="onWechatIdChange"
+        />
+        
+        <!-- 快速选择微信ID -->
+        <view class="quick-select">
+          <text class="quick-label">快速选择：</text>
+          <text 
+            class="quick-link"
+            bind:tap="onQuickWechatId"
+            data-wechat-id="oXXXXXXXXXXXXXXXXXXXXXXX"
+          >示例ID</text>
+        </view>
+        
+        <view 
+          class="login-button {{!wechatIdInput || loginLoading ? 'disabled' : ''}}"
+          bind:tap="onWechatLogin"
+        >
+          <text class="button-text">{{loginLoading ? '登录中...' : '使用微信ID登录'}}</text>
+          <view class="loading-spinner" wx:if="{{loginLoading}}"></view>
+        </view>
+        
+        <!-- 测试账户登录区域 -->
+        <view class="test-login-section">
+          <view class="divider">
+            <text class="divider-text">或使用测试账户</text>
+          </view>
+          
+          <input
+            class="login-input"
+            value="{{loginUserId}}"
+            placeholder="请输入用户ID（如：test_user_001）"
+            bindinput="onUserIdChange"
+          />
+          
+          <view class="quick-login-section">
+            <text class="quick-login-title">快速登录</text>
+            <view class="quick-login-buttons">
+              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="test_user_001">
+                <text class="quick-button-text">测试用户1</text>
+              </view>
+              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="test_user_002">
+                <text class="quick-button-text">测试用户2</text>
+              </view>
+              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="demo_user_001">
+                <text class="quick-button-text">演示用户</text>
+              </view>
+              <view class="quick-button mock" bind:tap="onMockLogin">
+                <text class="quick-button-text">Mock用户</text>
+              </view>
+            </view>
+          </view>
+          
+          <view 
+            class="login-button {{!loginUserId || testLoginLoading ? 'disabled' : ''}}"
+            bind:tap="onLogin"
+          >
+            <text class="button-text">{{testLoginLoading ? '登录中...' : '测试账户登录'}}</text>
+            <view class="loading-spinner" wx:if="{{testLoginLoading}}"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置选项 -->
+  <view class="settings-options">
+    <!-- 账户管理 -->
+    <view class="option-group" wx:if="{{isLoggedIn}}">
+      <text class="group-title">账户管理</text>
+      <view class="option-list">
+        <view class="option-item" bind:tap="onRefreshUserInfo">
+          <view class="option-content">
+            <text class="option-title">刷新用户信息</text>
+            <text class="option-note">重新获取用户统计数据</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onClearCache">
+          <view class="option-content">
+            <text class="option-title">清除缓存</text>
+            <text class="option-note">清除本地缓存的联系人数据</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onLogout">
+          <view class="option-content">
+            <text class="option-title danger">退出登录</text>
+            <text class="option-note">清除登录信息并退出</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 应用设置 -->
+    <view class="option-group">
+      <text class="group-title">应用设置</text>
+      <view class="option-list">
+        <view class="option-item">
+          <view class="option-content">
+            <text class="option-title">自动同步</text>
+            <text class="option-note">定期同步最新数据</text>
+          </view>
+          <switch 
+            class="option-switch"
+            checked="{{settings.autoSync}}" 
+            bindchange="onAutoSyncChange"
+          />
+        </view>
+        
+        <view class="option-item">
+          <view class="option-content">
+            <text class="option-title">消息通知</text>
+            <text class="option-note">接收重要更新通知</text>
+          </view>
+          <switch 
+            class="option-switch"
+            checked="{{settings.notifications}}" 
+            bindchange="onNotificationsChange"
+          />
+        </view>
+        
+        <view class="option-item">
+          <view class="option-content">
+            <text class="option-title">深色模式</text>
+            <text class="option-note">跟随系统或手动设置</text>
+          </view>
+          <switch 
+            class="option-switch"
+            checked="{{settings.darkMode}}" 
+            bindchange="onDarkModeChange"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 数据统计 -->
+    <view class="option-group" wx:if="{{isLoggedIn}}">
+      <text class="group-title">数据统计</text>
+      <view class="option-list">
+        <view class="option-item" bind:tap="onViewStorageInfo">
+          <view class="option-content">
+            <text class="option-title">存储使用情况</text>
+            <text class="option-note">查看本地数据使用情况</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onViewAPIStats">
+          <view class="option-content">
+            <text class="option-title">API调用统计</text>
+            <text class="option-note">查看接口调用情况</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 关于应用 -->
+    <view class="option-group">
+      <text class="group-title">关于应用</text>
+      <view class="option-list">
+        <view class="option-item" bind:tap="onViewVersion">
+          <view class="option-content">
+            <text class="option-title">版本信息</text>
+            <text class="option-note">v{{appVersion}}</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onViewHelp">
+          <view class="option-content">
+            <text class="option-title">帮助支持</text>
+            <text class="option-note">使用指南和常见问题</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onViewFeedback">
+          <view class="option-content">
+            <text class="option-title">反馈建议</text>
+            <text class="option-note">向我们反馈问题或建议</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 登出确认对话框 -->
+  <t-dialog
+    visible="{{showLogoutDialog}}"
+    title="确认退出"
+    content="退出登录后，本地缓存的数据将被清除。确定要退出吗？"
+    confirm-btn="退出"
+    cancel-btn="取消"
+    bind:confirm="onConfirmLogout"
+    bind:cancel="onCancelLogout"
+  />
+
+  <!-- 自定义TabBar -->
+  <custom-tabbar current="settings" />
+</view>

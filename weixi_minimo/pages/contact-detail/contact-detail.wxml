@@ -1,0 +1,185 @@
+<!--联系人详情页面-->
+<view class="detail-page">
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="error-state" wx:if="{{error && !loading}}">
+    <text class="error-message">{{error}}</text>
+    <view class="error-action" bind:tap="initPageData">
+      <text class="action-text">重新加载</text>
+    </view>
+  </view>
+
+  <!-- 联系人详情内容 -->
+  <view class="detail-content" wx:if="{{contactInfo && !loading && !error}}">
+    <!-- 头部信息 -->
+    <view class="header-section">
+      <view class="header-avatar">
+        <text class="avatar-text">{{contactInfo.initial}}</text>
+      </view>
+      
+      <view class="header-info">
+        <text class="header-name">{{contactInfo.profile_name || contactInfo.name || '未知'}}</text>
+        <text class="header-company" wx:if="{{contactInfo.company}}">
+          {{contactInfo.company}}
+        </text>
+        <text class="header-position" wx:if="{{contactInfo.position}}">
+          {{contactInfo.position}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 快速操作 -->
+    <view class="quick-actions">
+      <view class="action-button" bind:tap="onCallPhone" wx:if="{{contactInfo.phone}}">
+        <text class="action-label">电话</text>
+      </view>
+      <view class="action-button" bind:tap="onCopyWechatId" wx:if="{{contactInfo.wechat_id}}">
+        <text class="action-label">微信</text>
+      </view>
+      <view class="action-button" bind:tap="onAddNote">
+        <text class="action-label">备注</text>
+      </view>
+    </view>
+
+    <!-- 基本信息 -->
+    <view class="info-section">
+      <text class="section-title">基本信息</text>
+      <view class="info-list">
+        <view class="info-item" wx:if="{{contactInfo.phone}}" bind:tap="onCallPhone">
+          <text class="info-label">电话</text>
+          <text class="info-value">{{formatPhone(contactInfo.phone)}}</text>
+          <text class="info-arrow">›</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.wechat_id}}" bind:tap="onCopyWechatId">
+          <text class="info-label">微信</text>
+          <text class="info-value">{{contactInfo.wechat_id}}</text>
+          <text class="info-arrow">›</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.email}}">
+          <text class="info-label">邮箱</text>
+          <text class="info-value">{{contactInfo.email}}</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.location || contactInfo.address}}">
+          <text class="info-label">地址</text>
+          <text class="info-value">{{contactInfo.location || contactInfo.address}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 个人特征 -->
+    <view 
+      class="info-section"
+      wx:if="{{contactInfo.gender || contactInfo.age || contactInfo.marital_status || contactInfo.education || contactInfo.asset_level}}"
+    >
+      <text class="section-title">个人特征</text>
+      <view class="info-list">
+        <view class="info-item" wx:if="{{contactInfo.gender}}">
+          <text class="info-label">性别</text>
+          <text class="info-value">{{contactInfo.gender}}</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.age}}">
+          <text class="info-label">年龄</text>
+          <text class="info-value">{{contactInfo.age}}</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.marital_status}}">
+          <text class="info-label">婚姻</text>
+          <text class="info-value">{{contactInfo.marital_status}}</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.education}}">
+          <text class="info-label">学历</text>
+          <text class="info-value">{{contactInfo.education}}</text>
+        </view>
+        
+        <view class="info-item" wx:if="{{contactInfo.asset_level}}">
+          <text class="info-label">资产</text>
+          <text class="info-value">{{contactInfo.asset_level}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- AI分析 -->
+    <view 
+      class="info-section ai-section"
+      wx:if="{{contactInfo.ai_summary || contactInfo.personality}}"
+    >
+      <text class="section-title">AI分析</text>
+      <view class="ai-content">
+        <view class="ai-item" wx:if="{{contactInfo.ai_summary}}">
+          <text class="ai-text">{{contactInfo.ai_summary}}</text>
+        </view>
+        <view class="ai-item" wx:if="{{contactInfo.personality}}">
+          <text class="ai-label">性格：</text>
+          <text class="ai-text">{{contactInfo.personality}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 备注信息 -->
+    <view class="info-section" wx:if="{{contactInfo.notes}}">
+      <text class="section-title">备注</text>
+      <view class="notes-content">
+        <text class="notes-text">{{contactInfo.notes}}</text>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view 
+      class="info-section tags-section"
+      wx:if="{{contactInfo.tags && contactInfo.tags.length > 0}}"
+    >
+      <text class="section-title">标签</text>
+      <view class="tag-list">
+        <text 
+          wx:for="{{contactInfo.tags}}" 
+          wx:key="index" 
+          class="tag-item"
+        >
+          {{item}}
+        </text>
+      </view>
+    </view>
+
+    <!-- 时间信息 -->
+    <view class="time-info">
+      <text class="time-text">创建于 {{formatDate(contactInfo.created_at)}}</text>
+      <text class="time-text" wx:if="{{contactInfo.updated_at}}">更新于 {{formatDate(contactInfo.updated_at)}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{contactInfo && !loading && !error}}">
+    <view class="bar-button" bind:tap="onEditContact">
+      <text class="bar-text">编辑</text>
+    </view>
+    <view class="bar-button delete" bind:tap="onDeleteContact">
+      <text class="bar-text">删除</text>
+    </view>
+  </view>
+
+  <!-- 删除确认 -->
+  <view class="confirm-overlay {{showDeleteDialog ? 'show' : ''}}" bind:tap="onCancelDelete">
+    <view class="confirm-dialog" catch:tap="onStopPropagation">
+      <text class="confirm-title">确认删除</text>
+      <text class="confirm-message">删除后无法恢复，确定要删除吗？</text>
+      <view class="confirm-actions">
+        <view class="confirm-button cancel" bind:tap="onCancelDelete">
+          <text class="button-text">取消</text>
+        </view>
+        <view class="confirm-button delete" bind:tap="onConfirmDelete">
+          <text class="button-text">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,494 @@
+/* 联系人详情页 - 扁平设计风格 */
+
+/* 页面容器 */
+.detail-page {
+  min-height: 100vh;
+  background: #FAFAFA;
+  padding-bottom: 120rpx;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40rpx;
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 3rpx solid #E5E5E5;
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: 24rpx;
+  font-size: 28rpx;
+  color: #999999;
+}
+
+/* 错误状态 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40rpx;
+}
+
+.error-message {
+  font-size: 30rpx;
+  color: #666666;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+
+.error-action {
+  padding: 20rpx 48rpx;
+  background: #000000;
+  border-radius: 6rpx;
+}
+
+.error-action:active {
+  opacity: 0.7;
+}
+
+.action-text {
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 详情内容 */
+.detail-content {
+  padding: 0;
+}
+
+/* 头部信息 */
+.header-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx;
+  background: #FFFFFF;
+  margin: 24rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #E5E5E5;
+}
+
+.header-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  background: #F5F5F5;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+}
+
+.avatar-text {
+  font-size: 48rpx;
+  font-weight: 500;
+  color: #666666;
+}
+
+.header-info {
+  text-align: center;
+}
+
+.header-name {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 8rpx;
+}
+
+.header-company {
+  display: block;
+  font-size: 28rpx;
+  color: #666666;
+  margin-bottom: 4rpx;
+}
+
+.header-position {
+  display: block;
+  font-size: 26rpx;
+  color: #999999;
+}
+
+/* 快速操作 */
+.quick-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.action-button {
+  flex: 1;
+  max-width: 200rpx;
+  padding: 16rpx;
+  background: #000000;
+  border-radius: 6rpx;
+  text-align: center;
+}
+
+.action-button:active {
+  opacity: 0.7;
+}
+
+.action-label {
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 信息区块 */
+.info-section {
+  background: #FFFFFF;
+  margin: 16rpx 24rpx;
+  border-radius: 8rpx;
+  padding: 24rpx;
+  border: 1rpx solid #E5E5E5;
+}
+
+.section-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item:active {
+  background: #FAFAFA;
+  margin: 0 -24rpx;
+  padding-left: 24rpx;
+  padding-right: 24rpx;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #999999;
+  width: 120rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.info-arrow {
+  font-size: 32rpx;
+  color: #C0C0C0;
+  margin-left: 16rpx;
+}
+
+/* AI分析区域 */
+.ai-section .ai-content {
+  padding-top: 8rpx;
+}
+
+.ai-item {
+  margin-bottom: 16rpx;
+}
+
+.ai-item:last-child {
+  margin-bottom: 0;
+}
+
+.ai-label {
+  font-size: 26rpx;
+  color: #666666;
+  margin-right: 8rpx;
+}
+
+.ai-text {
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.6;
+}
+
+/* 备注内容 */
+.notes-content {
+  padding-top: 8rpx;
+}
+
+.notes-text {
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.6;
+}
+
+/* 标签列表 */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  padding-top: 8rpx;
+  align-items: flex-start;
+}
+
+.tag-item {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #666666;
+  padding: 4rpx 12rpx;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 12rpx;
+  background: #FFFFFF;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 时间信息 */
+.time-info {
+  padding: 24rpx;
+  text-align: center;
+}
+
+.time-text {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+  margin-bottom: 8rpx;
+}
+
+.time-text:last-child {
+  margin-bottom: 0;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: #FFFFFF;
+  border-top: 1rpx solid #E5E5E5;
+  z-index: 100;
+}
+
+.bar-button {
+  flex: 1;
+  padding: 24rpx;
+  text-align: center;
+  border-right: 1rpx solid #E5E5E5;
+}
+
+.bar-button:last-child {
+  border-right: none;
+}
+
+.bar-button:active {
+  background: #F5F5F5;
+}
+
+.bar-button.delete .bar-text {
+  color: #FF3B30;
+}
+
+.bar-text {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #000000;
+}
+
+/* 删除确认对话框 */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.confirm-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.confirm-dialog {
+  width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 12rpx;
+  padding: 40rpx;
+}
+
+.confirm-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #000000;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.confirm-message {
+  display: block;
+  font-size: 30rpx;
+  color: #666666;
+  text-align: center;
+  margin-bottom: 40rpx;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.confirm-button {
+  flex: 1;
+  padding: 20rpx;
+  border-radius: 6rpx;
+  text-align: center;
+}
+
+.confirm-button.cancel {
+  background: #F5F5F5;
+}
+
+.confirm-button.delete {
+  background: #FF3B30;
+}
+
+.confirm-button:active {
+  opacity: 0.7;
+}
+
+.confirm-button.cancel .button-text {
+  color: #333333;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.confirm-button.delete .button-text {
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+/* 移除之前的TDesign组件样式 */
+t-cell[bind-click] {
+  --td-cell-hover-color: rgba(102, 126, 234, 0.05);
+}
+
+t-cell-group {
+  --td-cell-group-border-color: transparent;
+  --td-cell-group-title-padding: 32rpx 32rpx 16rpx;
+  --td-cell-group-title-font-size: 28rpx;
+  --td-cell-group-title-color: #666;
+}
+
+t-tag {
+  margin-right: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+/* 响应式调整 */
+@media (max-width: 375px) {
+  .header-section {
+    padding: 24rpx;
+    margin: 16rpx;
+  }
+  
+  .header-avatar {
+    width: 100rpx;
+    height: 100rpx;
+  }
+  
+  .avatar-text {
+    font-size: 40rpx;
+  }
+  
+  .header-name {
+    font-size: 32rpx;
+  }
+  
+  .header-company {
+    font-size: 26rpx;
+  }
+  
+  .header-position {
+    font-size: 24rpx;
+  }
+  
+  .info-section {
+    margin: 12rpx 16rpx;
+    padding: 20rpx;
+  }
+  
+  .section-title {
+    font-size: 22rpx;
+  }
+  
+  .info-label,
+  .info-value {
+    font-size: 26rpx;
+  }
+  
+  .action-button {
+    padding: 14rpx;
+  }
+  
+  .action-label {
+    font-size: 26rpx;
+  }
+  
+  .bar-button {
+    padding: 20rpx;
+  }
+  
+  .bar-text {
+    font-size: 30rpx;
+  }
+  
+  .confirm-dialog {
+    width: 520rpx;
+    padding: 32rpx;
+  }
+}

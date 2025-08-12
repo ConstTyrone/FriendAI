@@ -1,0 +1,145 @@
+<!--联系人列表页面-->
+<view class="contact-list-page">
+  <!-- 搜索栏 -->
+  <view class="search-header">
+    <view class="search-box">
+      <input 
+        class="search-input"
+        value="{{searchQuery}}"
+        placeholder="搜索联系人姓名、公司、职位..."
+        placeholder-class="search-placeholder"
+        bindinput="onSearchChange"
+        bindconfirm="onSearchSubmit"
+      />
+      <view class="search-clear" wx:if="{{searchQuery}}" bind:tap="onSearchClear">
+        <text class="clear-text">清除</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计信息 -->
+  <view class="stats-section">
+    <view class="stats-card">
+      <view class="stat-item">
+        <text class="stat-value">{{stats.total_profiles || 0}}</text>
+        <text class="stat-label">全部联系人</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{stats.today_profiles || 0}}</text>
+        <text class="stat-label">今日新增</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 列表内容 -->
+  <view class="list-container">
+    <!-- 加载状态 -->
+    <view class="loading-container" wx:if="{{loading && contacts.length === 0}}">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && contacts.length === 0}}">
+      <text class="empty-title">{{searchQuery ? '没有找到联系人' : '还没有联系人'}}</text>
+      <text class="empty-desc">{{searchQuery ? '尝试其他搜索关键词' : '点击右下角按钮添加第一个联系人'}}</text>
+      <view 
+        class="empty-button"
+        bind:tap="onAddContact"
+        wx:if="{{!searchQuery}}"
+      >
+        <text class="button-text">添加联系人</text>
+      </view>
+    </view>
+
+    <!-- 联系人列表 -->
+    <view class="contact-list" wx:if="{{contacts.length > 0}}">
+      <view class="contact-group">
+        <view 
+          wx:for="{{contacts}}"
+          wx:key="id"
+          class="contact-item"
+          bind:tap="onContactTap"
+          bind:longpress="onContactLongPress"
+          data-contact="{{item}}"
+        >
+          <view class="item-avatar">
+            <text class="avatar-text">{{item.initial}}</text>
+          </view>
+          
+          <view class="item-content">
+            <text class="item-name">{{item.profile_name || item.name || '未知'}}</text>
+            <text class="item-detail" wx:if="{{item.company || item.position}}">
+              {{item.company}}{{item.company && item.position ? ' · ' : ''}}{{item.position}}
+            </text>
+            
+            <!-- 标签展示 -->
+            <view class="item-tags" wx:if="{{item.formattedTags && item.formattedTags.length > 0}}">
+              <text 
+                wx:for="{{item.formattedTags}}" 
+                wx:key="*this"
+                wx:for-item="tag"
+                class="tag-item"
+              >
+                {{tag}}
+              </text>
+            </view>
+          </view>
+          
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore && contacts.length > 0}}">
+      <view 
+        class="load-more-button {{loadingMore ? 'disabled' : ''}}"
+        bind:tap="onLoadMore"
+      >
+        <text class="button-text">{{loadingMore ? '加载中...' : '加载更多'}}</text>
+        <view class="loading-spinner" wx:if="{{loadingMore}}"></view>
+      </view>
+    </view>
+
+    <!-- 列表末尾 -->
+    <view class="list-end" wx:if="{{contacts.length > 0 && !hasMore && !loading}}">
+      <text class="end-text">已显示全部联系人</text>
+    </view>
+  </view>
+
+  <!-- 添加按钮 -->
+  <view class="add-button" bind:tap="onAddContact">
+    <text class="add-text">+</text>
+  </view>
+
+  <!-- 操作菜单 -->
+  <view class="action-overlay {{showActionMenu ? 'show' : ''}}" bind:tap="onCloseActionMenu">
+    <view class="action-sheet" catch:tap="onStopPropagation">
+      <view class="sheet-header">
+        <view class="sheet-avatar">
+          <text class="avatar-text">{{selectedContact.initial}}</text>
+        </view>
+        <view class="sheet-info">
+          <text class="sheet-name">{{selectedContact.profile_name || selectedContact.name}}</text>
+          <text class="sheet-company" wx:if="{{selectedContact.company}}">{{selectedContact.company}}</text>
+        </view>
+      </view>
+      <view class="sheet-actions">
+        <view class="sheet-button" bind:tap="onViewDetail">
+          <text class="button-text">查看详情</text>
+        </view>
+        <view class="sheet-button" bind:tap="onEditContact">
+          <text class="button-text">编辑</text>
+        </view>
+        <view class="sheet-button delete" bind:tap="onDeleteContact">
+          <text class="button-text">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 自定义TabBar -->
+  <custom-tabbar current="contact-list" />
+</view>

@@ -1,0 +1,217 @@
+/* AI建议词组件样式 */
+.ai-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.chip-item {
+  border-radius: 24rpx;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chip-item:active {
+  transform: scale(0.95);
+}
+
+/* 建议词样式 */
+.suggestion-chip {
+  background: linear-gradient(135deg, #fff7e6 0%, #fef3e4 100%);
+  border: 1rpx solid #ffd591;
+}
+
+.suggestion-chip:hover {
+  background: linear-gradient(135deg, #fff2d6 0%, #feecc4 100%);
+  border-color: #ffb347;
+}
+
+.suggestion-chip:active {
+  background: linear-gradient(135deg, #ffe7ba 0%, #fdd49a 100%);
+}
+
+/* 历史记录样式 */
+.history-chip {
+  background: linear-gradient(135deg, #f5f5f5 0%, #f0f0f0 100%);
+  border: 1rpx solid #e8e8e8;
+}
+
+.history-chip:hover {
+  background: linear-gradient(135deg, #eeeeee 0%, #e8e8e8 100%);
+  border-color: #d9d9d9;
+}
+
+.history-chip:active {
+  background: linear-gradient(135deg, #e8e8e8 0%, #d9d9d9 100%);
+}
+
+/* 内容容器 */
+.chip-content {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 20rpx;
+  min-height: 48rpx;
+}
+
+.suggestion-content {
+  gap: 8rpx;
+}
+
+.history-content {
+  gap: 8rpx;
+  position: relative;
+}
+
+.chip-text {
+  font-size: 26rpx;
+  line-height: 1.2;
+  flex: 1;
+  word-break: break-all;
+}
+
+/* 建议词文本样式 */
+.suggestion-content .chip-text {
+  color: #fa8c16;
+  font-weight: 500;
+}
+
+/* 历史记录文本样式 */
+.history-content .chip-text {
+  color: #666666;
+}
+
+/* 删除按钮 */
+.delete-btn {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: rgba(200, 201, 204, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8rpx;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+  background: rgba(200, 201, 204, 0.2);
+}
+
+.delete-btn:active {
+  transform: scale(0.9);
+  background: rgba(200, 201, 204, 0.3);
+}
+
+/* 响应式适配 */
+@media (max-width: 375px) {
+  .ai-chips-container {
+    gap: 8rpx;
+  }
+  
+  .chip-content {
+    padding: 10rpx 16rpx;
+    min-height: 44rpx;
+  }
+  
+  .chip-text {
+    font-size: 24rpx;
+  }
+  
+  .delete-btn {
+    width: 28rpx;
+    height: 28rpx;
+  }
+}
+
+/* 动画效果 */
+.chip-item {
+  animation: chipFadeIn 0.3s ease-out;
+}
+
+@keyframes chipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10rpx) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 特殊主题 */
+.chip-item.hot {
+  position: relative;
+  overflow: hidden;
+}
+
+.chip-item.hot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 20rpx 20rpx 0;
+  border-color: transparent #ff4757 transparent transparent;
+}
+
+.chip-item.new {
+  position: relative;
+}
+
+.chip-item.new::after {
+  content: 'NEW';
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: #52c41a;
+  color: white;
+  font-size: 18rpx;
+  padding: 2rpx 6rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .suggestion-chip {
+    background: linear-gradient(135deg, #2d2519 0%, #3d3119 100%);
+    border-color: #4d4129;
+  }
+  
+  .suggestion-chip:hover {
+    background: linear-gradient(135deg, #3d3119 0%, #4d4129 100%);
+    border-color: #5d5139;
+  }
+  
+  .history-chip {
+    background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+    border-color: #4a4a4a;
+  }
+  
+  .history-chip:hover {
+    background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+    border-color: #5a5a5a;
+  }
+  
+  .suggestion-content .chip-text {
+    color: #ffa726;
+  }
+  
+  .history-content .chip-text {
+    color: #cccccc;
+  }
+  
+  .delete-btn {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .delete-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}

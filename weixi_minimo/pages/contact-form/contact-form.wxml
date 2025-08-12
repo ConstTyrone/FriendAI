@@ -1,0 +1,310 @@
+<!--联系人表单页面-->
+<view class="form-page">
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 表单内容 -->
+  <view class="form-content" wx:if="{{!loading}}">
+    <!-- 基本信息 -->
+    <view class="form-section">
+      <text class="section-title">基本信息</text>
+      
+      <view class="form-group">
+        <!-- 姓名 -->
+        <view class="form-item">
+          <text class="form-label required">姓名</text>
+          <input
+            class="form-input {{formErrors.name ? 'error' : ''}}"
+            value="{{formData.name}}"
+            placeholder="请输入联系人姓名"
+            bindinput="onFieldChange"
+            data-field="name"
+          />
+        </view>
+        <text class="error-message" wx:if="{{formErrors.name}}">{{formErrors.name}}</text>
+        
+        <!-- 性别和年龄（并排） -->
+        <view style="display: flex; gap: 10px;">
+          <!-- 性别 -->
+          <view class="form-item" style="flex: 1;">
+            <text class="form-label">性别</text>
+            <picker bindchange="onPickerChange" data-field="gender" value="{{genderIndex}}" range="{{genderOptions}}">
+              <view class="picker-input">
+                {{formData.gender || '请选择'}}
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+          
+          <!-- 年龄 -->
+          <view class="form-item" style="flex: 1;">
+            <text class="form-label">年龄</text>
+            <input
+              class="form-input"
+              value="{{formData.age}}"
+              placeholder="请输入年龄"
+              bindinput="onFieldChange"
+              data-field="age"
+            />
+          </view>
+        </view>
+        
+        <!-- 手机号 -->
+        <view class="form-item">
+          <text class="form-label">手机号</text>
+          <input
+            class="form-input {{formErrors.phone ? 'error' : ''}}"
+            value="{{formData.phone}}"
+            type="number"
+            placeholder="请输入手机号码"
+            bindinput="onFieldChange"
+            data-field="phone"
+          />
+        </view>
+        <text class="error-message" wx:if="{{formErrors.phone}}">{{formErrors.phone}}</text>
+        
+        <!-- 微信号 -->
+        <view class="form-item">
+          <text class="form-label">微信号</text>
+          <input
+            class="form-input {{formErrors.wechat_id ? 'error' : ''}}"
+            value="{{formData.wechat_id}}"
+            placeholder="请输入微信号"
+            bindinput="onFieldChange"
+            data-field="wechat_id"
+          />
+        </view>
+        <text class="error-message" wx:if="{{formErrors.wechat_id}}">{{formErrors.wechat_id}}</text>
+        
+        <!-- 邮箱 -->
+        <view class="form-item">
+          <text class="form-label">邮箱</text>
+          <input
+            class="form-input {{formErrors.email ? 'error' : ''}}"
+            value="{{formData.email}}"
+            placeholder="请输入邮箱地址"
+            bindinput="onFieldChange"
+            data-field="email"
+          />
+        </view>
+        <text class="error-message" wx:if="{{formErrors.email}}">{{formErrors.email}}</text>
+      </view>
+    </view>
+    
+    <!-- 个人信息 -->
+    <view class="form-section">
+      <text class="section-title">个人信息</text>
+      
+      <view class="form-group">
+        <!-- 婚育状况 -->
+        <view class="form-item">
+          <text class="form-label">婚育状况</text>
+          <picker bindchange="onPickerChange" data-field="marital_status" value="{{maritalIndex}}" range="{{maritalOptions}}">
+            <view class="picker-input">
+              {{formData.marital_status || '请选择'}}
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        
+        <!-- 学历 -->
+        <view class="form-item">
+          <text class="form-label">学历</text>
+          <input
+            class="form-input"
+            value="{{formData.education}}"
+            placeholder="请输入学历（如：本科-北京大学）"
+            bindinput="onFieldChange"
+            data-field="education"
+          />
+        </view>
+        
+        <!-- 资产水平 -->
+        <view class="form-item">
+          <text class="form-label">资产水平</text>
+          <picker bindchange="onPickerChange" data-field="asset_level" value="{{assetIndex}}" range="{{assetOptions}}">
+            <view class="picker-input">
+              {{formData.asset_level || '请选择'}}
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        
+        <!-- 性格特征 -->
+        <view class="form-item">
+          <text class="form-label">性格特征</text>
+          <input
+            class="form-input"
+            value="{{formData.personality}}"
+            placeholder="请输入性格特征（如：外向开朗）"
+            bindinput="onFieldChange"
+            data-field="personality"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 工作信息 -->
+    <view class="form-section">
+      <text class="section-title">工作信息</text>
+      
+      <view class="form-group">
+        <!-- 公司 -->
+        <view class="form-item">
+          <text class="form-label">公司</text>
+          <input
+            class="form-input"
+            value="{{formData.company}}"
+            placeholder="请输入所在公司"
+            bindinput="onFieldChange"
+            data-field="company"
+          />
+        </view>
+        
+        <!-- 职位 -->
+        <view class="form-item">
+          <text class="form-label">职位</text>
+          <input
+            class="form-input"
+            value="{{formData.position}}"
+            placeholder="请输入职位"
+            bindinput="onFieldChange"
+            data-field="position"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 其他信息 -->
+    <view class="form-section">
+      <text class="section-title">其他信息</text>
+      
+      <view class="form-group">
+        <!-- 地址 -->
+        <view class="form-item">
+          <text class="form-label">地址</text>
+          <input
+            class="form-input"
+            value="{{formData.address}}"
+            placeholder="请输入地址"
+            bindinput="onFieldChange"
+            data-field="address"
+          />
+        </view>
+      </view>
+    </view>
+
+    <!-- 标签管理 -->
+    <view class="form-section">
+      <view class="section-header">
+        <text class="section-title">标签</text>
+        <view class="add-tag-button" bindtap="onAddTag">
+          <text class="button-text">添加</text>
+        </view>
+      </view>
+      
+      <!-- 标签列表 -->
+      <view class="tags-container" wx:if="{{formData.tags.length > 0}}">
+        <view 
+          wx:for="{{formData.tags}}"
+          wx:key="index"
+          class="tag-item"
+        >
+          <text class="tag-text">{{item}}</text>
+          <view class="tag-close" bindtap="onDeleteTag" data-index="{{index}}">
+            <text class="close-text">×</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 空状态 -->
+      <view class="empty-tags" wx:if="{{formData.tags.length === 0}}">
+        <text class="empty-text">暂无标签，点击添加按钮创建标签</text>
+      </view>
+      
+      <!-- 标签输入 -->
+      <view class="tag-input-container" wx:if="{{showTagInput}}">
+        <input
+          class="tag-input"
+          value="{{tagInputValue}}"
+          placeholder="请输入标签名称"
+          bindinput="onTagInputChange"
+          focus="{{showTagInput}}"
+        />
+        <view class="tag-input-actions">
+          <view class="input-button cancel" bindtap="onCancelAddTag">
+            <text class="button-text">取消</text>
+          </view>
+          <view 
+            class="input-button confirm {{!tagInputValue.trim() ? 'disabled' : ''}}" 
+            bindtap="onConfirmAddTag"
+          >
+            <text class="button-text">确定</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 备注信息 -->
+    <view class="form-section">
+      <text class="section-title">备注</text>
+      
+      <view class="textarea-container">
+        <textarea
+          class="form-textarea"
+          value="{{formData.notes}}"
+          placeholder="请输入备注信息..."
+          maxlength="500"
+          bindinput="onFieldChange"
+          data-field="notes"
+        />
+        <text class="char-count">{{formData.notes.length}}/500</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar" wx:if="{{!loading}}">
+    <view 
+      class="bar-button {{saving ? 'disabled' : ''}}" 
+      bindtap="onClearForm"
+      wx:if="{{mode === 'add'}}"
+    >
+      <text class="bar-text">清空</text>
+    </view>
+    
+    <view 
+      class="bar-button {{saving ? 'disabled' : ''}}" 
+      bindtap="onCancel"
+    >
+      <text class="bar-text">取消</text>
+    </view>
+    
+    <view 
+      class="bar-button primary {{saving ? 'disabled' : ''}}" 
+      bindtap="onSave"
+    >
+      <text class="bar-text">{{mode === 'edit' ? '保存' : '创建'}}</text>
+      <view class="saving-spinner" wx:if="{{saving}}"></view>
+    </view>
+  </view>
+
+  <!-- 取消确认对话框 -->
+  <view class="confirm-overlay {{showCancelDialog ? 'show' : ''}}" bindtap="onCancelCancel">
+    <view class="confirm-dialog" catchtap="onStopPropagation">
+      <text class="confirm-title">确认取消</text>
+      <text class="confirm-message">{{mode === 'edit' ? '取消编辑后，所有修改将丢失。确定要取消吗？' : '取消创建后，所有输入将丢失。确定要取消吗？'}}</text>
+      <view class="confirm-actions">
+        <view class="confirm-button cancel" bindtap="onCancelCancel">
+          <text class="button-text">继续编辑</text>
+        </view>
+        <view class="confirm-button confirm" bindtap="onConfirmCancel">
+          <text class="button-text">确定</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

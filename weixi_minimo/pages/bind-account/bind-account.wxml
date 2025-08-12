@@ -1,0 +1,168 @@
+<!-- pages/bind-account/bind-account.wxml -->
+<view class="bind-container">
+  <!-- 头部导航 -->
+  <t-navbar title="绑定企业微信" left-arrow bind:go-back="onBack" />
+
+  <!-- 主体内容 -->
+  <view class="bind-content">
+    <!-- 绑定说明（仅在非自动模式显示） -->
+    <view class="bind-header" wx:if="{{bindStatus === 'pending'}}">
+      <t-icon name="link" size="80rpx" color="#0052d9" />
+      <view class="bind-title">连接企业微信</view>
+      <view class="bind-desc">
+        为了获取您的联系人信息，需要先连接您的企业微信账号
+      </view>
+    </view>
+
+    <!-- 检查中状态 -->
+    <view class="bind-checking" wx:if="{{bindStatus === 'checking'}}">
+      <t-loading theme="circular" size="80rpx" loading />
+      <view class="checking-title">正在确认绑定状态</view>
+      <view class="checking-desc">
+        请在企业微信客服中发送验证码
+      </view>
+      
+      <!-- 显示验证码 -->
+      <view class="verify-code-display" wx:if="{{verifyCode || bindToken}}">
+        <view class="code-label">请在企微客服中发送验证码：</view>
+        <view class="code-value">{{verifyCode || bindToken}}</view>
+        <t-button 
+          theme="light" 
+          size="small"
+          bind:tap="copyVerifyCode"
+        >
+          复制验证码
+        </t-button>
+      </view>
+      
+      <view class="checking-progress">
+        检查进度：{{checkCount}}/{{maxCheckCount}}
+      </view>
+      
+      <!-- 手动刷新按钮 -->
+      <view class="refresh-section">
+        <t-button 
+          theme="light" 
+          size="medium"
+          icon="refresh"
+          bind:tap="onRefreshStatus"
+          loading="{{loading}}"
+        >
+          手动刷新状态
+        </t-button>
+      </view>
+    </view>
+
+    <!-- 绑定成功 -->
+    <view class="bind-success" wx:if="{{bindStatus === 'bound'}}">
+      <t-icon name="check-circle-filled" size="80rpx" color="#00a870" />
+      <view class="success-title">绑定成功</view>
+      <view class="success-desc">
+        企业微信账号绑定成功，即将返回设置页面...
+      </view>
+    </view>
+
+    <!-- 绑定失败 -->
+    <view class="bind-failed" wx:if="{{bindStatus === 'failed'}}">
+      <t-icon name="close-circle-filled" size="80rpx" color="#e34d59" />
+      <view class="failed-title">绑定失败</view>
+      <view class="failed-desc" wx:if="{{errorMessage}}">
+        {{errorMessage}}
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="bind-actions">
+      <!-- 开始绑定按钮 -->
+      <t-button 
+        wx:if="{{bindStatus === 'pending'}}"
+        theme="primary" 
+        size="large"
+        block
+        bind:tap="startBinding"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+      >
+        开始绑定
+      </t-button>
+
+      <!-- 重试按钮 -->
+      <t-button 
+        wx:if="{{showRetry}}"
+        theme="primary" 
+        size="large"
+        block
+        bind:tap="onRetry"
+      >
+        重新绑定
+      </t-button>
+
+      <!-- 返回按钮 -->
+      <t-button 
+        wx:if="{{bindStatus === 'failed' || bindStatus === 'bound'}}"
+        theme="light" 
+        size="large"
+        block
+        bind:tap="onBack"
+        style="margin-top: 20rpx;"
+      >
+        返回设置
+      </t-button>
+    </view>
+
+    <!-- 帮助信息 -->
+    <view class="bind-help">
+      <view class="help-title">绑定流程说明：</view>
+      <view class="help-item">
+        <text class="help-num">1.</text>
+        <text class="help-text">记住或复制验证码</text>
+      </view>
+      <view class="help-item">
+        <text class="help-num">2.</text>
+        <text class="help-text">复制链接在浏览器中打开</text>
+      </view>
+      <view class="help-item">
+        <text class="help-num">3.</text>
+        <text class="help-text">在企微客服对话中发送验证码</text>
+      </view>
+      <view class="help-item">
+        <text class="help-num">4.</text>
+        <text class="help-text">返回小程序查看绑定状态</text>
+      </view>
+    </view>
+    
+    <!-- 快捷操作区 -->
+    <view class="quick-actions" wx:if="{{bindStatus === 'checking'}}">
+      <t-button 
+        theme="light" 
+        size="medium"
+        icon="link"
+        bind:tap="onCopyUrl"
+        block
+      >
+        复制企微链接
+      </t-button>
+      
+      <t-button 
+        theme="light" 
+        size="medium"
+        icon="copy"
+        bind:tap="copyVerifyCode"
+        block
+        style="margin-top: 20rpx;"
+      >
+        复制验证码
+      </t-button>
+    </view>
+
+    <!-- 调试信息（开发环境显示） -->
+    <view class="debug-info" wx:if="{{false}}">
+      <view class="debug-item">Token: {{bindToken}}</view>
+      <view class="debug-item">OpenID: {{openid}}</view>
+      <view class="debug-item">CorpID: {{corpId}}</view>
+      <view class="debug-item" bind:tap="onCopyKfId">
+        KfID: {{kfId}} <text class="copy-hint">[点击复制]</text>
+      </view>
+    </view>
+  </view>
+</view>

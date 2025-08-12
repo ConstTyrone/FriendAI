@@ -1,0 +1,218 @@
+/* pages/bind-account/bind-account.wxss */
+.bind-container {
+  min-height: 100vh;
+  background-color: #f7f8fa;
+}
+
+.bind-content {
+  padding: 40rpx 32rpx;
+}
+
+/* 绑定头部 */
+.bind-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+  background: white;
+  border-radius: 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.bind-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #262626;
+  margin-top: 24rpx;
+}
+
+.bind-desc {
+  font-size: 28rpx;
+  color: #8b8b8b;
+  margin-top: 16rpx;
+  padding: 0 40rpx;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 检查中状态 */
+.bind-checking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 40rpx;
+  background: white;
+  border-radius: 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.checking-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #262626;
+  margin-top: 32rpx;
+}
+
+.checking-desc {
+  font-size: 28rpx;
+  color: #8b8b8b;
+  margin-top: 16rpx;
+  text-align: center;
+}
+
+.checking-progress {
+  font-size: 24rpx;
+  color: #0052d9;
+  margin-top: 24rpx;
+  padding: 8rpx 20rpx;
+  background: #ecf2fe;
+  border-radius: 20rpx;
+}
+
+.refresh-section {
+  margin-top: 40rpx;
+  width: 100%;
+}
+
+/* 验证码显示 */
+.verify-code-display {
+  margin: 32rpx 0;
+  padding: 24rpx;
+  background: #f0f7ff;
+  border-radius: 16rpx;
+  text-align: center;
+}
+
+.code-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.code-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #0052d9;
+  letter-spacing: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 成功状态 */
+.bind-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 40rpx;
+  background: white;
+  border-radius: 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.success-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #00a870;
+  margin-top: 24rpx;
+}
+
+.success-desc {
+  font-size: 28rpx;
+  color: #8b8b8b;
+  margin-top: 16rpx;
+}
+
+/* 失败状态 */
+.bind-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 40rpx;
+  background: white;
+  border-radius: 24rpx;
+  margin-bottom: 32rpx;
+}
+
+.failed-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #e34d59;
+  margin-top: 24rpx;
+}
+
+.failed-desc {
+  font-size: 28rpx;
+  color: #8b8b8b;
+  margin-top: 16rpx;
+  text-align: center;
+  padding: 0 20rpx;
+}
+
+/* 操作按钮 */
+.bind-actions {
+  margin-top: 40rpx;
+}
+
+/* 帮助信息 */
+.bind-help {
+  margin-top: 60rpx;
+  padding: 32rpx;
+  background: white;
+  border-radius: 24rpx;
+}
+
+.help-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #262626;
+  margin-bottom: 24rpx;
+}
+
+.help-item {
+  display: flex;
+  margin-bottom: 20rpx;
+}
+
+.help-num {
+  font-size: 28rpx;
+  color: #0052d9;
+  font-weight: 500;
+  margin-right: 16rpx;
+  min-width: 30rpx;
+}
+
+.help-text {
+  font-size: 28rpx;
+  color: #595959;
+  flex: 1;
+  line-height: 1.5;
+}
+
+/* 调试信息 */
+.debug-info {
+  margin-top: 40rpx;
+  padding: 24rpx;
+  background: #f0f0f0;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.debug-item {
+  margin-bottom: 12rpx;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.copy-hint {
+  color: #0052d9;
+  text-decoration: underline;
+  margin-left: 8rpx;
+}
+
+/* 快捷操作区 */
+.quick-actions {
+  margin-top: 32rpx;
+  padding: 32rpx;
+  background: white;
+  border-radius: 24rpx;
+}

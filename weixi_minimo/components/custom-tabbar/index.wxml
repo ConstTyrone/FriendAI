@@ -1,0 +1,17 @@
+<view class="custom-tabbar">
+  <view class="tabbar-container">
+    <view 
+      class="tab-item {{item.key === current ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      data-path="{{item.path}}"
+      bindtap="onTabTap"
+    >
+      <view class="tab-icon">
+        <t-icon name="{{item.icon}}" size="42rpx" color="{{item.key === current ? '#1890ff' : '#999999'}}" />
+      </view>
+      <view class="tab-text">{{item.text}}</view>
+    </view>
+  </view>
+</view>

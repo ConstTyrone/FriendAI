@@ -1,0 +1,26 @@
+<!--AI建议词组件-->
+<view class="ai-chips-container">
+  <view 
+    wx:for="{{chips}}" 
+    wx:key="index"
+    class="chip-item {{type === 'suggestion' ? 'suggestion-chip' : 'history-chip'}}"
+    bind:tap="onChipTap"
+    data-chip="{{item}}"
+    data-index="{{index}}"
+  >
+    <!-- 建议词样式 -->
+    <view wx:if="{{type === 'suggestion'}}" class="chip-content suggestion-content">
+      <t-icon name="lightbulb" size="16rpx" color="#faad14" />
+      <text class="chip-text">{{item}}</text>
+    </view>
+    
+    <!-- 历史记录样式 -->
+    <view wx:else class="chip-content history-content">
+      <t-icon name="time" size="16rpx" color="#909399" />
+      <text class="chip-text">{{item}}</text>
+      <view class="delete-btn" bind:tap="onDeleteChip" data-index="{{index}}" catch:tap="onStopPropagation">
+        <t-icon name="close" size="16rpx" color="#c8c9cc" />
+      </view>
+    </view>
+  </view>
+</view>

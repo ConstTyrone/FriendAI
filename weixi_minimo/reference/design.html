@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社交关系管理 - 微信小程序</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 微信小程序容器 */
+        .miniprogram-container {
+            max-width: 375px;
+            margin: 0 auto;
+            background: #fff;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 导航栏 */
+        .nav-bar {
+            background: #fff;
+            padding: 44px 16px 12px 16px;
+            border-bottom: 1px solid #e5e5e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000;
+            text-align: center;
+        }
+
+        /* 页面内容 */
+        .page {
+            display: none;
+            min-height: calc(100vh - 100px);
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* 联系人详情页 */
+        .contact-detail {
+            padding: 20px 16px;
+        }
+
+        .contact-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .contact-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .contact-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .contact-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .tag {
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .contact-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-content {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 联系人列表页 */
+        .contact-list {
+            padding: 16px;
+        }
+
+        .search-bar {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: #999;
+        }
+
+        .contact-item {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .contact-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .contact-item-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .contact-item-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #ffa726);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .contact-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .contact-item-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .contact-item-tags .tag {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            padding: 2px 8px;
+            font-size: 11px;
+        }
+
+        /* AI搜索页 */
+        .ai-search {
+            padding: 16px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-search-bar {
+            background: #fff;
+            border-radius: 24px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-search-input {
+            flex: 1;
+            border: none;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .ai-search-input::placeholder {
+            color: #999;
+        }
+
+        .ai-search-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .search-suggestions {
+            margin-bottom: 20px;
+        }
+
+        .suggestions-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            background: #f0f4ff;
+            color: #5a67d8;
+            border: 1px solid #e0e7ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            background: #5a67d8;
+            color: white;
+        }
+
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .results-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        /* 底部导航 */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 375px;
+            background: #fff;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            padding: 8px 0 24px 0;
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-item.active {
+            color: #5a67d8;
+        }
+
+        .tab-icon {
+            width: 24px;
+            height: 24px;
+            font-size: 20px;
+        }
+
+        .tab-label {
+            font-size: 11px;
+        }
+
+        /* 添加按钮 */
+        .add-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 90;
+        }
+
+        .add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 375px) {
+            .miniprogram-container {
+                max-width: 100%;
+            }
+        }
+
+        /* 动画效果 */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="miniprogram-container">
+        <!-- 导航栏 -->
+        <div class="nav-bar">
+            <div class="nav-title">社交关系</div>
+        </div>
+
+        <!-- 联系人详情页 -->
+        <div class="page active" id="contact-detail">
+            <div class="contact-detail">
+                <div class="contact-header">
+                    <div class="contact-avatar">王</div>
+                    <div class="contact-name">王梓炜</div>
+                    <div class="contact-tags">
+                        <span class="tag">35岁</span>
+                        <span class="tag">上海</span>
+                        <span class="tag">已婚</span>
+                        <span class="tag">30w+</span>
+                        <span class="tag">房主</span>
+                        <span class="tag">升职人员</span>
+                    </div>
+                </div>
+
+                <div class="contact-info">
+                    <div class="info-title">
+                        <span>👤</span>
+                        用户画像
+                    </div>
+                    <div class="info-content">
+                        都市新中产宝妈，35岁，上海浦东人，上海交通大学汉口家庭年收80w，个人年收入30w，夜间22-24点刷小红书，痛点是到处搬家但无资产配置，且需房贷1-3天。
+                    </div>
+                </div>
+
+                <div class="contact-info">
+                    <div class="info-title">
+                        <span>🏷️</span>
+                        标签管理
+                    </div>
+                    <div class="contact-tags">
+                        <span class="tag">VIP客户</span>
+                        <span class="tag">高净值</span>
+                        <span class="tag">理财意向</span>
+                        <span class="tag">投资经验丰富</span>
+                    </div>
+                </div>
+
+                <div class="contact-info">
+                    <div class="info-title">
+                        <span>💬</span>
+                        最近互动
+                    </div>
+                    <div class="info-content">
+                        上次联系：2024年7月15日<br>
+                        互动内容：讨论了理财产品推荐<br>
+                        下次跟进：2024年8月1日
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 联系人列表页 -->
+        <div class="page" id="contact-list">
+            <div class="contact-list">
+                <div class="search-bar">
+                    <span>🔍</span>
+                    <input type="text" class="search-input" placeholder="搜索联系人">
+                </div>
+
+                <div class="contact-item" onclick="showContactDetail()">
+                    <div class="contact-item-header">
+                        <div class="contact-item-avatar">王</div>
+                        <div class="contact-item-name">王梓炜</div>
+                    </div>
+                    <div class="contact-item-tags">
+                        <span class="tag">35岁</span>
+                        <span class="tag">上海</span>
+                        <span class="tag">已婚</span>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-item-header">
+                        <div class="contact-item-avatar" style="background: linear-gradient(45deg, #4ecdc4, #44a08d);">李</div>
+                        <div class="contact-item-name">李思琪</div>
+                    </div>
+                    <div class="contact-item-tags">
+                        <span class="tag">28岁</span>
+                        <span class="tag">北京</span>
+                        <span class="tag">单身</span>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-item-header">
+                        <div class="contact-item-avatar" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">张</div>
+                        <div class="contact-item-name">张明华</div>
+                    </div>
+                    <div class="contact-item-tags">
+                        <span class="tag">42岁</span>
+                        <span class="tag">深圳</span>
+                        <span class="tag">企业主</span>
+                    </div>
+                </div>
+
+                <div class="contact-item">
+                    <div class="contact-item-header">
+                        <div class="contact-item-avatar" style="background: linear-gradient(45deg, #ffecd2, #fcb69f);">陈</div>
+                        <div class="contact-item-name">陈雅娟</div>
+                    </div>
+                    <div class="contact-item-tags">
+                        <span class="tag">31岁</span>
+                        <span class="tag">杭州</span>
+                        <span class="tag">高管</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI搜索页 -->
+        <div class="page" id="ai-search">
+            <div class="ai-search">
+                <div class="ai-search-bar">
+                    <span>🤖</span>
+                    <input type="text" class="ai-search-input" placeholder="智能搜索，比如：帮我找上海的高净值客户">
+                    <button class="ai-search-btn">搜索</button>
+                </div>
+
+                <div class="search-suggestions">
+                    <div class="suggestions-title">💡 智能建议</div>
+                    <div class="suggestion-chips">
+                        <div class="suggestion-chip">最近联系的VIP客户</div>
+                        <div class="suggestion-chip">上海地区的潜在客户</div>
+                        <div class="suggestion-chip">需要跟进的重要联系人</div>
+                        <div class="suggestion-chip">高净值未婚人群</div>
+                        <div class="suggestion-chip">有投资意向的客户</div>
+                    </div>
+                </div>
+
+                <div class="search-results">
+                    <div class="results-title">🎯 搜索结果</div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-item-header">
+                            <div class="contact-item-avatar">王</div>
+                            <div class="contact-item-name">王梓炜</div>
+                        </div>
+                        <div class="contact-item-tags">
+                            <span class="tag">匹配：上海</span>
+                            <span class="tag">匹配：高净值</span>
+                            <span class="tag">35岁</span>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-item-header">
+                            <div class="contact-item-avatar" style="background: linear-gradient(45deg, #a8edea, #fed6e3);">张</div>
+                            <div class="contact-item-name">张明华</div>
+                        </div>
+                        <div class="contact-item-tags">
+                            <span class="tag">匹配：企业主</span>
+                            <span class="tag">匹配：高净值</span>
+                            <span class="tag">42岁</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加按钮 -->
+        <button class="add-btn" onclick="showAddContact()">+</button>
+
+        <!-- 底部导航 -->
+        <div class="tab-bar">
+            <div class="tab-item active" onclick="switchTab('contact-list')">
+                <div class="tab-icon">👥</div>
+                <div class="tab-label">联系人</div>
+            </div>
+            <div class="tab-item" onclick="switchTab('ai-search')">
+                <div class="tab-icon">🤖</div>
+                <div class="tab-label">AI搜索</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换功能
+        function switchTab(pageId) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 显示目标页面
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById(pageId).classList.add('fade-in');
+            
+            // 更新导航状态
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // 更新导航标题
+            const titles = {
+                'contact-list': '联系人',
+                'ai-search': 'AI搜索',
+                'contact-detail': '联系人详情'
+            };
+            document.querySelector('.nav-title').textContent = titles[pageId] || '社交关系';
+        }
+
+        // 显示联系人详情
+        function showContactDetail() {
+            switchTabById('contact-detail');
+        }
+
+        function switchTabById(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById(pageId).classList.add('fade-in');
+        }
+
+        // 添加联系人
+        function showAddContact() {
+            // 这里可以实现添加联系人的弹窗或跳转
+            alert('添加联系人功能');
+        }
+
+        // 搜索建议点击事件
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                document.querySelector('.ai-search-input').value = this.textContent;
+                // 这里可以触发搜索
+                console.log('搜索:', this.textContent);
+            });
+        });
+
+        // AI搜索功能
+        document.querySelector('.ai-search-btn').addEventListener('click', function() {
+            const query = document.querySelector('.ai-search-input').value;
+            if (query.trim()) {
+                console.log('AI搜索:', query);
+                // 这里实现AI搜索逻辑
+            }
+        });
+
+        // 搜索框回车事件
+        document.querySelector('.ai-search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.querySelector('.ai-search-btn').click();
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认显示联系人列表页
+            switchTabById('contact-list');
+        });
+    </script>
+</body>
+</html>

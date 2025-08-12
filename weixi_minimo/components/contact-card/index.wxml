@@ -1,0 +1,86 @@
+<!--联系人卡片组件-->
+<view 
+  class="contact-card {{highlight ? 'highlight' : ''}}" 
+  bind:tap="onCardTap"
+  bind:longpress="onCardLongPress"
+>
+  <!-- 卡片头部 -->
+  <view class="card-header">
+    <!-- 头像 -->
+    <view 
+      class="card-avatar"
+      style="background-color: {{contact.avatarColor || '#667eea'}}"
+    >
+      <text class="card-avatar-text">{{contact.initial || '?'}}</text>
+    </view>
+    
+    <!-- 基本信息 -->
+    <view class="contact-info">
+      <view class="contact-name">
+        <text class="name-text">{{contact.displayName || contact.profile_name || '未知联系人'}}</text>
+        <t-icon 
+          wx:if="{{contact.confidence_score >= 0.8}}" 
+          name="check-circle-filled" 
+          size="20rpx" 
+          color="#52c41a"
+          class="verified-icon"
+        />
+      </view>
+      
+      <view class="contact-company" wx:if="{{contact.company || contact.position}}">
+        <text class="company-text">
+          {{contact.company}}{{contact.company && contact.position ? ' · ' : ''}}{{contact.position}}
+        </text>
+      </view>
+      
+      <view class="contact-location" wx:if="{{contact.location}}">
+        <t-icon name="location" size="20rpx" color="#909399" />
+        <text class="location-text">{{contact.location}}</text>
+      </view>
+    </view>
+    
+    <!-- 置信度指示器 -->
+    <view class="confidence-indicator" wx:if="{{contact.confidence_score}}">
+      <view class="confidence-circle {{getConfidenceLevel(contact.confidence_score)}}">
+        <text class="confidence-text">{{formatConfidence(contact.confidence_score)}}</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 标签区域 -->
+  <view class="card-tags" wx:if="{{contact.formattedTags && contact.formattedTags.length > 0}}">
+    <view
+      wx:for="{{contact.formattedTags}}"
+      wx:key="index"
+      class="contact-tag tag-{{getTagType(item)}}"
+    >
+      {{item}}
+    </view>
+  </view>
+  
+  <!-- AI摘要 -->
+  <view class="card-summary" wx:if="{{contact.ai_summary && showSummary}}">
+    <text class="summary-text">{{contact.ai_summary}}</text>
+  </view>
+  
+  <!-- 最后更新时间 -->
+  <view class="card-footer">
+    <view class="update-time" wx:if="{{contact.updated_at}}">
+      <t-icon name="time" size="20rpx" color="#c8c9cc" />
+      <text class="time-text">{{formatRelativeTime(contact.updated_at)}}</text>
+    </view>
+    
+    <!-- 操作按钮 -->
+    <view class="card-actions" wx:if="{{showActions}}">
+      <view class="action-btn" bind:tap="onViewDetail">
+        <t-icon name="user" size="20rpx" color="#1890ff" />
+      </view>
+      <view class="action-btn" bind:tap="onEditContact">
+        <t-icon name="edit" size="20rpx" color="#52c41a" />
+      </view>
+      <view class="action-btn" bind:tap="onDeleteContact">
+        <t-icon name="delete" size="20rpx" color="#ff4d4f" />
+      </view>
+    </view>
+  </view>
+</view>

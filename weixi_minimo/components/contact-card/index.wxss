@@ -1,0 +1,336 @@
+/* 联系人卡片组件样式 */
+.contact-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  border: 1rpx solid #f0f0f0;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-card:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+.contact-card.highlight {
+  border-color: #1890ff;
+  box-shadow: 0 4rpx 16rpx rgba(24, 144, 255, 0.15);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+/* 头像样式 */
+.card-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.card-avatar-text {
+  color: #ffffff;
+  font-size: 24rpx;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+/* 联系人信息 */
+.contact-info {
+  flex: 1;
+  margin-left: 20rpx;
+  min-width: 0;
+}
+
+.contact-name {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.name-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  line-height: 1.2;
+  margin-right: 8rpx;
+}
+
+.verified-icon {
+  flex-shrink: 0;
+}
+
+.contact-company {
+  margin-bottom: 6rpx;
+}
+
+.company-text {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.3;
+}
+
+.contact-location {
+  display: flex;
+  align-items: center;
+}
+
+.location-text {
+  font-size: 24rpx;
+  color: #909399;
+  margin-left: 4rpx;
+}
+
+/* 置信度指示器 */
+.confidence-indicator {
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.confidence-circle {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.confidence-circle.high {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+}
+
+.confidence-circle.medium {
+  background: linear-gradient(135deg, #faad14, #ffc53d);
+}
+
+.confidence-circle.low {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+}
+
+.confidence-text {
+  font-size: 20rpx;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 标签区域 */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.contact-tag {
+  font-size: 22rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+  background-color: #f0f2f5;
+  color: #606266;
+  border: none;
+  font-weight: 400;
+  display: inline-block;
+}
+
+/* 不同类型标签的颜色 */
+.tag-gender {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.tag-age {
+  background-color: #f6ffed;
+  color: #52c41a;
+}
+
+.tag-location {
+  background-color: #fff1f0;
+  color: #ff4d4f;
+}
+
+.tag-marital {
+  background-color: #f9f0ff;
+  color: #722ed1;
+}
+
+.tag-asset {
+  background-color: #fffbe6;
+  color: #faad14;
+}
+
+.tag-position {
+  background-color: #e6fffb;
+  color: #13c2c2;
+}
+
+/* AI摘要 */
+.card-summary {
+  margin-bottom: 16rpx;
+  padding: 16rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border-left: 4rpx solid #1890ff;
+}
+
+.summary-text {
+  font-size: 26rpx;
+  color: #666666;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.update-time {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.time-text {
+  font-size: 22rpx;
+  color: #c8c9cc;
+  margin-left: 4rpx;
+}
+
+/* 操作按钮 */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.action-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  background: #e8e8e8;
+}
+
+/* 高亮搜索关键词 */
+.highlight-keyword {
+  background: #fff2e8;
+  color: #fa8c16;
+  padding: 0 4rpx;
+  border-radius: 4rpx;
+}
+
+/* 加载态骨架 */
+.contact-card.skeleton {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.contact-card.skeleton .name-text,
+.contact-card.skeleton .company-text,
+.contact-card.skeleton .location-text {
+  background: #f0f0f0;
+  color: transparent;
+  border-radius: 4rpx;
+}
+
+@keyframes skeleton-loading {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* 响应式适配 */
+@media (max-width: 375px) {
+  .contact-card {
+    padding: 20rpx;
+    margin-bottom: 12rpx;
+  }
+  
+  .name-text {
+    font-size: 30rpx;
+  }
+  
+  .company-text {
+    font-size: 26rpx;
+  }
+  
+  .confidence-circle {
+    width: 44rpx;
+    height: 44rpx;
+  }
+  
+  .confidence-text {
+    font-size: 18rpx;
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .contact-card {
+    background: #2d2d2d;
+    border-color: #3a3a3a;
+  }
+  
+  .name-text {
+    color: #ffffff;
+  }
+  
+  .company-text {
+    color: #cccccc;
+  }
+  
+  .location-text {
+    color: #999999;
+  }
+  
+  .card-summary {
+    background: #3a3a3a;
+  }
+  
+  .summary-text {
+    color: #cccccc;
+  }
+  
+  .time-text {
+    color: #999999;
+  }
+  
+  .action-btn {
+    background: #3a3a3a;
+  }
+  
+  .action-btn:active {
+    background: #4a4a4a;
+  }
+}
