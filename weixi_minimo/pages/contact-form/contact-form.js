@@ -206,13 +206,20 @@ Page({
    * 添加标签
    */
   onAddTag() {
-    this.setData({ showTagInput: true });
+    console.log('点击添加标签按钮');
+    console.log('当前showTagInput状态:', this.data.showTagInput);
+    this.setData({ 
+      showTagInput: true,
+      tagInputValue: '' // 清空之前的输入
+    });
+    console.log('设置后showTagInput状态:', true);
   },
 
   /**
    * 标签输入变化
    */
   onTagInputChange(event) {
+    console.log('标签输入变化:', event.detail.value);
     this.setData({
       tagInputValue: event.detail.value
     });
@@ -249,7 +256,11 @@ Page({
    * 确认添加标签
    */
   onConfirmAddTag() {
+    console.log('确认添加标签被调用');
+    console.log('当前输入值:', this.data.tagInputValue);
+    
     const tagValue = this.data.tagInputValue.trim();
+    console.log('处理后的标签值:', tagValue);
     
     if (!tagValue) {
       wx.showToast({
@@ -260,6 +271,7 @@ Page({
     }
     
     const currentTags = this.data.formData.tags;
+    console.log('当前标签列表:', currentTags);
     
     // 检查标签是否已存在
     if (currentTags.includes(tagValue)) {
@@ -272,6 +284,7 @@ Page({
     
     // 添加标签
     const newTags = [...currentTags, tagValue];
+    console.log('新标签列表:', newTags);
     
     this.setData({
       'formData.tags': newTags,
@@ -279,7 +292,13 @@ Page({
       showTagInput: false
     });
     
-    console.log('添加标签:', tagValue);
+    console.log('标签添加成功:', tagValue);
+    console.log('更新后的标签列表:', this.data.formData.tags);
+    
+    wx.showToast({
+      title: '标签已添加',
+      icon: 'success'
+    });
   },
 
   /**
@@ -424,6 +443,9 @@ Page({
         asset_level: formData.asset_level || '未知',
         personality: (formData.personality || '').trim()
       };
+      
+      console.log('提交的数据包含标签:', submitData.tags);
+      console.log('完整提交数据:', submitData);
       
       let result;
       
