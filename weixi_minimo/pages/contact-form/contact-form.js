@@ -37,7 +37,7 @@ Page({
     
     // 页面状态
     loading: false,
-    saving: false,
+    saving: false, // 确保初始状态为false
     
     // 标签相关
     tagInputValue: '',
@@ -56,14 +56,15 @@ Page({
   },
 
   onLoad(options) {
-    console.log('联系人表单页面加载', options);
+    console.log('========= 联系人表单页面加载 =========', options);
     
     const mode = options.mode || 'add';
     const contactId = options.id || '';
     
     this.setData({ 
       mode, 
-      contactId 
+      contactId,
+      saving: false // 确保按钮可点击
     });
     
     // 设置页面标题
@@ -76,7 +77,9 @@ Page({
   },
 
   onShow() {
-    console.log('联系人表单页面显示');
+    console.log('========= 联系人表单页面显示 =========');
+    // 确保按钮状态正确
+    console.log('saving状态:', this.data.saving);
   },
 
   onReady() {
@@ -381,10 +384,17 @@ Page({
    * 保存联系人
    */
   async onSave() {
-    console.log('========= onSave方法被调用 =========');
+    console.log('🚀🚀🚀========= onSave方法被调用 =========🚀🚀🚀');
     console.log('当前时间:', new Date().toISOString());
     console.log('保存状态:', this.data.saving);
     console.log('表单模式:', this.data.mode);
+    
+    // 立即显示一个toast确保方法被调用
+    wx.showToast({
+      title: 'onSave被调用了',
+      icon: 'none',
+      duration: 1000
+    });
     
     if (this.data.saving) {
       console.log('正在保存中，忽略重复点击');
@@ -564,5 +574,16 @@ Page({
    */
   onStopPropagation() {
     // 阻止事件冒泡
+  },
+
+  /**
+   * 测试按钮点击
+   */
+  testButtonClick() {
+    console.log('========= 测试按钮被点击了！ =========');
+    wx.showToast({
+      title: '测试按钮工作正常！',
+      icon: 'success'
+    });
   }
 });
