@@ -5,5 +5,15 @@ pycryptodome>=3.10.1
 python-dotenv>=0.19.0
 psycopg2-binary>=2.9.0
 python-multipart>=0.0.5
+
+# AI增强功能依赖
+numpy>=1.21.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+
+# 异步HTTP客户端
+aiohttp>=3.8.0
+httpx>=0.24.0
+
 # 阿里云语音识别SDK（可选，如果需要语音识别功能）
 # alibabacloud-nls>=1.0.0
