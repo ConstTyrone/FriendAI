@@ -37,11 +37,11 @@ env/
 .DS_Store
 Thumbs.db
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-user_profiles*.db
+# Database (commented out - now tracking database files)
+# *.db
+# *.sqlite
+# *.sqlite3
+# user_profiles*.db
 
 # Logs
 *.log
