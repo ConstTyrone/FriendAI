@@ -63,9 +63,9 @@ yarn-error.log*
 miniprogram_npm/
 project.private.config.json
 
-# Test files
-test_*.py
-*.test.py
+# Test files (commented out - we want to include test scripts)
+# test_*.py
+# *.test.py
 
 # Temporary files
 *.tmp
