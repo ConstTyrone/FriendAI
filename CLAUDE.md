@@ -2,148 +2,250 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 项目概述
+## Project Overview
 
-FriendAI 是一个微信生态的社交关系管理系统，包含：
-- **WeiXinKeFu**: 后端服务（Python FastAPI），提供用户画像分析和消息处理
-- **weixi_minimo**: 微信小程序前端，用于联系人管理和AI搜索
+FriendAI is a WeChat ecosystem social relationship management system that helps users efficiently manage and maintain important social relationships through AI-powered user profiling and natural language search capabilities.
 
-## 常用开发命令
+### System Components
+- **WeiXinKeFu/**: Python FastAPI backend service for user profile analysis and message processing
+- **weixi_minimo/**: WeChat Mini Program frontend for contact management and AI search
 
-### 后端开发 (WeiXinKeFu)
+## High-Level Architecture
+
+### Data Flow
+```
+WeChat Message → Backend API → AI Analysis → User Profile → Database Storage → Frontend Display
+```
+
+### Key Integration Points
+1. **WeChat Integration**: Enterprise WeChat and WeChat Customer Service platforms send messages to backend callbacks
+2. **AI Processing**: Messages are analyzed using Qwen API to extract structured user profiles
+3. **Data Isolation**: Each WeChat user has isolated data storage (separate database tables)
+4. **Frontend API**: RESTful API with token authentication for mini program access
+5. **Real-time Sync**: Frontend polls for updates and caches data locally
+
+## Development Commands
+
+### Backend Development (WeiXinKeFu)
+
 ```bash
-# 启动开发服务器
-python run.py
+# Start development server
+cd WeiXinKeFu
+python run.py  # Uses uvicorn with auto-reload
 
-# 或使用 uvicorn 直接启动
+# Or use uvicorn directly
 uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000
 
-# 运行测试
+# Run API tests
 python tests/test_api.py
 
-# 数据库查看（开发环境）
-# 使用 SQLite 浏览器打开 data/app_data.db
+# Database management (development)
+python scripts/db_viewer_sqlite.py  # View SQLite database
+python scripts/db_viewer_pg.py      # View PostgreSQL database
+
+# Check user data
+python scripts/check_users.py
+
+# Add test data
+python test-scripts/add_test_data.py
 ```
 
-### 前端开发 (weixi_minimo)
+### Frontend Development (weixi_minimo)
+
 ```bash
-# 使用微信开发者工具打开 weixi_minimo 目录
-# 配置服务器域名为后端地址（开发环境通常为 http://localhost:8000）
+# Open WeChat Developer Tools and import the weixi_minimo directory
+# Configure server domain: http://localhost:8000 (development) or https://weixin.dataelem.com (production)
 
-# 构建npm依赖（如果使用了npm包）
-npm install
-npm run build
+# Build npm dependencies (required first time)
+# In WeChat Developer Tools: Menu → Tools → Build npm
+
+# Compile and preview
+# Use Ctrl+B (Win) / Cmd+B (Mac) or click Compile button
+
+# Clear cache if needed
+# Settings page → "Clear Local Data" button
 ```
 
-## 架构关键点
+### Environment Setup
 
-### 后端架构
-- **分层设计**: `core` (API层) → `services` (业务层) → `handlers` (处理层) → `database` (数据层)
-- **数据隔离**: 每个微信用户使用独立的数据表（表名格式: `user_{openid}`）
-- **消息处理流**: 微信回调 → 消息解密 → 内容提取 → AI分析 → 画像存储
-- **双数据库支持**: 通过 `DB_TYPE` 环境变量切换 SQLite/PostgreSQL
+```bash
+# Backend dependencies
+pip install -r WeiXinKeFu/requirements.txt
 
-### 前端架构
-- **数据管理**: `utils/data-manager.js` 统一管理所有数据操作和缓存
-- **认证流程**: `utils/auth-manager.js` 处理微信登录和Token管理
-- **API客户端**: `utils/api-client.js` 封装所有后端接口调用
-- **路由守卫**: 自动处理未登录重定向到登录页
-
-### AI服务集成
-- **通义千问API**: `services/ai_service.py` 处理用户画像分析
-- **语音识别**: 支持微信语音消息转文字
-- **图像OCR**: 提取图片中的文字信息
-- **文档解析**: 解析PDF、Word等文档内容
-
-## 关键配置文件
-
-### 后端配置
-- `.env`: 环境变量配置（企微密钥、AI API Key等）
-- `config/config.py`: 应用配置管理
-- `requirements.txt`: Python依赖包
-
-### 前端配置
-- `app.json`: 小程序全局配置
-- `project.config.json`: 项目配置
-- `utils/constants.js`: 应用常量定义
-
-## API接口规范
-
-### 认证
-所有API请求需在Header中携带:
-```
-Authorization: Bearer {base64_encoded_token}
+# Configure environment variables
+cp WeiXinKeFu/.env.example WeiXinKeFu/.env  # Edit with your credentials
 ```
 
-### 主要接口
-- `POST /api/login`: 微信登录
-- `GET /api/contacts`: 获取联系人列表
-- `POST /api/contacts`: 创建联系人
-- `PUT /api/contacts/{id}`: 更新联系人
-- `DELETE /api/contacts/{id}`: 删除联系人
-- `POST /api/search`: AI语义搜索
-- `POST /wechat_callback`: 微信消息回调（企微/客服）
+## Architecture Patterns
 
-## 数据库结构
+### Backend Architecture (WeiXinKeFu)
 
-### 用户画像表 (user_{openid})
-```sql
-- id: 主键
-- name: 姓名
-- wechat_id: 微信号
-- phone: 电话
-- tags: 标签（JSON）
-- basic_info: 基本信息（JSON）
-- recent_activities: 近期动态（JSON）
-- raw_messages: 原始消息（JSON）
-- created_at/updated_at: 时间戳
+**Layered Design**:
+- `core/` - API layer (FastAPI endpoints, authentication, CORS)
+- `services/` - Business logic (AI analysis, media processing, WeChat client)
+- `handlers/` - Message processing pipeline (classification, formatting, processing)
+- `database/` - Data persistence (SQLite/PostgreSQL with user isolation)
+- `config/` - Configuration management
+
+**Key Design Decisions**:
+- Each WeChat user gets isolated data tables (`user_{openid}` format)
+- Dual database support via `DB_TYPE` environment variable
+- Message processing pipeline: Decrypt → Classify → Extract → Analyze → Store
+- Token-based authentication with Base64 encoding (JWT recommended for production)
+
+### Frontend Architecture (weixi_minimo)
+
+**Core Patterns**:
+- **Singleton Managers**: `authManager`, `dataManager`, `apiClient` for centralized state
+- **Route Guards**: Auto-redirect to login for protected pages via `app.js` interceptors
+- **Caching Strategy**: 5-minute local cache with automatic expiration checks
+- **Mock Mode**: Offline development support with simulated data
+- **Event System**: Listener pattern for cross-component communication
+
+**Data Flow**:
+1. Authentication: WeChat login → Backend API → JWT token → Local storage
+2. Data Fetching: Check cache → API call with token → Update cache → Render
+3. Error Handling: 3x retry with exponential backoff → Fallback to cache/mock data
+
+## Critical Configuration
+
+### Backend Environment Variables (.env)
+```bash
+# Required for WeChat integration
+WEWORK_CORP_ID=your_corp_id
+WEWORK_SECRET=your_secret
+WEWORK_TOKEN=your_token
+WEWORK_AES_KEY=your_aes_key
+
+# Required for AI analysis
+QWEN_API_KEY=your_qwen_api_key
+
+# Database (choose one)
+DATABASE_PATH=user_profiles.db  # SQLite
+DATABASE_URL=postgresql://...   # PostgreSQL
+
+# WeChat Mini Program
+WECHAT_MINI_APPID=wx50fc05960f4152a6
+WECHAT_MINI_SECRET=your_secret
 ```
 
-### 绑定信息表 (binding_info)
-```sql
-- user_wx_id: 微信用户ID
-- external_userid: 企微外部联系人ID
-- wx_name: 微信昵称
-- external_name: 企微联系人名称
-```
+### Frontend Configuration
+- Server domain whitelist in WeChat platform
+- TDesign components require npm build
+- Development mode disables domain validation
 
-## 增量更新机制（新功能）
+## API Endpoints
 
-系统已实现智能的增量更新机制，解决了"如何确认是同一个人"的核心问题：
+### Authentication
+- `POST /api/login` - WeChat login with code or test user ID
 
-### 核心特性
-- **智能身份识别**：通过external_userid、电话、微信号等多维度匹配，置信度评分
-- **增量信息累积**：新消息补充更新，不覆盖已有信息，保留完整历史
-- **冲突智能处理**：自动检测信息冲突，AI辅助解决，低置信度人工确认
+### Contacts Management
+- `GET /api/contacts` - List with pagination and search
+- `POST /api/contacts` - Create new contact
+- `GET /api/contacts/{id}` - Get contact details
+- `PUT /api/contacts/{id}` - Update contact
+- `DELETE /api/contacts/{id}` - Delete contact
 
-### 启用方式
-```python
-from src.config.enable_incremental import enable_incremental_update
-enable_incremental_update()  # 启用增量更新
+### Search & Analytics
+- `POST /api/search` - AI-powered semantic search
+- `GET /api/stats` - User statistics
 
-# 使用增强的消息处理器
-from src.handlers.message_handler_enhanced import process_message_with_incremental_update
-```
+### WeChat Callbacks
+- `POST /wechat_callback` - WeChat message webhook
+- `GET /wechat_callback` - Webhook verification
 
-### 新增文件
-- `src/database/database_enhanced.py` - 增强数据库，支持身份管理
-- `src/services/ai_service_enhanced.py` - 增强AI服务，支持增量分析
-- `src/handlers/message_handler_enhanced.py` - 增强消息处理器
-- `tests/test_incremental_update.py` - 测试脚本
-- `docs/INCREMENTAL_UPDATE_GUIDE.md` - 详细使用指南
+## Database Schema
 
-## 注意事项
+### User Profiles Table (user_{openid})
+- `id`: Primary key
+- `name`: Contact name (required)
+- `wechat_id`: WeChat ID
+- `phone`: Phone number
+- `tags`: JSON array of labels
+- `basic_info`: JSON object with demographics
+- `recent_activities`: JSON array of activities
+- `raw_messages`: Original message history
+- `created_at/updated_at`: Timestamps
 
-1. **Token简化**: 当前使用Base64编码的简单Token，生产环境需要升级为JWT
-2. **错误处理**: 前端已实现全局错误处理和用户提示
-3. **缓存策略**: 前端使用本地存储缓存联系人数据，需注意及时更新
-4. **消息解密**: 企微消息需要正确配置Token、EncodingAESKey和CorpID
-5. **AI调用限流**: 注意通义千问API的调用频率限制
-6. **增量更新**: 新功能默认启用，可通过配置切换回原模式
+### Binding Info Table
+- Maps WeChat user IDs to external contact IDs
+- Enables cross-platform user matching
 
-## 开发提示
+## Testing Strategy
 
-- 修改后端API时，同步更新前端 `api-client.js` 中的接口定义
-- 新增数据字段时，检查前后端的数据模型是否一致
-- 处理微信回调时，确保返回正确的响应格式避免重试
-- 小程序发布前，确保已配置正确的服务器域名白名单
+### Backend Testing
+- Use `test_api.py` for API endpoint validation
+- Test accounts: `test_user_001`, `dev_user_001`
+- Mock mode for offline testing
+
+### Frontend Testing
+- Development environment auto-uses `dev_user_001`
+- Mock mode with 5 pre-configured test contacts
+- Settings page provides all login methods for testing
+
+## Common Development Tasks
+
+### Adding New Message Types
+1. Update classification in `handlers/message_classifier.py`
+2. Add processing logic in `handlers/message_handler.py`
+3. Implement text extraction in `handlers/message_formatter.py`
+4. Update AI prompts in `services/ai_service.py` if needed
+
+### Modifying API Endpoints
+1. Add/update endpoint in `core/main.py`
+2. Update frontend `api-client.js` with new methods
+3. Add business logic in `data-manager.js`
+4. Update `constants.js` with any new configurations
+
+### Adding Frontend Pages
+1. Create page folder in `pages/`
+2. Add `.js`, `.json`, `.wxml`, `.wxss` files
+3. Register in `app.json` pages array
+4. Add to protected pages in `app.js` if authentication required
+
+## Important Notes
+
+### Security Considerations
+- Token authentication is simplified (Base64), upgrade to JWT for production
+- Each user's data is completely isolated in separate tables
+- WeChat messages are encrypted in transit
+- Sensitive information should be masked in AI responses
+
+### Performance Optimization
+- Frontend implements 5-minute cache to reduce API calls
+- Backend uses connection pooling for database
+- AI calls are rate-limited by Qwen API quotas
+- Media processing has timeout protection
+
+### Error Handling
+- Backend: Comprehensive try-catch with detailed logging
+- Frontend: 3x retry with exponential backoff
+- Fallback: Cache data → Mock data → Error message
+- User feedback: Toast notifications for all operations
+
+### Deployment Considerations
+- Production requires valid HTTPS certificates
+- WeChat platform domain whitelist configuration
+- Database migration tools for SQLite → PostgreSQL
+- Environment-specific configuration files
+
+## Debugging Tips
+
+### Backend Debugging
+- Check uvicorn console for request logs
+- Database viewers for data inspection
+- Test API endpoints with `test_api.py`
+- Verify WeChat signature in callbacks
+
+### Frontend Debugging
+- WeChat Developer Tools console for logs
+- Network panel for API request inspection
+- Storage panel for cache inspection
+- Settings page for authentication status
+
+### Common Issues
+- **Login fails**: Check backend running, verify credentials
+- **No data displayed**: Validate token, check API response format
+- **WeChat callback errors**: Verify encryption keys, check signature
+- **AI analysis fails**: Confirm Qwen API key and quotas
+- **TDesign components missing**: Run "Build npm" in developer tools

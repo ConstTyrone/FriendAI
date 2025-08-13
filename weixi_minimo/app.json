@@ -7,7 +7,9 @@
     "pages/contact-detail/contact-detail",
     "pages/contact-form/contact-form",
     "pages/bind-account/bind-account",
-    "pages/webview/webview"
+    "pages/webview/webview",
+    "pages/intent-manager/intent-manager",
+    "pages/matches/matches"
   ],
   "themeLocation": "theme.json",
   "usingComponents": {

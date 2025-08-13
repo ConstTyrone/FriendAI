@@ -140,6 +140,14 @@
           <text class="option-arrow">›</text>
         </view>
         
+        <view class="option-item" bind:tap="onIntentManager">
+          <view class="option-content">
+            <text class="option-title">意图匹配</text>
+            <text class="option-note">智能匹配符合需求的联系人</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
         <view class="option-item" bind:tap="onClearCache">
           <view class="option-content">
             <text class="option-title">清除缓存</text>

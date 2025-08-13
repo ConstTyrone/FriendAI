@@ -1,0 +1,498 @@
+/* 意图管理页面样式 */
+
+/* 页面容器 */
+.intent-page {
+  min-height: 100vh;
+  background: #FAFAFA;
+  padding-bottom: 40rpx;
+}
+
+/* 顶部操作栏 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  background: #FFFFFF;
+  border-bottom: 1rpx solid #E5E5E5;
+}
+
+.page-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #000000;
+}
+
+.create-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: #000000;
+  border-radius: 6rpx;
+}
+
+.create-btn:active {
+  opacity: 0.7;
+}
+
+.btn-icon {
+  font-size: 28rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+}
+
+.btn-text {
+  font-size: 28rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+}
+
+/* 统计卡片 */
+.stats-card {
+  display: flex;
+  justify-content: space-around;
+  margin: 24rpx;
+  padding: 32rpx;
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  border: 1rpx solid #E5E5E5;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #000000;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #999999;
+}
+
+/* 意图列表 */
+.intent-list {
+  padding: 0 24rpx;
+}
+
+.intent-card {
+  background: #FFFFFF;
+  border-radius: 8rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border: 1rpx solid #E5E5E5;
+}
+
+.intent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.intent-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.intent-name {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #000000;
+}
+
+.intent-type {
+  font-size: 22rpx;
+  color: #FFFFFF;
+  background: #666666;
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.intent-desc {
+  display: block;
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+
+.intent-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.keyword-tag {
+  font-size: 22rpx;
+  color: #666666;
+  background: #F5F5F5;
+  padding: 6rpx 16rpx;
+  border-radius: 4rpx;
+}
+
+.intent-meta {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.meta-item {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.intent-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.match-info {
+  font-size: 26rpx;
+  color: #666666;
+}
+
+.intent-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.action-link {
+  font-size: 26rpx;
+  color: #000000;
+}
+
+.action-link:active {
+  opacity: 0.7;
+}
+
+.action-link.danger {
+  color: #FF3B30;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 16rpx;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: #999999;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.empty-action {
+  padding: 20rpx 48rpx;
+  background: #000000;
+  border-radius: 6rpx;
+}
+
+.empty-action:active {
+  opacity: 0.7;
+}
+
+.action-text {
+  color: #FFFFFF;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 创建对话框 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.dialog-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialog-content {
+  width: 680rpx;
+  max-height: 80vh;
+  background: #FFFFFF;
+  border-radius: 12rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #000000;
+  text-align: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #E5E5E5;
+}
+
+/* 创建模式选择 */
+.create-mode-tabs {
+  display: flex;
+  padding: 0 32rpx;
+  gap: 32rpx;
+  border-bottom: 1rpx solid #E5E5E5;
+}
+
+.tab {
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #666666;
+  position: relative;
+}
+
+.tab.active {
+  color: #000000;
+  font-weight: 500;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: #000000;
+}
+
+/* 自然语言模式 */
+.natural-mode {
+  padding: 32rpx;
+}
+
+.intent-name-input {
+  width: 100%;
+  height: 72rpx;
+  padding: 0 24rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  font-size: 30rpx;
+  margin-bottom: 24rpx;
+}
+
+.intent-desc-input {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
+}
+
+.ai-tips {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  background: #FFF9E6;
+  border-radius: 6rpx;
+}
+
+.tips-icon {
+  font-size: 24rpx;
+}
+
+.tips-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #666666;
+  line-height: 1.5;
+}
+
+/* 模板模式 */
+.template-mode {
+  padding: 32rpx;
+}
+
+.template-list {
+  max-height: 400rpx;
+}
+
+.template-item {
+  padding: 20rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  margin-bottom: 16rpx;
+}
+
+.template-item:active {
+  background: #E8E8E8;
+}
+
+.template-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 8rpx;
+}
+
+.template-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #666666;
+  margin-bottom: 8rpx;
+}
+
+.template-example {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+}
+
+/* 配置项 */
+.config-section {
+  padding: 32rpx;
+  border-top: 1rpx solid #E5E5E5;
+}
+
+.config-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.config-item:last-child {
+  margin-bottom: 0;
+}
+
+.config-label {
+  font-size: 28rpx;
+  color: #333333;
+  min-width: 140rpx;
+}
+
+.config-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.config-control slider {
+  flex: 1;
+}
+
+.config-value {
+  font-size: 26rpx;
+  color: #000000;
+  font-weight: 500;
+  min-width: 60rpx;
+  text-align: right;
+}
+
+.picker-value {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.picker-arrow {
+  font-size: 20rpx;
+  color: #999999;
+}
+
+.config-input {
+  width: 120rpx;
+  height: 56rpx;
+  padding: 0 16rpx;
+  background: #F5F5F5;
+  border-radius: 6rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+/* 对话框按钮 */
+.dialog-actions {
+  display: flex;
+  border-top: 1rpx solid #E5E5E5;
+}
+
+.cancel-btn,
+.confirm-btn {
+  flex: 1;
+  padding: 28rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.cancel-btn {
+  color: #666666;
+  border-right: 1rpx solid #E5E5E5;
+}
+
+.cancel-btn:active {
+  background: #F5F5F5;
+}
+
+.confirm-btn {
+  color: #000000;
+}
+
+.confirm-btn:active {
+  background: #F5F5F5;
+}

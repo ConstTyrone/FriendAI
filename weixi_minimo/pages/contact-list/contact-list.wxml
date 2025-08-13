@@ -76,14 +76,14 @@
             
             <!-- 标签展示 -->
             <view class="item-tags" wx:if="{{item.formattedTags && item.formattedTags.length > 0}}">
-              <text 
+              <view 
                 wx:for="{{item.formattedTags}}" 
                 wx:key="*this"
                 wx:for-item="tag"
-                class="tag-item"
+                class="tag-wrapper"
               >
-                {{tag}}
-              </text>
+                <text class="tag-text">{{tag}}</text>
+              </view>
             </view>
           </view>
           

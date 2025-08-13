@@ -132,50 +132,71 @@
 .card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: 8rpx;
   margin-top: 12rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
 .contact-tag {
-  font-size: 22rpx;
-  padding: 6rpx 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32rpx;
+  padding: 0 12rpx;
   border-radius: 12rpx;
   background-color: #f0f2f5;
-  color: #606266;
   border: none;
+  box-sizing: border-box;
+}
+
+.tag-text {
+  font-size: 22rpx;
+  color: #606266;
   font-weight: 400;
-  display: inline-block;
+  line-height: 22rpx;
+  display: block;
 }
 
 /* 不同类型标签的颜色 */
 .tag-gender {
   background-color: #e6f7ff;
+}
+.tag-gender .tag-text {
   color: #1890ff;
 }
 
 .tag-age {
   background-color: #f6ffed;
+}
+.tag-age .tag-text {
   color: #52c41a;
 }
 
 .tag-location {
   background-color: #fff1f0;
+}
+.tag-location .tag-text {
   color: #ff4d4f;
 }
 
 .tag-marital {
   background-color: #f9f0ff;
+}
+.tag-marital .tag-text {
   color: #722ed1;
 }
 
 .tag-asset {
   background-color: #fffbe6;
+}
+.tag-asset .tag-text {
   color: #faad14;
 }
 
 .tag-position {
   background-color: #e6fffb;
+}
+.tag-position .tag-text {
   color: #13c2c2;
 }
 

@@ -1,0 +1,181 @@
+<!--意图管理页面-->
+<view class="intent-page">
+  <!-- 顶部操作栏 -->
+  <view class="top-bar">
+    <text class="page-title">我的意图</text>
+    <view class="create-btn" bindtap="showCreateDialog">
+      <text class="btn-icon">+</text>
+      <text class="btn-text">创建意图</text>
+    </view>
+  </view>
+  
+  <!-- 意图统计 -->
+  <view class="stats-card">
+    <view class="stat-item">
+      <text class="stat-value">{{stats.activeCount}}</text>
+      <text class="stat-label">活跃意图</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{stats.totalMatches}}</text>
+      <text class="stat-label">累计匹配</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{stats.todayPush}}</text>
+      <text class="stat-label">今日推送</text>
+    </view>
+  </view>
+  
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && intents.length === 0}}" class="loading-state">
+    <text class="loading-text">加载中...</text>
+  </view>
+  
+  <!-- 意图列表 -->
+  <view wx:if="{{!loading || intents.length > 0}}" class="intent-list">
+    <view wx:for="{{intents}}" wx:key="id" class="intent-card">
+      <view class="intent-header">
+        <view class="intent-info">
+          <text class="intent-name">{{item.name}}</text>
+          <text class="intent-type">{{item.typeLabel}}</text>
+        </view>
+        <switch checked="{{item.status === 'active'}}" 
+                bindchange="toggleIntent" 
+                data-id="{{item.id}}"/>
+      </view>
+      
+      <text class="intent-desc">{{item.description}}</text>
+      
+      <view class="intent-tags" wx:if="{{item.keywordsList.length > 0}}">
+        <text wx:for="{{item.keywordsList}}" wx:for-item="keyword" wx:key="*this"
+              class="keyword-tag">{{keyword}}</text>
+      </view>
+      
+      <view class="intent-meta">
+        <text class="meta-item">阈值: {{item.thresholdPercent}}%</text>
+        <text class="meta-item">优先级: {{item.priorityLabel}}</text>
+        <text class="meta-item">每日推送: {{item.max_push_per_day}}次</text>
+      </view>
+      
+      <view class="intent-footer">
+        <text class="match-info">匹配 {{item.match_count || 0}} 人</text>
+        <view class="intent-actions">
+          <text class="action-link" bindtap="viewMatches" 
+                data-id="{{item.id}}">查看匹配</text>
+          <text class="action-link" bindtap="editIntent" 
+                data-id="{{item.id}}">编辑</text>
+          <text class="action-link danger" bindtap="deleteIntent" 
+                data-id="{{item.id}}">删除</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:if="{{intents.length === 0}}" class="empty-state">
+      <text class="empty-icon">🎯</text>
+      <text class="empty-title">还没有创建意图</text>
+      <text class="empty-desc">创建意图后，系统会自动为你匹配合适的联系人</text>
+      <view class="empty-action" bindtap="showCreateDialog">
+        <text class="action-text">创建第一个意图</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 创建意图对话框 -->
+  <view class="dialog-overlay {{showCreateDialog ? 'show' : ''}}" 
+        bindtap="hideCreateDialog">
+    <view class="dialog-content" catchtap="stopPropagation">
+      <text class="dialog-title">创建新意图</text>
+      
+      <!-- 创建方式选择 -->
+      <view class="create-mode-tabs">
+        <text class="tab {{createMode === 'natural' ? 'active' : ''}}"
+              bindtap="switchMode" data-mode="natural">自然语言</text>
+        <text class="tab {{createMode === 'template' ? 'active' : ''}}"
+              bindtap="switchMode" data-mode="template">使用模板</text>
+      </view>
+      
+      <!-- 自然语言模式 -->
+      <view wx:if="{{createMode === 'natural'}}" class="natural-mode">
+        <input class="intent-name-input" 
+               placeholder="给意图起个名字" 
+               value="{{formData.name}}"
+               bindinput="onInputChange"
+               data-field="name"/>
+        <textarea class="intent-desc-input" 
+                  placeholder="用一段话描述你想找什么样的人，比如：寻找在北京的AI技术专家，有创业经验，可以做技术合伙人"
+                  value="{{formData.description}}"
+                  bindinput="onInputChange"
+                  data-field="description"
+                  maxlength="200"/>
+        <view class="ai-tips">
+          <text class="tips-icon">💡</text>
+          <text class="tips-text">AI会自动理解你的需求并设置匹配条件</text>
+        </view>
+      </view>
+      
+      <!-- 模板模式 -->
+      <view wx:if="{{createMode === 'template'}}" class="template-mode">
+        <scroll-view class="template-list" scroll-y>
+          <view wx:for="{{templates}}" wx:key="name" class="template-item" 
+                bindtap="selectTemplate" data-index="{{index}}">
+            <text class="template-name">{{item.name}}</text>
+            <text class="template-desc">{{item.description}}</text>
+            <text class="template-example">示例：{{item.template}}</text>
+          </view>
+        </scroll-view>
+      </view>
+      
+      <!-- 配置项 -->
+      <view class="config-section">
+        <view class="config-item">
+          <text class="config-label">匹配阈值</text>
+          <view class="config-control">
+            <slider min="50" max="95" value="{{formData.threshold}}" 
+                    bindchange="onThresholdChange"
+                    block-size="20"
+                    block-color="#000000"
+                    activeColor="#000000"/>
+            <text class="config-value">{{formData.threshold}}%</text>
+          </view>
+        </view>
+        
+        <view class="config-item">
+          <text class="config-label">优先级</text>
+          <picker range="{{priorityOptions}}" value="{{formData.priority - 1}}"
+                  bindchange="onPriorityChange">
+            <view class="picker-value">
+              {{priorityOptions[formData.priority - 1]}}
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        
+        <view class="config-item">
+          <text class="config-label">意图类型</text>
+          <picker range="{{typeOptions}}" range-key="label" value="0"
+                  bindchange="onTypeChange">
+            <view class="picker-value">
+              {{formData.type === 'general' ? '通用' : formData.type}}
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        
+        <view class="config-item">
+          <text class="config-label">每日推送上限</text>
+          <input type="number" 
+                 value="{{formData.maxPushPerDay}}"
+                 bindinput="onInputChange"
+                 data-field="maxPushPerDay"
+                 class="config-input"/>
+        </view>
+      </view>
+      
+      <!-- 对话框按钮 -->
+      <view class="dialog-actions">
+        <view class="cancel-btn" bindtap="hideCreateDialog">取消</view>
+        <view class="confirm-btn" bindtap="createIntent">创建</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -211,7 +211,7 @@
         <view 
           wx:for="{{formData.tags}}"
           wx:key="index"
-          class="tag-item"
+          class="tag-wrapper"
         >
           <text class="tag-text">{{item}}</text>
           <view class="tag-close" bindtap="onDeleteTag" data-index="{{index}}">

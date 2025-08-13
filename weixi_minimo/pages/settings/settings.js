@@ -505,6 +505,16 @@ Page({
   },
 
   /**
+   * 意图管理
+   */
+  onIntentManager() {
+    // 跳转到意图管理页面
+    wx.navigateTo({
+      url: '/pages/intent-manager/intent-manager'
+    });
+  },
+
+  /**
    * 清除缓存
    */
   onClearCache() {

@@ -140,13 +140,13 @@
     >
       <text class="section-title">标签</text>
       <view class="tag-list">
-        <text 
+        <view 
           wx:for="{{contactInfo.tags}}" 
           wx:key="index" 
-          class="tag-item"
+          class="tag-wrapper"
         >
-          {{item}}
-        </text>
+          <text class="tag-text">{{item}}</text>
+        </view>
       </view>
     </view>
 

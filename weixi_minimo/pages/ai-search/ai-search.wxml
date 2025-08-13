@@ -116,14 +116,14 @@
               </text>
               
               <view class="contact-tags" wx:if="{{item.formattedTags.length > 0}}">
-                <text 
+                <view 
                   wx:for="{{item.formattedTags}}"
                   wx:key="*this"
                   wx:for-item="tag"
-                  class="tag-item"
+                  class="tag-wrapper"
                 >
-                  {{tag}}
-                </text>
+                  <text class="tag-text">{{tag}}</text>
+                </view>
               </view>
               
               <text class="contact-summary" wx:if="{{item.ai_summary}}">

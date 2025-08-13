@@ -54,7 +54,7 @@
       wx:key="index"
       class="contact-tag tag-{{getTagType(item)}}"
     >
-      {{item}}
+      <text class="tag-text">{{item}}</text>
     </view>
   </view>
   

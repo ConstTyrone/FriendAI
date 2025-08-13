@@ -1,0 +1,65 @@
+<!--匹配结果页面-->
+<view class="matches-page">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="back-button" bindtap="onBack">‹ 返回</text>
+    <text class="page-title">{{intentName ? intentName + ' - 匹配结果' : '匹配结果'}}</text>
+  </view>
+  
+  <!-- 匹配结果列表 -->
+  <view class="match-list" wx:if="{{matches.length > 0}}">
+    <view wx:for="{{matches}}" wx:key="id" class="match-card">
+      <!-- 匹配信息 -->
+      <view class="match-header">
+        <text class="intent-name">{{item.intent_name}}</text>
+        <text class="match-score">{{item.scorePercent}}% 匹配</text>
+      </view>
+      
+      <!-- 联系人信息 -->
+      <view class="profile-section" bindtap="viewProfile" data-id="{{item.profile_id}}">
+        <view class="profile-avatar">
+          <text class="avatar-text">{{item.profileInitial}}</text>
+        </view>
+        
+        <view class="profile-info">
+          <text class="profile-name">{{item.profile_name || '未知'}}</text>
+          <text class="profile-title" wx:if="{{item.company || item.position}}">
+            {{item.company}}{{item.company && item.position ? ' · ' : ''}}{{item.position}}
+          </text>
+          <text class="profile-location" wx:if="{{item.location}}">{{item.location}}</text>
+        </view>
+        
+        <text class="view-arrow">›</text>
+      </view>
+      
+      <!-- 匹配解释 -->
+      <view class="match-explanation" wx:if="{{item.explanation}}">
+        <text class="explanation-label">匹配理由：</text>
+        <text class="explanation-text">{{item.explanation}}</text>
+      </view>
+      
+      <!-- 匹配条件 -->
+      <view class="match-highlights" wx:if="{{item.matched_conditions && item.matched_conditions.length > 0}}">
+        <view wx:for="{{item.matched_conditions}}" wx:for-item="condition" wx:key="index" 
+              class="highlight-tag">
+          <text class="tag-icon">✓</text>
+          <text class="tag-text">{{condition}}</text>
+        </view>
+      </view>
+      
+      <!-- 时间信息 -->
+      <text class="match-time">{{item.createdAtFormat}}</text>
+    </view>
+  </view>
+  
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && matches.length === 0}}">
+    <text class="empty-title">暂无匹配结果</text>
+    <text class="empty-desc">调整意图条件或降低匹配阈值试试</text>
+  </view>
+  
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+</view>
