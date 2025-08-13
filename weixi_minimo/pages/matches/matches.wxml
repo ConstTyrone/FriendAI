@@ -4,6 +4,17 @@
   <view class="page-header">
     <text class="back-button" bindtap="onBack">‹ 返回</text>
     <text class="page-title">{{intentName ? intentName + ' - 匹配结果' : '匹配结果'}}</text>
+    <!-- AI状态指示 -->
+    <view class="ai-indicator" wx:if="{{aiEnabled}}" bindtap="showAIStatus">
+      <text class="ai-badge">AI增强</text>
+    </view>
+  </view>
+  
+  <!-- 操作栏 -->
+  <view class="action-bar" wx:if="{{intentId}}">
+    <button class="trigger-match-btn" bindtap="triggerMatch" size="mini">
+      重新匹配
+    </button>
   </view>
   
   <!-- 匹配结果列表 -->
@@ -11,8 +22,18 @@
     <view wx:for="{{matches}}" wx:key="id" class="match-card">
       <!-- 匹配信息 -->
       <view class="match-header">
-        <text class="intent-name">{{item.intent_name}}</text>
-        <text class="match-score">{{item.scorePercent}}% 匹配</text>
+        <view class="match-title-row">
+          <text class="intent-name">{{item.intent_name}}</text>
+          <!-- AI标识 -->
+          <text class="ai-match-badge" wx:if="{{item.isAIMatch}}">AI</text>
+        </view>
+        <view class="match-score-row">
+          <text class="match-score">{{item.scorePercent}}% 匹配</text>
+          <!-- 向量相似度 -->
+          <text class="vector-score" wx:if="{{item.hasVectorSimilarity}}">
+            语义: {{item.vectorSimilarity}}%
+          </text>
+        </view>
       </view>
       
       <!-- 联系人信息 -->
@@ -47,8 +68,13 @@
         </view>
       </view>
       
-      <!-- 时间信息 -->
-      <text class="match-time">{{item.createdAtFormat}}</text>
+      <!-- 底部信息 -->
+      <view class="match-footer">
+        <text class="match-time">{{item.createdAtFormat}}</text>
+        <text class="match-type" wx:if="{{item.matchTypeDisplay}}">
+          {{item.matchTypeDisplay}}
+        </text>
+      </view>
     </view>
   </view>
   

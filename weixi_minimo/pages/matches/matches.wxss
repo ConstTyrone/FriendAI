@@ -28,6 +28,36 @@
   flex: 1;
 }
 
+/* AI状态指示器 */
+.ai-indicator {
+  margin-left: auto;
+}
+
+.ai-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 20rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  font-weight: 500;
+}
+
+/* 操作栏 */
+.action-bar {
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #e5e5e5;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trigger-match-btn {
+  background: #1890ff;
+  color: #fff;
+  font-size: 24rpx;
+  padding: 12rpx 24rpx;
+}
+
 /* 匹配列表 */
 .match-list {
   padding: 24rpx;
@@ -42,23 +72,55 @@
 
 /* 匹配头部 */
 .match-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20rpx;
   padding-bottom: 16rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
+.match-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.match-score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .intent-name {
   font-size: 26rpx;
   color: #666;
+  flex: 1;
+}
+
+/* AI匹配标识 */
+.ai-match-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 18rpx;
+  padding: 4rpx 8rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+  margin-left: 12rpx;
 }
 
 .match-score {
   font-size: 26rpx;
   font-weight: 500;
   color: #52c41a;
+}
+
+/* 向量相似度评分 */
+.vector-score {
+  font-size: 22rpx;
+  color: #722ed1;
+  background: #f9f0ff;
+  padding: 4rpx 8rpx;
+  border-radius: 8rpx;
+  margin-left: 12rpx;
 }
 
 /* 联系人信息 */
@@ -160,14 +222,27 @@
   color: #1890ff;
 }
 
-/* 时间信息 */
-.match-time {
-  display: block;
-  font-size: 24rpx;
-  color: #999;
+/* 底部信息 */
+.match-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 12rpx;
   padding-top: 12rpx;
   border-top: 1rpx solid #f0f0f0;
+}
+
+.match-time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.match-type {
+  font-size: 22rpx;
+  color: #666;
+  background: #f0f0f0;
+  padding: 4rpx 8rpx;
+  border-radius: 8rpx;
 }
 
 /* 空状态 */

@@ -11,7 +11,9 @@ Page({
     filters: {
       minScore: 0,
       status: 'pending'
-    }
+    },
+    aiEnabled: false,
+    vectorStatus: null
   },
 
   onLoad(options) {
@@ -36,6 +38,9 @@ Page({
       });
       return;
     }
+    
+    // 加载AI状态
+    this.loadAIStatus();
     
     // 加载匹配结果
     this.loadMatches();
@@ -71,7 +76,12 @@ Page({
           ...match,
           scorePercent: Math.round((match.match_score || 0) * 100),
           profileInitial: this.getInitial(match.profile_name),
-          createdAtFormat: this.formatDate(match.created_at)
+          createdAtFormat: this.formatDate(match.created_at),
+          // AI增强标识
+          isAIMatch: match.match_type === 'hybrid' || match.match_type === 'vector',
+          hasVectorSimilarity: match.vector_similarity !== undefined && match.vector_similarity > 0,
+          vectorSimilarity: match.vector_similarity ? Math.round(match.vector_similarity * 100) : 0,
+          matchTypeDisplay: this.getMatchTypeDisplay(match.match_type)
         }));
         
         this.setData({
@@ -132,6 +142,113 @@ Page({
     } else {
       return Math.floor(diff / 86400000) + '天前';
     }
+  },
+
+  /**
+   * 加载AI状态
+   */
+  async loadAIStatus() {
+    try {
+      const response = await apiClient.request({
+        url: '/api/ai/vector-status',
+        method: 'GET'
+      });
+      
+      if (response.success && response.data) {
+        this.setData({
+          aiEnabled: response.data.aiEnabled,
+          vectorStatus: response.data
+        });
+      }
+    } catch (error) {
+      console.log('AI状态获取失败:', error);
+      // 不显示错误提示，AI功能是可选的
+    }
+  },
+
+  /**
+   * 获取匹配类型显示文本
+   */
+  getMatchTypeDisplay(matchType) {
+    switch (matchType) {
+      case 'vector':
+        return 'AI语义匹配';
+      case 'hybrid':
+        return 'AI增强匹配';
+      case 'rule':
+      default:
+        return '规则匹配';
+    }
+  },
+
+  /**
+   * 手动触发意图匹配
+   */
+  async triggerMatch() {
+    if (!this.data.intentId) {
+      wx.showToast({
+        title: '无法触发匹配',
+        icon: 'error'
+      });
+      return;
+    }
+
+    try {
+      wx.showLoading({
+        title: '匹配中...'
+      });
+
+      const response = await apiClient.request({
+        url: `/api/intents/${this.data.intentId}/match`,
+        method: 'POST'
+      });
+
+      wx.hideLoading();
+
+      if (response.success) {
+        wx.showToast({
+          title: response.message || '匹配完成',
+          icon: 'success'
+        });
+        
+        // 重新加载匹配结果
+        setTimeout(() => {
+          this.loadMatches();
+        }, 1000);
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('触发匹配失败:', error);
+      wx.showToast({
+        title: '匹配失败',
+        icon: 'error'
+      });
+    }
+  },
+
+  /**
+   * 查看AI状态详情
+   */
+  showAIStatus() {
+    if (!this.data.vectorStatus) {
+      wx.showToast({
+        title: '数据未加载',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const status = this.data.vectorStatus;
+    const content = `AI功能: ${status.aiEnabled ? '已启用' : '未启用'}\n` +
+                   `意图向量化: ${status.intents.vectorized}/${status.intents.total} (${status.intents.percentage}%)\n` +
+                   `联系人向量化: ${status.profiles.vectorized}/${status.profiles.total} (${status.profiles.percentage}%)`;
+
+    wx.showModal({
+      title: 'AI增强状态',
+      content: content,
+      showCancel: false,
+      confirmText: '知道了'
+    });
   },
 
   /**
