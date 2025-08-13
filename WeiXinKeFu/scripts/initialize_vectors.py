@@ -38,13 +38,14 @@ async def get_embedding(text: str) -> Optional[List[float]]:
         logger.error(f"向量化失败: {e}")
         return None
 
-async def initialize_vectors(db_path: str = "user_profiles.db", force: bool = False) -> bool:
+async def initialize_vectors(db_path: str = "user_profiles.db", force: bool = False, target_user: str = None) -> bool:
     """
     初始化向量化数据
     
     Args:
         db_path: 数据库路径
         force: 是否强制重新生成所有向量
+        target_user: 目标用户ID，如果指定则只处理该用户的数据
         
     Returns:
         是否成功
@@ -112,13 +113,25 @@ async def initialize_vectors(db_path: str = "user_profiles.db", force: bool = Fa
         # 2. 向量化联系人数据
         print("\n2. 向量化联系人数据:")
         
-        # 获取所有用户表
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name LIKE 'profiles_%'
-        """)
-        
-        user_tables = [row[0] for row in cursor.fetchall()]
+        # 获取用户表（支持目标用户过滤）
+        if target_user:
+            # 只处理指定用户的表
+            table_name = f"profiles_{target_user}"
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name = ?
+            """, (table_name,))
+            user_tables = [row[0] for row in cursor.fetchall()]
+            if not user_tables:
+                print(f"   ❌ 未找到用户 {target_user} 的数据表")
+                user_tables = []
+        else:
+            # 处理所有用户表
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name LIKE 'profiles_%'
+            """)
+            user_tables = [row[0] for row in cursor.fetchall()]
         total_profiles = 0
         total_success = 0
         
@@ -193,14 +206,15 @@ async def initialize_vectors(db_path: str = "user_profiles.db", force: bool = Fa
                         # 更新向量索引表
                         cursor.execute("""
                             INSERT OR REPLACE INTO vector_index 
-                            (entity_type, entity_id, user_id, vector_hash, dimension)
-                            VALUES (?, ?, ?, ?, ?)
+                            (id, vector_type, entity_id, user_id, embedding, metadata)
+                            VALUES (?, ?, ?, ?, ?, ?)
                         """, (
+                            f"profile_{profile['id']}_{user_id}",
                             'profile',
                             profile['id'], 
                             user_id,
-                            str(hash(str(embedding))),
-                            len(embedding)
+                            embedding_bytes,
+                            json.dumps({"dimension": len(embedding), "model": "text-embedding-v3"})
                         ))
                         
                         table_success += 1
@@ -238,7 +252,7 @@ async def initialize_vectors(db_path: str = "user_profiles.db", force: bool = Fa
         print(f"   - 已向量化意图: {vectorized_intents}/{total_intents}")
         
         # 联系人向量统计
-        cursor.execute("SELECT COUNT(*) FROM vector_index WHERE entity_type = 'profile'")
+        cursor.execute("SELECT COUNT(*) FROM vector_index WHERE vector_type = 'profile'")
         vectorized_profiles = cursor.fetchone()[0]
         print(f"   - 已向量化联系人: {vectorized_profiles}")
         
@@ -273,6 +287,7 @@ def main():
     parser = argparse.ArgumentParser(description='初始化向量化数据')
     parser.add_argument('--db', default='user_profiles.db', help='数据库路径')
     parser.add_argument('--force', action='store_true', help='强制重新生成所有向量')
+    parser.add_argument('--user', help='只处理指定用户的数据 (例如: test_user_001)')
     
     args = parser.parse_args()
     
@@ -295,7 +310,7 @@ def main():
         sys.exit(1)
     
     # 执行向量化
-    success = asyncio.run(initialize_vectors(args.db, args.force))
+    success = asyncio.run(initialize_vectors(args.db, args.force, args.user))
     
     if not success:
         sys.exit(1)
