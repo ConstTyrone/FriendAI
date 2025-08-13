@@ -99,6 +99,3 @@ coverage.xml
 *.cer
 private/
 secrets/
-
-# Nested git repositories
-WeiXinKeFu/

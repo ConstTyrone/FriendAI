@@ -1,0 +1,532 @@
+"""
+意图匹配引擎 - AI增强版本
+集成向量化和语义相似度计算
+"""
+
+import json
+import sqlite3
+import logging
+import asyncio
+import numpy as np
+from typing import List, Dict, Any, Optional, Tuple
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+class IntentMatcher:
+    """意图匹配引擎 - AI增强版"""
+    
+    def __init__(self, db_path: str = "user_profiles.db", use_ai: bool = True):
+        self.db_path = db_path
+        self.use_ai = use_ai
+        self.vector_service = None
+        
+        # 延迟导入向量服务
+        if self.use_ai:
+            try:
+                from .vector_service import vector_service
+                self.vector_service = vector_service
+                logger.info("向量服务已启用")
+            except Exception as e:
+                logger.warning(f"向量服务初始化失败，降级到基础匹配: {e}")
+                self.use_ai = False
+    
+    def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
+        """
+        将意图与用户的所有联系人进行匹配
+        
+        Args:
+            intent_id: 意图ID
+            user_id: 用户ID
+            
+        Returns:
+            匹配结果列表
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 获取意图详情
+            cursor.execute("""
+                SELECT * FROM user_intents 
+                WHERE id = ? AND user_id = ? AND status = 'active'
+            """, (intent_id, user_id))
+            
+            intent_row = cursor.fetchone()
+            if not intent_row:
+                logger.warning(f"意图不存在或未激活: {intent_id}")
+                return []
+            
+            # 构建意图对象
+            columns = [desc[0] for desc in cursor.description]
+            intent = dict(zip(columns, intent_row))
+            
+            # 解析条件
+            try:
+                intent['conditions'] = json.loads(intent['conditions']) if intent['conditions'] else {}
+            except:
+                intent['conditions'] = {}
+            
+            # 获取用户表名
+            user_table = self._get_user_table_name(user_id)
+            
+            # 检查表是否存在
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name=?
+            """, (user_table,))
+            
+            if not cursor.fetchone():
+                logger.warning(f"用户表不存在: {user_table}")
+                conn.close()
+                return []
+            
+            # 获取所有联系人
+            cursor.execute(f"SELECT * FROM {user_table}")
+            profiles = []
+            columns = [desc[0] for desc in cursor.description]
+            
+            for row in cursor.fetchall():
+                profile = dict(zip(columns, row))
+                profiles.append(profile)
+            
+            # 进行匹配
+            matches = []
+            for profile in profiles:
+                score = self._calculate_match_score(intent, profile)
+                
+                if score >= (intent.get('threshold', 0.7)):
+                    # 生成匹配解释
+                    matched_conditions = self._get_matched_conditions(intent, profile)
+                    explanation = self._generate_explanation(intent, profile, matched_conditions)
+                    
+                    # 保存匹配记录
+                    match_id = self._save_match_record(
+                        cursor, intent_id, profile['id'], user_id,
+                        score, matched_conditions, explanation
+                    )
+                    
+                    match_result = {
+                        'match_id': match_id,
+                        'intent_id': intent_id,
+                        'intent_name': intent.get('name', ''),
+                        'profile_id': profile['id'],
+                        'profile_name': profile.get('profile_name', profile.get('name', '未知')),
+                        'score': score,
+                        'matched_conditions': matched_conditions,
+                        'explanation': explanation
+                    }
+                    matches.append(match_result)
+                    
+                    # 尝试推送通知
+                    try:
+                        from src.services.push_service import push_service
+                        push_service.process_match_for_push(match_result, user_id)
+                    except Exception as e:
+                        logger.warning(f"推送通知失败: {e}")
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"意图 {intent_id} 匹配完成，找到 {len(matches)} 个匹配")
+            return matches
+            
+        except Exception as e:
+            logger.error(f"匹配意图时出错: {e}")
+            return []
+    
+    def match_profile_with_intents(self, profile_id: int, user_id: str) -> List[Dict]:
+        """
+        将联系人与用户的所有活跃意图进行匹配
+        
+        Args:
+            profile_id: 联系人ID
+            user_id: 用户ID
+            
+        Returns:
+            匹配结果列表
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 获取用户表名
+            user_table = self._get_user_table_name(user_id)
+            
+            # 获取联系人详情
+            cursor.execute(f"SELECT * FROM {user_table} WHERE id = ?", (profile_id,))
+            profile_row = cursor.fetchone()
+            
+            if not profile_row:
+                logger.warning(f"联系人不存在: {profile_id}")
+                conn.close()
+                return []
+            
+            columns = [desc[0] for desc in cursor.description]
+            profile = dict(zip(columns, profile_row))
+            
+            # 获取所有活跃意图
+            cursor.execute("""
+                SELECT * FROM user_intents 
+                WHERE user_id = ? AND status = 'active'
+                ORDER BY priority DESC
+            """, (user_id,))
+            
+            intents = []
+            columns = [desc[0] for desc in cursor.description]
+            
+            for row in cursor.fetchall():
+                intent = dict(zip(columns, row))
+                # 解析条件
+                try:
+                    intent['conditions'] = json.loads(intent['conditions']) if intent['conditions'] else {}
+                except:
+                    intent['conditions'] = {}
+                intents.append(intent)
+            
+            # 进行匹配
+            matches = []
+            for intent in intents:
+                score = self._calculate_match_score(intent, profile)
+                
+                if score >= (intent.get('threshold', 0.7)):
+                    matched_conditions = self._get_matched_conditions(intent, profile)
+                    explanation = self._generate_explanation(intent, profile, matched_conditions)
+                    
+                    # 保存匹配记录
+                    match_id = self._save_match_record(
+                        cursor, intent['id'], profile_id, user_id,
+                        score, matched_conditions, explanation
+                    )
+                    
+                    matches.append({
+                        'match_id': match_id,
+                        'intent_id': intent['id'],
+                        'intent_name': intent['name'],
+                        'score': score,
+                        'matched_conditions': matched_conditions,
+                        'explanation': explanation
+                    })
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"联系人 {profile_id} 匹配完成，找到 {len(matches)} 个匹配")
+            return matches
+            
+        except Exception as e:
+            logger.error(f"匹配联系人时出错: {e}")
+            return []
+    
+    def _calculate_match_score(self, intent: Dict, profile: Dict) -> float:
+        """
+        计算匹配分数
+        
+        AI增强版本：结合向量相似度和条件匹配
+        """
+        score = 0.0
+        weight_sum = 0.0
+        
+        conditions = intent.get('conditions', {})
+        
+        # 如果启用AI且有向量服务，先计算语义相似度
+        semantic_score = 0.0
+        if self.use_ai and self.vector_service:
+            try:
+                # 异步调用转同步（后续可优化为全异步）
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                semantic_score, _ = loop.run_until_complete(
+                    self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
+                )
+                loop.close()
+            except Exception as e:
+                logger.warning(f"语义相似度计算失败: {e}")
+                semantic_score = 0.0
+        
+        # 权重分配（AI模式和基础模式不同）
+        if self.use_ai and semantic_score > 0:
+            # AI模式：语义相似度30%，关键词30%，必要条件25%，优选条件15%
+            score += semantic_score * 0.3
+            weight_sum += 0.3
+            
+            keywords = conditions.get('keywords', [])
+            if keywords:
+                keyword_score = self._calculate_keyword_score(keywords, profile)
+                score += keyword_score * 0.3
+                weight_sum += 0.3
+            
+            required = conditions.get('required', [])
+            if required:
+                required_score = self._calculate_condition_score(required, profile, strict=True)
+                score += required_score * 0.25
+                weight_sum += 0.25
+            
+            preferred = conditions.get('preferred', [])
+            if preferred:
+                preferred_score = self._calculate_condition_score(preferred, profile, strict=False)
+                score += preferred_score * 0.15
+                weight_sum += 0.15
+        else:
+            # 基础模式：关键词40%，必要条件40%，优选条件20%
+            keywords = conditions.get('keywords', [])
+            if keywords:
+                keyword_score = self._calculate_keyword_score(keywords, profile)
+                score += keyword_score * 0.4
+                weight_sum += 0.4
+            
+            required = conditions.get('required', [])
+            if required:
+                required_score = self._calculate_condition_score(required, profile, strict=True)
+                score += required_score * 0.4
+                weight_sum += 0.4
+            
+            preferred = conditions.get('preferred', [])
+            if preferred:
+                preferred_score = self._calculate_condition_score(preferred, profile, strict=False)
+                score += preferred_score * 0.2
+                weight_sum += 0.2
+        
+        # 如果没有任何条件，基于描述相似度给一个基础分
+        if weight_sum == 0:
+            # 如果有语义相似度，直接使用
+            if semantic_score > 0:
+                return semantic_score
+            # 否则使用简单的描述匹配
+            elif intent.get('description') and self._text_contains_keywords(
+                intent['description'], 
+                str(profile)
+            ):
+                return 0.5
+            return 0.0
+        
+        return score / weight_sum if weight_sum > 0 else 0.0
+    
+    def _calculate_keyword_score(self, keywords: List[str], profile: Dict) -> float:
+        """计算关键词匹配分数"""
+        if not keywords:
+            return 0.0
+        
+        # 构建联系人文本
+        profile_text = self._build_profile_text(profile).lower()
+        
+        matched = 0
+        for keyword in keywords:
+            if keyword.lower() in profile_text:
+                matched += 1
+        
+        return matched / len(keywords)
+    
+    def _calculate_condition_score(self, conditions: List[Dict], profile: Dict, strict: bool) -> float:
+        """计算条件匹配分数"""
+        if not conditions:
+            return 1.0
+        
+        matched = 0
+        for condition in conditions:
+            if self._check_condition(condition, profile):
+                matched += 1
+            elif strict:
+                return 0.0  # 严格模式下，一个不满足就返回0
+        
+        return matched / len(conditions)
+    
+    def _check_condition(self, condition: Dict, profile: Dict) -> bool:
+        """检查单个条件是否满足"""
+        field = condition.get('field')
+        operator = condition.get('operator', 'contains')
+        value = condition.get('value')
+        
+        if not field or value is None:
+            return False
+        
+        # 获取字段值
+        profile_value = profile.get(field)
+        if profile_value is None:
+            return False
+        
+        profile_value_str = str(profile_value).lower()
+        value_str = str(value).lower()
+        
+        # 根据操作符进行匹配
+        if operator == 'eq':
+            return profile_value_str == value_str
+        elif operator == 'contains':
+            return value_str in profile_value_str
+        elif operator == 'in':
+            if isinstance(value, list):
+                return profile_value_str in [str(v).lower() for v in value]
+            return False
+        elif operator == 'gt':
+            try:
+                return float(profile_value) > float(value)
+            except:
+                return False
+        elif operator == 'lt':
+            try:
+                return float(profile_value) < float(value)
+            except:
+                return False
+        elif operator == 'between':
+            if isinstance(value, list) and len(value) == 2:
+                try:
+                    return float(value[0]) <= float(profile_value) <= float(value[1])
+                except:
+                    return False
+        
+        return False
+    
+    def _build_profile_text(self, profile: Dict) -> str:
+        """构建联系人的文本表示"""
+        text_parts = []
+        
+        # 重要字段
+        important_fields = [
+            'profile_name', 'name', 'company', 'position', 
+            'education', 'location', 'personality', 'ai_summary',
+            'gender', 'age', 'marital_status', 'asset_level'
+        ]
+        
+        for field in important_fields:
+            value = profile.get(field)
+            if value and value != '未知':
+                text_parts.append(str(value))
+        
+        # 标签
+        tags = profile.get('tags')
+        if tags:
+            try:
+                if isinstance(tags, str):
+                    tags = json.loads(tags)
+                if isinstance(tags, list):
+                    text_parts.extend(tags)
+            except:
+                pass
+        
+        return ' '.join(text_parts)
+    
+    def _text_contains_keywords(self, text: str, keywords: str) -> bool:
+        """简单的文本包含检查"""
+        text_lower = text.lower()
+        keywords_lower = keywords.lower()
+        
+        # 简单的关键词匹配
+        common_keywords = ['投资', '创业', '技术', 'AI', '管理', '销售', '市场']
+        for keyword in common_keywords:
+            if keyword.lower() in text_lower and keyword.lower() in keywords_lower:
+                return True
+        
+        return False
+    
+    def _get_matched_conditions(self, intent: Dict, profile: Dict) -> List[str]:
+        """获取匹配的条件列表"""
+        matched = []
+        conditions = intent.get('conditions', {})
+        
+        # 检查关键词
+        keywords = conditions.get('keywords', [])
+        profile_text = self._build_profile_text(profile).lower()
+        
+        for keyword in keywords:
+            if keyword.lower() in profile_text:
+                matched.append(f"包含关键词'{keyword}'")
+        
+        # 检查必要条件
+        required = conditions.get('required', [])
+        for condition in required:
+            if self._check_condition(condition, profile):
+                field = condition.get('field')
+                value = condition.get('value')
+                matched.append(f"{field}符合'{value}'")
+        
+        return matched[:5]  # 最多返回5个
+    
+    def _generate_explanation(self, intent: Dict, profile: Dict, matched_conditions: List[str]) -> str:
+        """生成匹配解释（AI增强版）"""
+        profile_name = profile.get('profile_name', profile.get('name', '该联系人'))
+        
+        # 如果启用AI，尝试生成智能解释
+        if self.use_ai and self.vector_service:
+            try:
+                # 计算匹配分数用于生成解释
+                score = self._calculate_match_score(intent, profile)
+                
+                # 异步调用转同步
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                ai_explanation = loop.run_until_complete(
+                    self.vector_service.generate_match_explanation(
+                        intent, profile, score, matched_conditions
+                    )
+                )
+                loop.close()
+                
+                if ai_explanation:
+                    return ai_explanation
+            except Exception as e:
+                logger.warning(f"AI解释生成失败，使用规则生成: {e}")
+        
+        # 降级到规则生成
+        if not matched_conditions:
+            return f"{profile_name}综合评分较高，可能符合您的意图"
+        
+        if len(matched_conditions) >= 3:
+            return f"{profile_name}完美匹配：{', '.join(matched_conditions[:3])}"
+        elif len(matched_conditions) >= 1:
+            return f"{profile_name}符合条件：{matched_conditions[0]}"
+        else:
+            return f"{profile_name}可能适合您的需求"
+    
+    def _save_match_record(self, cursor, intent_id: int, profile_id: int, 
+                          user_id: str, score: float, 
+                          matched_conditions: List[str], 
+                          explanation: str) -> int:
+        """保存匹配记录"""
+        try:
+            # 检查是否已存在
+            cursor.execute("""
+                SELECT id FROM intent_matches 
+                WHERE intent_id = ? AND profile_id = ?
+            """, (intent_id, profile_id))
+            
+            existing = cursor.fetchone()
+            if existing:
+                # 更新现有记录
+                cursor.execute("""
+                    UPDATE intent_matches 
+                    SET match_score = ?, matched_conditions = ?, 
+                        explanation = ?, created_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (
+                    score,
+                    json.dumps(matched_conditions, ensure_ascii=False),
+                    explanation,
+                    existing[0]
+                ))
+                return existing[0]
+            else:
+                # 插入新记录
+                cursor.execute("""
+                    INSERT INTO intent_matches (
+                        intent_id, profile_id, user_id, match_score,
+                        matched_conditions, explanation, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')
+                """, (
+                    intent_id, profile_id, user_id, score,
+                    json.dumps(matched_conditions, ensure_ascii=False),
+                    explanation
+                ))
+                return cursor.lastrowid
+                
+        except Exception as e:
+            logger.error(f"保存匹配记录失败: {e}")
+            return 0
+    
+    def _get_user_table_name(self, user_id: str) -> str:
+        """获取用户数据表名"""
+        # 清理用户ID中的特殊字符
+        clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
+        return f"profiles_{clean_id}"
+
+# 全局匹配引擎实例（启用AI增强）
+intent_matcher = IntentMatcher(use_ai=True)

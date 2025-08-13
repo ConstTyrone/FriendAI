@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信客服用户画像系统 - API测试页面</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .status-online {
+            color: #28a745;
+        }
+        .status-offline {
+            color: #dc3545;
+        }
+        .profile-card {
+            transition: transform 0.2s;
+        }
+        .profile-card:hover {
+            transform: translateY(-2px);
+        }
+        pre {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .api-response {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .timestamp {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- 头部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white rounded mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-user-friends me-2"></i>
+                    微信客服用户画像系统 - API测试
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        服务器状态: <span id="serverStatus" class="status-offline"><i class="fas fa-circle"></i> 离线</span>
+                    </span>
+                    <span class="navbar-text" id="userInfo" style="display: none;">
+                        用户: <strong id="currentUser"></strong>
+                    </span>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row">
+            <!-- 左侧控制面板 -->
+            <div class="col-md-4">
+                <!-- 连接设置 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="fas fa-cog me-2"></i>连接设置
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="serverUrl" class="form-label">服务器地址</label>
+                            <input type="text" class="form-control" id="serverUrl" value="http://localhost:3001">
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="testConnection()">
+                            <i class="fas fa-plug me-2"></i>测试连接
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 用户登录 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="fas fa-sign-in-alt me-2"></i>用户登录
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="wechatUserId" class="form-label">微信用户ID</label>
+                            <input type="text" class="form-control" id="wechatUserId" value="test_user_001" placeholder="输入微信用户ID">
+                        </div>
+                        <button class="btn btn-success w-100" onclick="login()">
+                            <i class="fas fa-key me-2"></i>登录
+                        </button>
+                        <div id="loginResult" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- API测试按钮 -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <i class="fas fa-flask me-2"></i>API测试
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary" onclick="getProfiles()">
+                                <i class="fas fa-list me-2"></i>获取画像列表
+                            </button>
+                            <button class="btn btn-outline-info" onclick="getStats()">
+                                <i class="fas fa-chart-bar me-2"></i>获取统计信息
+                            </button>
+                            <button class="btn btn-outline-warning" onclick="searchProfiles()">
+                                <i class="fas fa-search me-2"></i>搜索画像
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="getRecent()">
+                                <i class="fas fa-clock me-2"></i>最近画像
+                            </button>
+                            <button class="btn btn-outline-success" onclick="getUserInfo()">
+                                <i class="fas fa-user me-2"></i>用户信息
+                            </button>
+                            <button class="btn btn-outline-dark" onclick="checkUpdates()">
+                                <i class="fas fa-sync me-2"></i>检查更新
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 实时更新 -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-broadcast-tower me-2"></i>实时更新
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="autoRefresh">
+                            <label class="form-check-label" for="autoRefresh">
+                                自动刷新 (30秒)
+                            </label>
+                        </div>
+                        <button class="btn btn-info w-100" onclick="toggleAutoRefresh()">
+                            <i class="fas fa-play me-2"></i>开始监听
+                        </button>
+                        <div id="autoRefreshStatus" class="mt-2 text-muted"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧结果显示 -->
+            <div class="col-md-8">
+                <!-- 用户统计卡片 -->
+                <div class="row mb-3" id="statsCards" style="display: none;">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary" id="totalProfiles">0</h5>
+                                <p class="card-text">总画像数</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success" id="uniqueNames">0</h5>
+                                <p class="card-text">唯一姓名</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning" id="todayProfiles">0</h5>
+                                <p class="card-text">今日新增</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info" id="usagePercent">0%</h5>
+                                <p class="card-text">使用率</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 搜索框 -->
+                <div class="card mb-3" style="display: none;" id="searchCard">
+                    <div class="card-body">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchInput" placeholder="搜索姓名、公司、职位...">
+                            <button class="btn btn-primary" onclick="performSearch()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 画像列表 -->
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-users me-2"></i>用户画像列表</span>
+                        <span class="badge bg-secondary" id="profileCount">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="profilesList" class="row">
+                            <div class="col-12 text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>暂无数据，请先登录并测试API接口</p>
+                            </div>
+                        </div>
+                        <!-- 分页 -->
+                        <nav aria-label="画像分页" id="pagination" style="display: none;">
+                            <ul class="pagination justify-content-center">
+                                <!-- 分页按钮将通过JavaScript动态生成 -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- API响应日志 -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-terminal me-2"></i>API响应日志</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()">
+                            <i class="fas fa-trash me-1"></i>清空
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="apiLogs" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-muted text-center py-3">
+                                <i class="fas fa-code me-2"></i>API调用日志将显示在这里
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画像详情模态框 -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-circle me-2"></i>用户画像详情
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="profileDetail">
+                    <!-- 详情内容将通过JavaScript填充 -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="deleteProfileBtn">
+                        <i class="fas fa-trash me-2"></i>删除画像
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="api-client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+fastapi>=0.68.0
+uvicorn>=0.15.0
+requests>=2.25.1
+pycryptodome>=3.10.1
+python-dotenv>=0.19.0
+psycopg2-binary>=2.9.0
+python-multipart>=0.0.5
+# 阿里云语音识别SDK（可选，如果需要语音识别功能）
+# alibabacloud-nls>=1.0.0
