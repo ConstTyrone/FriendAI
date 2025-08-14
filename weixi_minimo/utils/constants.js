@@ -1,8 +1,9 @@
 // 常量定义
 export const API_CONFIG = {
   BASE_URL: 'https://weixin.dataelem.com',
-  TIMEOUT: 10000,
-  RETRY_COUNT: 3
+  TIMEOUT: 30000,  // 增加到30秒，特别是为AI匹配
+  RETRY_COUNT: 3,
+  MATCH_TIMEOUT: 60000  // AI匹配专用超时，60秒
 };
 
 export const STORAGE_KEYS = {

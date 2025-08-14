@@ -265,6 +265,10 @@ class VectorService:
         Returns:
             (相似度分数, 解释文本)
         """
+        # 如果没有API密钥，直接返回0，让系统使用基础匹配
+        if not self.api_key:
+            return 0.0, "AI功能未启用"
+            
         try:
             # 获取或生成向量
             intent_vec = None
@@ -297,7 +301,8 @@ class VectorService:
                     
                 return similarity, explanation
             else:
-                return 0.0, "无法计算语义相似度"
+                # 向量化失败，返回0让系统使用基础匹配
+                return 0.0, "AI向量化失败，使用规则匹配"
                 
         except Exception as e:
             print(f"计算语义相似度时出错: {e}")

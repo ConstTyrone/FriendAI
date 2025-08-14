@@ -200,7 +200,8 @@ Page({
 
       const response = await apiClient.request({
         url: `/api/intents/${this.data.intentId}/match`,
-        method: 'POST'
+        method: 'POST',
+        timeout: 60000  // AI匹配需要更长时间
       });
 
       wx.hideLoading();
