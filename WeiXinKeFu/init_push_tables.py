@@ -35,25 +35,23 @@ def init_push_tables():
         """)
         print("✅ 创建用户推送偏好表成功")
         
-        # 创建推送历史表
+        # 创建推送历史表（与create_intent_tables.py保持一致）
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS push_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
-            intent_id INTEGER NOT NULL,
-            match_id INTEGER NOT NULL,
-            pushed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            push_type TEXT DEFAULT 'realtime',
+            match_ids TEXT NOT NULL,
+            push_type TEXT NOT NULL,
+            message TEXT NOT NULL,
             status TEXT DEFAULT 'sent',
-            FOREIGN KEY (intent_id) REFERENCES user_intents(id),
-            FOREIGN KEY (match_id) REFERENCES intent_matches(id)
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            read_at TIMESTAMP
         )
         """)
         print("✅ 创建推送历史表成功")
         
         # 创建索引
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_push_user ON push_history(user_id, pushed_at DESC)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_push_intent ON push_history(intent_id, pushed_at DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_push_user_history ON push_history(user_id, sent_at DESC)")
         
         conn.commit()
         print("\n🎉 推送相关表初始化成功！")
