@@ -738,7 +738,7 @@ async def create_profile(
             try:
                 from src.services.intent_matcher import intent_matcher
                 # 在后台异步执行匹配
-                matches = intent_matcher.match_profile_with_intents(profile_id, query_user_id)
+                matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
                 if matches:
                     logger.info(f"新联系人{profile_id}匹配到{len(matches)}个意图")
             except Exception as e:
@@ -833,7 +833,7 @@ async def update_profile(
             try:
                 from src.services.intent_matcher import intent_matcher
                 # 在后台异步执行匹配
-                matches = intent_matcher.match_profile_with_intents(profile_id, query_user_id)
+                matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
                 if matches:
                     logger.info(f"更新的联系人{profile_id}匹配到{len(matches)}个意图")
             except Exception as e:
@@ -1257,8 +1257,8 @@ async def trigger_intent_match(
         # 导入匹配引擎（AI增强版）
         from src.services.intent_matcher import intent_matcher
         
-        # 执行匹配
-        matches = intent_matcher.match_intent_with_profiles(intent_id, query_user_id)
+        # 执行匹配（异步调用）
+        matches = await intent_matcher.match_intent_with_profiles(intent_id, query_user_id)
         
         # 增强匹配信息
         enhanced_matches = []

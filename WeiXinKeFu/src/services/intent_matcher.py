@@ -31,7 +31,7 @@ class IntentMatcher:
                 logger.warning(f"向量服务初始化失败，降级到基础匹配: {e}")
                 self.use_ai = False
     
-    def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
+    async def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
         """
         将意图与用户的所有联系人进行匹配
         
@@ -93,12 +93,12 @@ class IntentMatcher:
             # 进行匹配
             matches = []
             for profile in profiles:
-                score = self._calculate_match_score(intent, profile)
+                score = await self._calculate_match_score(intent, profile)
                 
                 if score >= (intent.get('threshold', 0.7)):
                     # 生成匹配解释
                     matched_conditions = self._get_matched_conditions(intent, profile)
-                    explanation = self._generate_explanation(intent, profile, matched_conditions)
+                    explanation = await self._generate_explanation(intent, profile, matched_conditions)
                     
                     # 保存匹配记录
                     match_id = self._save_match_record(
@@ -135,7 +135,7 @@ class IntentMatcher:
             logger.error(f"匹配意图时出错: {e}")
             return []
     
-    def match_profile_with_intents(self, profile_id: int, user_id: str) -> List[Dict]:
+    async def match_profile_with_intents(self, profile_id: int, user_id: str) -> List[Dict]:
         """
         将联系人与用户的所有活跃意图进行匹配
         
@@ -187,11 +187,11 @@ class IntentMatcher:
             # 进行匹配
             matches = []
             for intent in intents:
-                score = self._calculate_match_score(intent, profile)
+                score = await self._calculate_match_score(intent, profile)
                 
                 if score >= (intent.get('threshold', 0.7)):
                     matched_conditions = self._get_matched_conditions(intent, profile)
-                    explanation = self._generate_explanation(intent, profile, matched_conditions)
+                    explanation = await self._generate_explanation(intent, profile, matched_conditions)
                     
                     # 保存匹配记录
                     match_id = self._save_match_record(
@@ -218,7 +218,7 @@ class IntentMatcher:
             logger.error(f"匹配联系人时出错: {e}")
             return []
     
-    def _calculate_match_score(self, intent: Dict, profile: Dict) -> float:
+    async def _calculate_match_score(self, intent: Dict, profile: Dict) -> float:
         """
         计算匹配分数
         
@@ -233,11 +233,9 @@ class IntentMatcher:
         semantic_score = 0.0
         if self.use_ai and self.vector_service:
             try:
-                # 暂时禁用语义相似度计算，避免事件循环冲突
-                # TODO: 将整个匹配流程改为异步，或使用线程池
-                # semantic_score, _ = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
-                semantic_score = 0.0
-                logger.debug("语义相似度计算暂时禁用，使用规则匹配")
+                # 现在可以使用异步调用
+                semantic_score, _ = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
+                logger.debug(f"语义相似度分数: {semantic_score}")
             except Exception as e:
                 logger.warning(f"语义相似度计算失败: {e}")
                 semantic_score = 0.0
@@ -439,7 +437,7 @@ class IntentMatcher:
         
         return matched[:5]  # 最多返回5个
     
-    def _generate_explanation(self, intent: Dict, profile: Dict, matched_conditions: List[str]) -> str:
+    async def _generate_explanation(self, intent: Dict, profile: Dict, matched_conditions: List[str]) -> str:
         """生成匹配解释（AI增强版）"""
         profile_name = profile.get('profile_name', profile.get('name', '该联系人'))
         
@@ -447,14 +445,12 @@ class IntentMatcher:
         if self.use_ai and self.vector_service:
             try:
                 # 计算匹配分数用于生成解释
-                score = self._calculate_match_score(intent, profile)
+                score = await self._calculate_match_score(intent, profile)
                 
-                # 暂时禁用AI解释生成，避免事件循环冲突
-                # TODO: 将整个匹配流程改为异步
-                # ai_explanation = await self.vector_service.generate_match_explanation(
-                #     intent, profile, score, matched_conditions
-                # )
-                ai_explanation = None
+                # 使用AI生成解释
+                ai_explanation = await self.vector_service.generate_match_explanation(
+                    intent, profile, score, matched_conditions
+                )
                 
                 if ai_explanation:
                     return ai_explanation
@@ -523,6 +519,5 @@ class IntentMatcher:
         clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
         return f"profiles_{clean_id}"
 
-# 全局匹配引擎实例（暂时禁用AI增强，避免异步冲突）
-# TODO: 将匹配流程改为全异步后再启用AI增强
-intent_matcher = IntentMatcher(use_ai=False)
+# 全局匹配引擎实例（启用AI增强）
+intent_matcher = IntentMatcher(use_ai=True)
