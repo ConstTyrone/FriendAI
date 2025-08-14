@@ -36,7 +36,7 @@ class PushService:
             
             # 获取用户推送偏好设置
             cursor.execute("""
-                SELECT push_enabled, push_frequency, quiet_hours_start, quiet_hours_end
+                SELECT enable_push, batch_mode, quiet_hours, preferred_time
                 FROM user_push_preferences
                 WHERE user_id = ?
             """, (user_id,))
@@ -45,11 +45,11 @@ class PushService:
             if not pref_row:
                 # 没有设置，使用默认值
                 push_enabled = True
-                push_frequency = "realtime"
-                quiet_hours_start = None
-                quiet_hours_end = None
+                batch_mode = "smart"
+                quiet_hours = None
+                preferred_time = None
             else:
-                push_enabled, push_frequency, quiet_hours_start, quiet_hours_end = pref_row
+                push_enabled, batch_mode, quiet_hours, preferred_time = pref_row
             
             # 检查是否启用推送
             if not push_enabled:
@@ -57,14 +57,28 @@ class PushService:
                 return False
             
             # 检查静默时间
-            if quiet_hours_start and quiet_hours_end:
-                current_hour = datetime.now().hour
-                start_hour = int(quiet_hours_start.split(':')[0])
-                end_hour = int(quiet_hours_end.split(':')[0])
-                
-                if start_hour <= current_hour < end_hour:
-                    logger.info(f"当前在用户 {user_id} 的静默时间内")
-                    return False
+            if quiet_hours:
+                try:
+                    # 静默时间格式: "22:00-08:00"
+                    hours_parts = quiet_hours.split('-')
+                    if len(hours_parts) == 2:
+                        start_time = hours_parts[0]
+                        end_time = hours_parts[1]
+                        current_hour = datetime.now().hour
+                        start_hour = int(start_time.split(':')[0])
+                        end_hour = int(end_time.split(':')[0])
+                        
+                        # 处理跨夜的情况
+                        if start_hour > end_hour:
+                            if current_hour >= start_hour or current_hour < end_hour:
+                                logger.info(f"当前在用户 {user_id} 的静默时间内")
+                                return False
+                        else:
+                            if start_hour <= current_hour < end_hour:
+                                logger.info(f"当前在用户 {user_id} 的静默时间内")
+                                return False
+                except Exception as e:
+                    logger.warning(f"解析静默时间失败: {e}")
             
             # 检查意图的每日推送限制
             cursor.execute("""
@@ -83,9 +97,10 @@ class PushService:
             today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             cursor.execute("""
                 SELECT COUNT(*) FROM push_history
-                WHERE user_id = ? AND intent_id = ?
-                AND pushed_at >= ?
-            """, (user_id, intent_id, today_start.isoformat()))
+                WHERE user_id = ? 
+                AND match_ids LIKE ?
+                AND sent_at >= ?
+            """, (user_id, f'%"intent_id": {intent_id}%', today_start.isoformat()))
             
             today_count = cursor.fetchone()[0]
             

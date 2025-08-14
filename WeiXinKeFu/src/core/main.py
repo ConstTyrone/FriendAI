@@ -10,6 +10,7 @@ import logging
 import sys
 import json
 import time
+import sqlite3
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
 
@@ -1317,8 +1318,9 @@ async def get_matches(
         offset = (page - 1) * size
         params.extend([size, offset])
         
-        # 获取用户表名
-        user_table = db.get_user_table_name(query_user_id)
+        # 获取用户表名 - 使用intent_matcher的方法
+        from src.services.intent_matcher import intent_matcher
+        user_table = intent_matcher._get_user_table_name(query_user_id)
         
         query = f"""
             SELECT 
@@ -1378,7 +1380,7 @@ async def get_matches(
     except Exception as e:
         logger.error(f"获取匹配结果失败: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"获取匹配结果失败: {str(e)}"
         )
 
