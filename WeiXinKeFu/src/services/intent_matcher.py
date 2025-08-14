@@ -24,12 +24,30 @@ class IntentMatcher:
         # 延迟导入向量服务
         if self.use_ai:
             try:
+                # 先检查numpy是否可用
+                try:
+                    import numpy as np
+                    logger.info("NumPy已安装")
+                except ImportError:
+                    logger.error("⚠️ NumPy未安装，请运行: pip install numpy")
+                    raise ImportError("NumPy未安装")
+                
                 from .vector_service import vector_service
                 self.vector_service = vector_service
-                logger.info("向量服务已启用")
-            except Exception as e:
-                logger.warning(f"向量服务初始化失败，降级到基础匹配: {e}")
+                logger.info("✅ 向量服务已启用")
+            except ImportError as e:
+                logger.error(f"❌ 向量服务初始化失败 - 缺少依赖: {e}")
+                logger.info("🚨 请在服务器上运行: pip install numpy scipy aiohttp")
                 self.use_ai = False
+                self.vector_service = None
+            except Exception as e:
+                logger.error(f"❌ 向量服务初始化失败: {e}")
+                import traceback
+                traceback.print_exc()
+                self.use_ai = False
+                self.vector_service = None
+        else:
+            logger.info("🔄 AI模式已禁用，使用基础规则匹配")
     
     async def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
         """
