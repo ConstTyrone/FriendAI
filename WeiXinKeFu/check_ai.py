@@ -238,6 +238,11 @@ async def test_ai_matching():
         print(f"❌ 诊断过程出错: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # 清理向量服务的session
+        if 'vector_service' in locals():
+            if hasattr(vector_service, 'session') and vector_service.session:
+                await vector_service.session.close()
 
 def main():
     """主函数"""

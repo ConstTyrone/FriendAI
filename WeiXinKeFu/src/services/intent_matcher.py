@@ -136,12 +136,13 @@ class IntentMatcher:
                     }
                     matches.append(match_result)
                     
-                    # 尝试推送通知
-                    try:
-                        from src.services.push_service import push_service
-                        push_service.process_match_for_push(match_result, user_id)
-                    except Exception as e:
-                        logger.warning(f"推送通知失败: {e}")
+                    # 尝试推送通知（暂时禁用，避免异步冲突）
+                    # TODO: 修复异步推送服务
+                    # try:
+                    #     from src.services.push_service import push_service
+                    #     push_service.process_match_for_push(match_result, user_id)
+                    # except Exception as e:
+                    #     logger.warning(f"推送通知失败: {e}")
             
             conn.commit()
             conn.close()

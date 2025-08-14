@@ -39,6 +39,7 @@ class VectorService:
         """异步上下文管理器退出"""
         if self.session:
             await self.session.close()
+            self.session = None
             
     async def get_embedding(self, text: str) -> Optional[List[float]]:
         """
