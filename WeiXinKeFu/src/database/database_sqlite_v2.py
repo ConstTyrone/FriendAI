@@ -323,7 +323,22 @@ class SQLiteDatabase:
                 row = cursor.fetchone()
                 
                 if row:
-                    profile = dict(row)
+                    profile = {}
+                    # 逐个处理字段，避免二进制数据问题
+                    for key in row.keys():
+                        value = row[key]
+                        # 如果是二进制数据，跳过或转换
+                        if isinstance(value, bytes):
+                            try:
+                                # 尝试解码为字符串
+                                profile[key] = value.decode('utf-8')
+                            except UnicodeDecodeError:
+                                # 如果无法解码，可能是二进制数据（如embedding）
+                                # 跳过这个字段或转换为base64
+                                profile[key] = None  # 或者 base64.b64encode(value).decode('ascii')
+                        else:
+                            profile[key] = value
+                    
                     # 解析JSON字段
                     if profile.get('raw_ai_response'):
                         try:

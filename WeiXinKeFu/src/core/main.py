@@ -1512,7 +1512,8 @@ async def get_vector_status(
         intent_stats = cursor.fetchone()
         
         # 统计联系人向量化情况
-        user_table = db.get_user_table_name(query_user_id)
+        from src.services.intent_matcher import intent_matcher
+        user_table = intent_matcher._get_user_table_name(query_user_id)
         
         # 检查表是否存在
         cursor.execute("""
@@ -1573,7 +1574,7 @@ async def get_vector_status(
     except Exception as e:
         logger.error(f"获取向量状态失败: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail=f"获取向量状态失败: {str(e)}"
         )
 
