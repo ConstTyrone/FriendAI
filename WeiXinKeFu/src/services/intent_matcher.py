@@ -234,8 +234,8 @@ class IntentMatcher:
         if self.use_ai and self.vector_service:
             try:
                 # 现在可以使用异步调用
-                semantic_score, _ = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
-                logger.debug(f"语义相似度分数: {semantic_score}")
+                semantic_score, explanation = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
+                logger.info(f"AI匹配 - 意图:{intent.get('name')} 联系人:{profile.get('profile_name', profile.get('name'))} 语义分数:{semantic_score:.2f} 说明:{explanation}")
             except Exception as e:
                 logger.warning(f"语义相似度计算失败: {e}")
                 semantic_score = 0.0
@@ -270,6 +270,7 @@ class IntentMatcher:
                 keyword_score = self._calculate_keyword_score(keywords, profile)
                 score += keyword_score * 0.4
                 weight_sum += 0.4
+                logger.info(f"基础匹配 - 关键词:{keywords} 分数:{keyword_score:.2f}")
             
             required = conditions.get('required', [])
             if required:
@@ -282,6 +283,10 @@ class IntentMatcher:
                 preferred_score = self._calculate_condition_score(preferred, profile, strict=False)
                 score += preferred_score * 0.2
                 weight_sum += 0.2
+        
+        # 记录最终分数
+        final_score = score / weight_sum if weight_sum > 0 else 0.0
+        logger.info(f"最终匹配分数: {final_score:.2f} (阈值: {intent.get('threshold', 0.7)})")
         
         # 如果没有任何条件，基于描述相似度给一个基础分
         if weight_sum == 0:

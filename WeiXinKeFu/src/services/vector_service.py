@@ -24,6 +24,12 @@ class VectorService:
         self.dimension = 1536  # 向量维度
         self.session = None
         
+        # 记录配置状态
+        if self.api_key:
+            print(f"[VectorService] API密钥已配置: {self.api_key[:10]}...{self.api_key[-5:]}")
+        else:
+            print("[VectorService] ⚠️ API密钥未配置，将使用基础匹配")
+        
     async def __aenter__(self):
         """异步上下文管理器入口"""
         self.session = aiohttp.ClientSession()
