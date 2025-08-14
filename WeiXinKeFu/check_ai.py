@@ -76,25 +76,29 @@ async def test_ai_matching():
         traceback.print_exc()
         return
     
-    # 4. 检查意图11的详情
-    print("\n4️⃣ 检查意图11的配置")
+    # 4. 检查意图的详情
+    print("\n4️⃣ 检查意图配置")
     print("-" * 40)
+    
+    # 使用新创建的意图12
+    intent_id = 12  # 可以通过参数传入
     
     try:
         conn = sqlite3.connect('user_profiles.db')
         cursor = conn.cursor()
         
-        # 查询意图11
+        # 查询意图
         cursor.execute("""
-            SELECT id, name, description, conditions, status, threshold
+            SELECT id, name, description, conditions, status, threshold, user_id
             FROM user_intents 
-            WHERE id = 11
-        """)
+            WHERE id = ?
+        """, (intent_id,))
         
         intent_row = cursor.fetchone()
         if intent_row:
-            intent_id, name, desc, conditions_str, status, threshold = intent_row
-            print(f"✅ 找到意图11: {name}")
+            intent_id, name, desc, conditions_str, status, threshold, intent_user_id = intent_row
+            print(f"✅ 找到意图{intent_id}: {name}")
+            print(f"   所属用户: {intent_user_id}")
             print(f"   状态: {status}")
             print(f"   阈值: {threshold}")
             print(f"   描述: {desc[:50]}..." if desc and len(desc) > 50 else f"   描述: {desc}")
@@ -116,7 +120,7 @@ async def test_ai_matching():
             except Exception as e:
                 print(f"   ❌ 解析条件失败: {e}")
         else:
-            print("❌ 意图11不存在")
+            print(f"❌ 意图{intent_id}不存在")
             
             # 列出所有意图
             cursor.execute("SELECT id, name, status FROM user_intents ORDER BY id")
@@ -202,10 +206,10 @@ async def test_ai_matching():
         print("\n7️⃣ 执行完整匹配测试")
         print("-" * 40)
         
-        print(f"开始匹配意图11与用户 {user_id} 的联系人...")
+        print(f"开始匹配意图{intent_id}与用户 {user_id} 的联系人...")
         
         try:
-            matches = await matcher.match_intent_with_profiles(11, user_id)
+            matches = await matcher.match_intent_with_profiles(intent_id, user_id)
             
             print(f"\n匹配结果: 找到 {len(matches)} 个匹配")
             
