@@ -13,7 +13,7 @@ class APITester:
     def __init__(self, base_url="http://localhost:3001"):
         self.base_url = base_url
         self.token = None
-        self.wechat_user_id = "test_user_001"
+        self.wechat_user_id = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
     
     def print_response(self, response, title):
         """打印响应结果"""
@@ -181,9 +181,9 @@ def main():
         base_url = "http://localhost:3001"
     
     # 检查用户ID
-    user_id = input("请输入测试用户微信ID (默认: test_user_001): ").strip()
+    user_id = input("请输入测试用户微信ID (默认: wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q): ").strip()
     if not user_id:
-        user_id = "test_user_001"
+        user_id = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
     
     # 创建测试器并运行测试
     tester = APITester(base_url)

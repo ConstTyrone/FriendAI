@@ -132,8 +132,8 @@ async def test_ai_matching():
         print("\n5️⃣ 检查用户联系人")
         print("-" * 40)
         
-        # 假设使用dev_user_001
-        user_id = 'dev_user_001'
+        # 使用指定的测试用户ID
+        user_id = 'wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q'
         user_table = f"profiles_{user_id}"
         
         cursor.execute(f"""
@@ -196,7 +196,7 @@ async def test_ai_matching():
         print("\n7️⃣ 执行完整匹配测试")
         print("-" * 40)
         
-        print(f"开始匹配意图11与用户{user_id}的联系人...")
+        print(f"开始匹配意图11与用户 {user_id} 的联系人...")
         
         try:
             matches = await matcher.match_intent_with_profiles(11, user_id)
