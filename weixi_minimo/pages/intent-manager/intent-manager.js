@@ -149,12 +149,17 @@ Page({
           typeLabel: this.getTypeLabel(intent.type),
           priorityLabel: this.data.priorityOptions[intent.priority - 1] || '中等',
           thresholdPercent: Math.round((intent.threshold || 0.7) * 100),
-          keywordsList: this.extractKeywords(intent.conditions)
+          keywordsList: this.extractKeywords(intent.conditions),
+          match_count: intent.match_count || 0  // 确保有默认值
         }));
+        
+        // 计算总匹配数
+        const totalMatches = intents.reduce((sum, intent) => sum + (intent.match_count || 0), 0);
         
         this.setData({
           intents,
-          'stats.activeCount': intents.length
+          'stats.activeCount': intents.length,
+          'stats.totalMatches': totalMatches
         });
       }
     } catch (error) {

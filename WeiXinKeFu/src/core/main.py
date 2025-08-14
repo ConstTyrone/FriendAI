@@ -998,6 +998,15 @@ async def get_intents(
                     intent['conditions'] = json.loads(intent['conditions'])
                 except:
                     intent['conditions'] = {}
+            
+            # 获取该意图的匹配数量
+            cursor.execute("""
+                SELECT COUNT(*) FROM intent_matches 
+                WHERE intent_id = ? AND user_id = ?
+            """, (intent['id'], query_user_id))
+            match_count = cursor.fetchone()[0]
+            intent['match_count'] = match_count
+            
             intents.append(intent)
         
         # 获取总数
