@@ -86,90 +86,92 @@
     <view class="dialog-content" catchtap="stopPropagation">
       <text class="dialog-title">创建新意图</text>
       
-      <!-- 创建方式选择 -->
-      <view class="create-mode-tabs">
-        <text class="tab {{createMode === 'natural' ? 'active' : ''}}"
-              bindtap="switchMode" data-mode="natural">自然语言</text>
-        <text class="tab {{createMode === 'template' ? 'active' : ''}}"
-              bindtap="switchMode" data-mode="template">使用模板</text>
-      </view>
-      
-      <!-- 自然语言模式 -->
-      <view wx:if="{{createMode === 'natural'}}" class="natural-mode">
-        <input class="intent-name-input" 
-               placeholder="给意图起个名字" 
-               value="{{formData.name}}"
-               bindinput="onInputChange"
-               data-field="name"/>
-        <textarea class="intent-desc-input" 
-                  placeholder="用一段话描述你想找什么样的人，比如：寻找在北京的AI技术专家，有创业经验，可以做技术合伙人"
-                  value="{{formData.description}}"
-                  bindinput="onInputChange"
-                  data-field="description"
-                  maxlength="200"/>
-        <view class="ai-tips">
-          <text class="tips-icon">💡</text>
-          <text class="tips-text">AI会自动理解你的需求并设置匹配条件</text>
+      <!-- 可滚动内容区域 -->
+      <scroll-view class="dialog-scroll-content" scroll-y="{{true}}">
+        <!-- 创建方式选择 -->
+        <view class="create-mode-tabs">
+          <text class="tab {{createMode === 'natural' ? 'active' : ''}}"
+                bindtap="switchMode" data-mode="natural">自然语言</text>
+          <text class="tab {{createMode === 'template' ? 'active' : ''}}"
+                bindtap="switchMode" data-mode="template">使用模板</text>
         </view>
-      </view>
-      
-      <!-- 模板模式 -->
-      <view wx:if="{{createMode === 'template'}}" class="template-mode">
-        <scroll-view class="template-list" scroll-y>
+        
+        <!-- 自然语言模式 -->
+        <view wx:if="{{createMode === 'natural'}}" class="natural-mode">
+          <input class="intent-name-input" 
+                 placeholder="给意图起个名字" 
+                 value="{{formData.name}}"
+                 bindinput="onInputChange"
+                 data-field="name"/>
+          <textarea class="intent-desc-input" 
+                    placeholder="用一段话描述你想找什么样的人，比如：寻找在北京的AI技术专家，有创业经验，可以做技术合伙人"
+                    value="{{formData.description}}"
+                    bindinput="onInputChange"
+                    data-field="description"
+                    maxlength="200"/>
+          <view class="ai-tips">
+            <text class="tips-icon">💡</text>
+            <text class="tips-text">AI会自动理解你的需求并设置匹配条件</text>
+          </view>
+        </view>
+        
+        <!-- 模板模式 -->
+        <view wx:if="{{createMode === 'template'}}" class="template-mode">
           <view wx:for="{{templates}}" wx:key="name" class="template-item" 
                 bindtap="selectTemplate" data-index="{{index}}">
             <text class="template-name">{{item.name}}</text>
             <text class="template-desc">{{item.description}}</text>
             <text class="template-example">示例：{{item.template}}</text>
           </view>
-        </scroll-view>
-      </view>
-      
-      <!-- 配置项 -->
-      <view class="config-section">
-        <view class="config-item">
-          <text class="config-label">匹配阈值</text>
-          <view class="config-control">
-            <slider min="50" max="95" value="{{formData.threshold}}" 
-                    bindchange="onThresholdChange"
-                    block-size="20"
-                    block-color="#000000"
-                    activeColor="#000000"/>
-            <text class="config-value">{{formData.threshold}}%</text>
+        </view>
+        
+        <!-- 配置项 -->
+        <view class="config-section">
+          <view class="config-item">
+            <text class="config-label">匹配阈值</text>
+            <view class="config-control">
+              <slider min="50" max="95" value="{{formData.threshold}}" 
+                      bindchange="onThresholdChange"
+                      block-size="20"
+                      block-color="#000000"
+                      activeColor="#000000"/>
+              <text class="config-value">{{formData.threshold}}%</text>
+            </view>
+          </view>
+          
+          <view class="config-item">
+            <text class="config-label">优先级</text>
+            <picker range="{{priorityOptions}}" value="{{formData.priority - 1}}"
+                    bindchange="onPriorityChange">
+              <view class="picker-value">
+                {{priorityOptions[formData.priority - 1]}}
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+          
+          <view class="config-item">
+            <text class="config-label">意图类型</text>
+            <picker range="{{typeOptions}}" range-key="label" 
+                    value="{{typeIndex}}"
+                    bindchange="onTypeChange">
+              <view class="picker-value">
+                {{typeOptions[typeIndex].label}}
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+          </view>
+          
+          <view class="config-item">
+            <text class="config-label">每日推送上限</text>
+            <input type="number" 
+                   value="{{formData.maxPushPerDay}}"
+                   bindinput="onInputChange"
+                   data-field="maxPushPerDay"
+                   class="config-input"/>
           </view>
         </view>
-        
-        <view class="config-item">
-          <text class="config-label">优先级</text>
-          <picker range="{{priorityOptions}}" value="{{formData.priority - 1}}"
-                  bindchange="onPriorityChange">
-            <view class="picker-value">
-              {{priorityOptions[formData.priority - 1]}}
-              <text class="picker-arrow">▼</text>
-            </view>
-          </picker>
-        </view>
-        
-        <view class="config-item">
-          <text class="config-label">意图类型</text>
-          <picker range="{{typeOptions}}" range-key="label" value="0"
-                  bindchange="onTypeChange">
-            <view class="picker-value">
-              {{formData.type === 'general' ? '通用' : formData.type}}
-              <text class="picker-arrow">▼</text>
-            </view>
-          </picker>
-        </view>
-        
-        <view class="config-item">
-          <text class="config-label">每日推送上限</text>
-          <input type="number" 
-                 value="{{formData.maxPushPerDay}}"
-                 bindinput="onInputChange"
-                 data-field="maxPushPerDay"
-                 class="config-input"/>
-        </view>
-      </view>
+      </scroll-view>
       
       <!-- 对话框按钮 -->
       <view class="dialog-actions">

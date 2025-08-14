@@ -36,6 +36,9 @@ Page({
       maxPushPerDay: 5
     },
     
+    // 类型选择索引
+    typeIndex: 0,
+    
     // 意图模板
     templates: [
       {
@@ -191,6 +194,7 @@ Page({
     this.setData({
       showCreateDialog: true,
       createMode: 'natural',
+      typeIndex: 0,
       formData: {
         name: '',
         description: '',
@@ -251,7 +255,14 @@ Page({
    */
   onInputChange(e) {
     const field = e.currentTarget.dataset.field;
-    const value = e.detail.value;
+    let value = e.detail.value;
+    
+    // 处理数字类型字段
+    if (field === 'maxPushPerDay') {
+      value = parseInt(value) || 5;
+      if (value < 1) value = 1;
+      if (value > 20) value = 20;
+    }
     
     this.setData({
       [`formData.${field}`]: value
@@ -280,8 +291,9 @@ Page({
    * 类型变化
    */
   onTypeChange(e) {
-    const index = e.detail.value;
+    const index = parseInt(e.detail.value);
     this.setData({
+      typeIndex: index,
       'formData.type': this.data.typeOptions[index].value
     });
   },
@@ -310,7 +322,8 @@ Page({
     }
     
     wx.showLoading({
-      title: '创建中...'
+      title: '创建中...',
+      mask: true  // 防止用户重复点击
     });
     
     try {
@@ -348,9 +361,16 @@ Page({
         this.loadIntents();
         
         // 触发匹配分析
-        if (response.data.intentId) {
+        if (response.data && response.data.intentId) {
           this.triggerMatch(response.data.intentId);
         }
+      } else {
+        wx.hideLoading();
+        wx.showToast({
+          title: response.message || '创建失败',
+          icon: 'none',
+          duration: 2000
+        });
       }
     } catch (error) {
       console.error('创建意图失败:', error);
@@ -431,9 +451,16 @@ Page({
    */
   editIntent(e) {
     const intentId = e.currentTarget.dataset.id;
-    wx.navigateTo({
-      url: `/pages/intent-edit/intent-edit?id=${intentId}`
+    // 暂时显示提示，编辑功能待开发
+    wx.showToast({
+      title: '编辑功能开发中',
+      icon: 'none',
+      duration: 2000
     });
+    // TODO: 后续实现编辑功能
+    // wx.navigateTo({
+    //   url: `/pages/intent-edit/intent-edit?id=${intentId}`
+    // });
   },
 
   /**

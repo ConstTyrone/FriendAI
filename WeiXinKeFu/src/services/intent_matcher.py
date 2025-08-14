@@ -233,13 +233,11 @@ class IntentMatcher:
         semantic_score = 0.0
         if self.use_ai and self.vector_service:
             try:
-                # 异步调用转同步（后续可优化为全异步）
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                semantic_score, _ = loop.run_until_complete(
-                    self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
-                )
-                loop.close()
+                # 暂时禁用语义相似度计算，避免事件循环冲突
+                # TODO: 将整个匹配流程改为异步，或使用线程池
+                # semantic_score, _ = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
+                semantic_score = 0.0
+                logger.debug("语义相似度计算暂时禁用，使用规则匹配")
             except Exception as e:
                 logger.warning(f"语义相似度计算失败: {e}")
                 semantic_score = 0.0
@@ -451,15 +449,12 @@ class IntentMatcher:
                 # 计算匹配分数用于生成解释
                 score = self._calculate_match_score(intent, profile)
                 
-                # 异步调用转同步
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                ai_explanation = loop.run_until_complete(
-                    self.vector_service.generate_match_explanation(
-                        intent, profile, score, matched_conditions
-                    )
-                )
-                loop.close()
+                # 暂时禁用AI解释生成，避免事件循环冲突
+                # TODO: 将整个匹配流程改为异步
+                # ai_explanation = await self.vector_service.generate_match_explanation(
+                #     intent, profile, score, matched_conditions
+                # )
+                ai_explanation = None
                 
                 if ai_explanation:
                     return ai_explanation
@@ -528,5 +523,6 @@ class IntentMatcher:
         clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
         return f"profiles_{clean_id}"
 
-# 全局匹配引擎实例（启用AI增强）
-intent_matcher = IntentMatcher(use_ai=True)
+# 全局匹配引擎实例（暂时禁用AI增强，避免异步冲突）
+# TODO: 将匹配流程改为全异步后再启用AI增强
+intent_matcher = IntentMatcher(use_ai=False)

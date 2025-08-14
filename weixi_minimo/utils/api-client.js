@@ -14,8 +14,24 @@ class APIClient {
    * 通用请求方法
    */
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    console.log(`[API请求] ${options.method || 'GET'} ${url}`);
+    // 兼容两种调用方式
+    // 方式1: request('/api/endpoint', { method: 'POST', data: {...} })
+    // 方式2: request({ url: '/api/endpoint', method: 'POST', data: {...} })
+    let url, requestOptions;
+    
+    if (typeof endpoint === 'object') {
+      // 方式2: 第一个参数是包含所有配置的对象
+      url = `${this.baseURL}${endpoint.url}`;
+      // 从endpoint对象中排除url字段，避免覆盖完整的URL
+      const { url: _, ...restOptions } = endpoint;
+      requestOptions = restOptions;
+    } else {
+      // 方式1: 第一个参数是URL字符串，第二个参数是选项
+      url = `${this.baseURL}${endpoint}`;
+      requestOptions = options;
+    }
+    
+    console.log(`[API请求] ${requestOptions.method || 'GET'} ${url}`);
     
     const defaultOptions = {
       method: 'GET',
@@ -23,13 +39,13 @@ class APIClient {
       header: {
         'Content-Type': 'application/json',
         ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
-        ...options.header
+        ...requestOptions.header
       },
-      ...options
+      ...requestOptions
     };
     
     console.log('[API请求] 请求选项:', defaultOptions);
-    console.log('[API请求] 请求数据:', options.data);
+    console.log('[API请求] 请求数据:', requestOptions.data);
 
     let lastError;
     

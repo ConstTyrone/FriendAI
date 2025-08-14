@@ -265,9 +265,9 @@
   max-height: 80vh;
   background: #FFFFFF;
   border-radius: 12rpx;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 .dialog-title {
@@ -278,6 +278,14 @@
   text-align: center;
   padding: 32rpx;
   border-bottom: 1rpx solid #E5E5E5;
+}
+
+/* 对话框可滚动内容区 */
+.dialog-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(80vh - 180rpx); /* 减去标题和按钮的高度 */
 }
 
 /* 创建模式选择 */
@@ -308,6 +316,13 @@
   right: 0;
   height: 4rpx;
   background: #000000;
+}
+
+/* 可滚动内容区域 */
+.dialog-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* 自然语言模式 */
@@ -401,6 +416,7 @@
 .config-section {
   padding: 32rpx;
   border-top: 1rpx solid #E5E5E5;
+  flex-shrink: 0;
 }
 
 .config-item {
@@ -469,6 +485,10 @@
 .dialog-actions {
   display: flex;
   border-top: 1rpx solid #E5E5E5;
+  flex-shrink: 0;
+  background: #FFFFFF;
+  position: relative;
+  z-index: 10;
 }
 
 .cancel-btn,
