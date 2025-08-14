@@ -134,7 +134,13 @@ async def test_ai_matching():
         
         # 使用指定的测试用户ID
         user_id = 'wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q'
-        user_table = f"profiles_{user_id}"
+        # 清理用户ID中的特殊字符（与intent_matcher一致）
+        clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
+        user_table = f"profiles_{clean_id}"
+        
+        print(f"   原始用户ID: {user_id}")
+        print(f"   清理后ID: {clean_id}")
+        print(f"   表名: {user_table}")
         
         cursor.execute(f"""
             SELECT COUNT(*) FROM sqlite_master 
