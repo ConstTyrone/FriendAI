@@ -67,7 +67,9 @@ def init_test_data():
     
     # 创建测试用户的联系人表
     test_user = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"  # 使用指定的用户ID
-    user_table = f"profiles_{test_user}"
+    # 清理用户ID中的特殊字符作为表名
+    clean_user = ''.join(c if c.isalnum() or c == '_' else '_' for c in test_user)
+    user_table = f"profiles_{clean_user}"
     
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {user_table} (
