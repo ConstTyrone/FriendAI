@@ -267,17 +267,15 @@ class HybridMatcher:
             # 综合分数
             final_score = candidate['vector_score']
             
-            # 使用意图自身的阈值进行最终过滤
-            intent_threshold = intent.get('threshold', 0.6)
-            if final_score >= intent_threshold:
-                results.append({
-                    'profile': profile,
-                    'score': final_score,
-                    'match_type': 'balanced',
-                    'confidence': 0.8,
-                    'matched_conditions': matched_conditions,
-                    'explanation': explanation
-                })
+            # 不在这里过滤，返回所有结果让调用方决定
+            results.append({
+                'profile': profile,
+                'score': final_score,
+                'match_type': 'balanced',
+                'confidence': 0.8,
+                'matched_conditions': matched_conditions,
+                'explanation': explanation
+            })
         
         # 排序
         results.sort(key=lambda x: x['score'], reverse=True)
@@ -335,21 +333,19 @@ class HybridMatcher:
                 judgment.match_score * 0.75
             )
             
-            # 使用意图自身的阈值
-            intent_threshold = intent.get('threshold', 0.6)
-            if final_score >= intent_threshold:
-                results.append({
-                    'profile': profile,
-                    'score': final_score,
-                    'match_type': 'accurate',
-                    'confidence': judgment.confidence,
-                    'matched_aspects': judgment.matched_aspects,
-                    'missing_aspects': judgment.missing_aspects,
-                    'explanation': judgment.explanation,
-                    'suggestions': judgment.suggestions,
-                    'vector_score': candidate['vector_score'],
-                    'llm_score': judgment.match_score
-                })
+            # 不在这里过滤，返回所有结果让调用方决定
+            results.append({
+                'profile': profile,
+                'score': final_score,
+                'match_type': 'accurate',
+                'confidence': judgment.confidence,
+                'matched_aspects': judgment.matched_aspects,
+                'missing_aspects': judgment.missing_aspects,
+                'explanation': judgment.explanation,
+                'suggestions': judgment.suggestions,
+                'vector_score': candidate['vector_score'],
+                'llm_score': judgment.match_score
+            })
         
         # 排序
         results.sort(key=lambda x: x['score'], reverse=True)
@@ -411,21 +407,20 @@ class HybridMatcher:
                 # 仅有向量分数
                 final_score = scores['vector']
             
-            # 使用意图自身的阈值，而不是硬编码阈值
-            intent_threshold = intent.get('threshold', 0.6)  # 使用意图设置的阈值
-            if final_score >= intent_threshold:
-                results.append({
-                    'profile': profile,
-                    'score': final_score,
-                    'match_type': 'comprehensive',
-                    'confidence': confidence,
-                    'scores_breakdown': scores,
-                    'matched_conditions': matched_conditions,
-                    'matched_aspects': matched_aspects,
-                    'missing_aspects': missing_aspects,
-                    'explanation': llm_explanation or f"综合匹配分数: {final_score:.2f}",
-                    'suggestions': suggestions
-                })
+            # 不在这里过滤，返回所有结果让调用方决定
+            # 即使分数很低也返回，让intent_matcher根据意图阈值判断
+            results.append({
+                'profile': profile,
+                'score': final_score,
+                'match_type': 'comprehensive',
+                'confidence': confidence,
+                'scores_breakdown': scores,
+                'matched_conditions': matched_conditions,
+                'matched_aspects': matched_aspects,
+                'missing_aspects': missing_aspects,
+                'explanation': llm_explanation or f"综合匹配分数: {final_score:.2f}",
+                'suggestions': suggestions
+            })
         
         # 排序并返回
         results.sort(key=lambda x: x['score'], reverse=True)
