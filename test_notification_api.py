@@ -8,7 +8,7 @@ import json
 import time
 
 # API基础配置
-API_BASE = "http://localhost:8000"  # 改为你的服务器地址
+API_BASE = "https://weixin.dataelem.com"  # 服务器地址
 TEST_USER = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
 
 def get_token(user_id):

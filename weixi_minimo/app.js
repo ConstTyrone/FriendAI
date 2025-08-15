@@ -132,11 +132,11 @@ App({
    * 启动通知轮询
    */
   startNotificationPolling() {
-    // 延迟2秒后开始轮询，避免启动时资源竞争
+    // 延迟1秒后开始轮询，避免启动时资源竞争
     setTimeout(() => {
       console.log('启动匹配通知轮询...');
-      notificationManager.startPolling(30000); // 每30秒检查一次
-    }, 2000);
+      notificationManager.startPolling(5000); // 每5秒检查一次，更快响应
+    }, 1000);
   },
   
   /**
