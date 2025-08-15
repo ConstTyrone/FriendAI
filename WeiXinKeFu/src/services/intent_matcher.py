@@ -835,11 +835,9 @@ class IntentMatcher:
             # 批量处理推送
             push_service.batch_process_matches(matches, user_id)
             
-            # 如果有微信客服接口，发送微信通知
-            try:
-                await self._send_wechat_notification(matches, user_id)
-            except Exception as wx_error:
-                logger.warning(f"微信通知发送失败: {wx_error}")
+            # 暂时禁用微信客服通知，避免错误
+            # 小程序会通过轮询API获取通知
+            logger.info(f"✅ 匹配通知已记录，等待小程序轮询获取")
             
         except Exception as e:
             logger.error(f"异步推送失败: {e}")
