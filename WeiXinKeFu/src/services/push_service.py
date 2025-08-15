@@ -18,6 +18,53 @@ class PushService:
     def __init__(self, db_path: str = "user_profiles.db"):
         self.db_path = db_path
         self.push_queue = []  # 推送队列
+        self._ensure_push_history_columns()  # 确保表结构正确
+    
+    def _ensure_push_history_columns(self):
+        """确保push_history表有所需的列"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 获取所有push_history表
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name LIKE 'push_history_%'
+            """)
+            tables = cursor.fetchall()
+            
+            for (table_name,) in tables:
+                # 检查表结构
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                columns = cursor.fetchall()
+                column_names = [col[1] for col in columns]
+                
+                # 添加缺失的列
+                if 'intent_id' not in column_names:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN intent_id INTEGER")
+                    logger.info(f"添加 {table_name}.intent_id 列")
+                
+                if 'profile_id' not in column_names:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN profile_id INTEGER")
+                    logger.info(f"添加 {table_name}.profile_id 列")
+                
+                if 'match_id' not in column_names:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN match_id INTEGER")
+                    logger.info(f"添加 {table_name}.match_id 列")
+                
+                if 'push_type' not in column_names:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN push_type TEXT")
+                    logger.info(f"添加 {table_name}.push_type 列")
+                
+                if 'push_status' not in column_names:
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN push_status TEXT")
+                    logger.info(f"添加 {table_name}.push_status 列")
+            
+            conn.commit()
+            conn.close()
+            
+        except Exception as e:
+            logger.warning(f"修复push_history表结构时出错: {e}")
         
     def check_push_eligibility(self, user_id: str, intent_id: int) -> bool:
         """
@@ -134,9 +181,27 @@ class PushService:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
+            # 使用正确的表名（用户独立的推送历史表）
+            table_name = f"push_history_{user_id.replace('-', '_')}"
+            
+            # 确保表存在并有正确的列
+            cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT,
+                    intent_id INTEGER,
+                    profile_id INTEGER,
+                    match_id INTEGER,
+                    push_type TEXT,
+                    push_status TEXT,
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             # 记录推送历史
-            cursor.execute("""
-                INSERT INTO push_history (
+            cursor.execute(f"""
+                INSERT INTO {table_name} (
                     user_id, intent_id, profile_id, match_id,
                     push_type, push_status
                 ) VALUES (?, ?, ?, ?, 'match_notification', 'sent')
