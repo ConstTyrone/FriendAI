@@ -47,26 +47,42 @@ def init_test_data():
             profile_id INTEGER NOT NULL,
             user_id TEXT NOT NULL,
             match_score REAL,
+            score_details TEXT,
             matched_conditions TEXT,
             explanation TEXT,
             match_type TEXT DEFAULT 'rule',
             extended_info TEXT,
+            is_pushed BOOLEAN DEFAULT 0,
+            pushed_at TIMESTAMP,
+            push_channel TEXT,
+            user_feedback TEXT,
+            feedback_at TIMESTAMP,
+            feedback_note TEXT,
             status TEXT DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            vector_similarity REAL,
             FOREIGN KEY (intent_id) REFERENCES user_intents(id)
         )
     """)
     
     # 创建测试用户的联系人表
-    test_user = "test_user_001"
+    test_user = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"  # 使用指定的用户ID
     user_table = f"profiles_{test_user}"
     
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {user_table} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             profile_name TEXT NOT NULL,
-            wechat_id TEXT,
+            gender TEXT,
+            age TEXT,
             phone TEXT,
+            location TEXT,
+            marital_status TEXT,
+            education TEXT,
+            company TEXT,
+            position TEXT,
+            asset_level TEXT,
+            personality TEXT,
             tags TEXT,
             basic_info TEXT,
             recent_activities TEXT,
@@ -156,8 +172,16 @@ def init_test_data():
     test_profiles = [
         {
             'profile_name': '张三',
-            'wechat_id': 'zhang_san_dev',
+            'gender': '男',
+            'age': '28',
             'phone': '13800138001',
+            'location': '上海',
+            'marital_status': '未婚',
+            'education': '硕士',
+            'company': '某AI创业公司',
+            'position': 'Python高级工程师',
+            'asset_level': '中',
+            'personality': '技术型，专注',
             'tags': json.dumps(['Python开发', 'AI工程师', '5年经验', 'Django专家'], ensure_ascii=False),
             'basic_info': json.dumps({
                 '性别': '男',
@@ -165,7 +189,10 @@ def init_test_data():
                 '所在地': '上海',
                 '学历': '硕士',
                 '公司': '某AI创业公司',
-                '职位': 'Python高级工程师'
+                '职位': 'Python高级工程师',
+                '技能': ['Python', 'Django', 'Flask', 'AI', '机器学习'],
+                '经验': 5,
+                '项目': 'AI相关项目多个'
             }, ensure_ascii=False),
             'recent_activities': json.dumps([
                 '分享了Django项目经验',
@@ -175,8 +202,16 @@ def init_test_data():
         },
         {
             'profile_name': '李四',
-            'wechat_id': 'lisi_founder',
+            'gender': '男',
+            'age': '35',
             'phone': '13900139002',
+            'location': '上海',
+            'marital_status': '已婚',
+            'education': '本科',
+            'company': '自己创业',
+            'position': 'CEO',
+            'asset_level': '高',
+            'personality': '进取型，有冒险精神',
             'tags': json.dumps(['创业者', '技术背景', '连续创业', '上海'], ensure_ascii=False),
             'basic_info': json.dumps({
                 '性别': '男',
@@ -184,7 +219,9 @@ def init_test_data():
                 '所在地': '上海',
                 '学历': '本科',
                 '公司': '自己创业',
-                '职位': 'CEO'
+                '职位': 'CEO',
+                '背景': '技术',
+                '经验': '连续创业3次'
             }, ensure_ascii=False),
             'recent_activities': json.dumps([
                 '分享创业心得',
@@ -194,8 +231,16 @@ def init_test_data():
         },
         {
             'profile_name': '王五',
-            'wechat_id': 'wangwu_java',
+            'gender': '男',
+            'age': '24',
             'phone': '13700137003',
+            'location': '北京',
+            'marital_status': '未婚',
+            'education': '本科',
+            'company': '某互联网公司',
+            'position': 'Java初级工程师',
+            'asset_level': '低',
+            'personality': '学习型，积极',
             'tags': json.dumps(['Java开发', '2年经验', '应届生'], ensure_ascii=False),
             'basic_info': json.dumps({
                 '性别': '男',
@@ -203,7 +248,9 @@ def init_test_data():
                 '所在地': '北京',
                 '学历': '本科',
                 '公司': '某互联网公司',
-                '职位': 'Java初级工程师'
+                '职位': 'Java初级工程师',
+                '技能': ['Java', 'Spring'],
+                '经验': 2
             }, ensure_ascii=False),
             'recent_activities': json.dumps([
                 '学习Spring框架',
@@ -212,8 +259,16 @@ def init_test_data():
         },
         {
             'profile_name': '赵六',
-            'wechat_id': 'zhaoliu_architect',
+            'gender': '女',
+            'age': '33',
             'phone': '13600136004',
+            'location': '杭州',
+            'marital_status': '已婚',
+            'education': '硕士',
+            'company': '前阿里巴巴',
+            'position': '技术架构师',
+            'asset_level': '高',
+            'personality': '专业型，经验丰富',
             'tags': json.dumps(['架构师', '阿里P8', '10年经验', '技术顾问'], ensure_ascii=False),
             'basic_info': json.dumps({
                 '性别': '女',
@@ -221,7 +276,10 @@ def init_test_data():
                 '所在地': '杭州',
                 '学历': '硕士',
                 '公司': '前阿里巴巴',
-                '职位': '技术架构师'
+                '职位': '技术架构师',
+                '级别': 'P8',
+                '经验': 10,
+                '专长': '系统架构设计'
             }, ensure_ascii=False),
             'recent_activities': json.dumps([
                 '分享架构设计经验',
@@ -231,8 +289,16 @@ def init_test_data():
         },
         {
             'profile_name': '钱七',
-            'wechat_id': 'qianqi_junior',
+            'gender': '女',
+            'age': '23',
             'phone': '13500135005',
+            'location': '深圳',
+            'marital_status': '未婚',
+            'education': '本科',
+            'company': '小公司',
+            'position': 'Python实习生',
+            'asset_level': '低',
+            'personality': '学习型，有潜力',
             'tags': json.dumps(['Python初学者', '1年经验', 'Flask'], ensure_ascii=False),
             'basic_info': json.dumps({
                 '性别': '女',
@@ -240,7 +306,9 @@ def init_test_data():
                 '所在地': '深圳',
                 '学历': '本科',
                 '公司': '小公司',
-                '职位': 'Python实习生'
+                '职位': 'Python实习生',
+                '技能': ['Python', 'Flask'],
+                '经验': 1
             }, ensure_ascii=False),
             'recent_activities': json.dumps([
                 '学习Flask框架',
@@ -252,12 +320,22 @@ def init_test_data():
     for profile in test_profiles:
         cursor.execute(f"""
             INSERT OR REPLACE INTO {user_table}
-            (profile_name, wechat_id, phone, tags, basic_info, recent_activities)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (profile_name, gender, age, phone, location, marital_status, 
+             education, company, position, asset_level, personality,
+             tags, basic_info, recent_activities)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             profile['profile_name'],
-            profile['wechat_id'],
+            profile['gender'],
+            profile['age'],
             profile['phone'],
+            profile['location'],
+            profile['marital_status'],
+            profile['education'],
+            profile['company'],
+            profile['position'],
+            profile['asset_level'],
+            profile['personality'],
             profile['tags'],
             profile['basic_info'],
             profile['recent_activities']

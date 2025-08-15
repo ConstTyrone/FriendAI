@@ -42,7 +42,7 @@ async def test_integrated_system():
     
     # 测试数据
     test_intent_id = 1
-    test_user_id = "test_user_001"
+    test_user_id = "wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"  # 使用指定的用户ID
     
     for config_item in configs:
         print(f"\n{'='*50}")

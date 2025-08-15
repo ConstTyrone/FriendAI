@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Note: You must push the results to the remote server at https://github.com/ConstTyrone/FriendAI after completing each task.
 
+All tests should use the user I assigned to you: **wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q**.
+
 ## Project Overview
 
 FriendAI is a WeChat ecosystem social relationship management system with AI-powered capabilities:
