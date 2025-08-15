@@ -337,6 +337,8 @@ class IntentMatcher:
                                         'match_id': match_id,
                                         'intent_id': intent['id'],
                                         'intent_name': intent['name'],
+                                        'profile_id': profile_id,  # 添加profile_id
+                                        'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
                                         'score': score,
                                         'matched_conditions': matched_conditions,
                                         'explanation': explanation,
@@ -378,6 +380,8 @@ class IntentMatcher:
                             'match_id': match_id,
                             'intent_id': intent['id'],
                             'intent_name': intent['name'],
+                            'profile_id': profile_id,  # 添加profile_id
+                            'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
                             'score': score,
                             'matched_conditions': matched_conditions,
                             'explanation': explanation,
