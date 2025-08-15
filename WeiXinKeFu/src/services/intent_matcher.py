@@ -298,41 +298,66 @@ class IntentMatcher:
             if self.use_hybrid and self.hybrid_matcher:
                 # 使用最强的混合匹配器
                 logger.info(f"🚀 使用混合匹配器 ({self.hybrid_mode}模式) 进行意图匹配")
-                for intent in intents:
-                    # 使用comprehensive模式获得最佳匹配结果
-                    hybrid_results = await self.hybrid_matcher.match(
-                        intent, [profile], 
-                        mode=self.matching_mode
-                    )
-                    
-                    if hybrid_results:
-                        result = hybrid_results[0]  # 取第一个结果
-                        score = result['score']
-                        explanation = result.get('explanation', '')
-                        matched_conditions = result.get('matched_conditions', [])
-                        match_type = result.get('match_type', 'hybrid')
-                        confidence = result.get('confidence', 0.8)
+                try:
+                    for intent in intents:
+                        logger.info(f"🔍 处理意图: {intent['name']} (阈值: {intent.get('threshold', 0.6)})")
                         
-                        # 使用意图自身设置的阈值，尊重用户的意图配置
-                        intent_threshold = intent.get('threshold', 0.6)  # 默认0.6，但优先使用用户设置
-                        if score >= intent_threshold:
-                            # 保存匹配记录
-                            match_id = self._save_match_record(
-                                cursor, intent['id'], profile_id, user_id,
-                                score, matched_conditions, explanation, match_type
-                            )
+                        # 使用comprehensive模式获得最佳匹配结果
+                        hybrid_results = await self.hybrid_matcher.match(
+                            intent, [profile], 
+                            mode=self.matching_mode
+                        )
+                        
+                        logger.info(f"📊 混合匹配结果数量: {len(hybrid_results) if hybrid_results else 0}")
+                        
+                        if hybrid_results:
+                            result = hybrid_results[0]  # 取第一个结果
+                            score = result['score']
+                            explanation = result.get('explanation', '')
+                            matched_conditions = result.get('matched_conditions', [])
+                            match_type = result.get('match_type', 'hybrid')
+                            confidence = result.get('confidence', 0.8)
                             
-                            matches.append({
-                                'match_id': match_id,
-                                'intent_id': intent['id'],
-                                'intent_name': intent['name'],
-                                'score': score,
-                                'matched_conditions': matched_conditions,
-                                'explanation': explanation,
-                                'match_type': match_type,
-                                'confidence': confidence
-                            })
-                            logger.info(f"✅ 混合匹配成功: {intent['name']} -> {profile.get('profile_name', 'Unknown')} (分数: {score:.2%})")
+                            logger.info(f"🎯 混合匹配详情: 意图={intent['name']}, 分数={score:.3f}, 类型={match_type}")
+                            
+                            # 使用意图自身设置的阈值，尊重用户的意图配置
+                            intent_threshold = intent.get('threshold', 0.6)  # 默认0.6，但优先使用用户设置
+                            logger.info(f"⚖️ 阈值判断: {score:.3f} >= {intent_threshold} = {score >= intent_threshold}")
+                            
+                            if score >= intent_threshold:
+                                # 保存匹配记录
+                                try:
+                                    match_id = self._save_match_record(
+                                        cursor, intent['id'], profile_id, user_id,
+                                        score, matched_conditions, explanation, match_type
+                                    )
+                                    logger.info(f"💾 匹配记录保存成功: match_id={match_id}")
+                                    
+                                    matches.append({
+                                        'match_id': match_id,
+                                        'intent_id': intent['id'],
+                                        'intent_name': intent['name'],
+                                        'score': score,
+                                        'matched_conditions': matched_conditions,
+                                        'explanation': explanation,
+                                        'match_type': match_type,
+                                        'confidence': confidence
+                                    })
+                                    logger.info(f"✅ 混合匹配成功: {intent['name']} -> {profile.get('profile_name', 'Unknown')} (分数: {score:.2%})")
+                                except Exception as save_error:
+                                    logger.error(f"❌ 保存匹配记录失败: {save_error}")
+                            else:
+                                logger.info(f"❌ 分数未达到阈值: {intent['name']} ({score:.3f} < {intent_threshold})")
+                        else:
+                            logger.warning(f"⚠️ 混合匹配器未返回结果: {intent['name']}")
+                            
+                except Exception as hybrid_error:
+                    logger.error(f"❌ 混合匹配器异常: {hybrid_error}")
+                    import traceback
+                    traceback.print_exc()
+                    logger.info("🔄 降级到传统匹配模式")
+                    # 发生异常时降级到传统匹配
+                    matches = []  # 清空可能的部分结果
             else:
                 # 使用传统匹配方法
                 logger.info("🔄 使用传统意图匹配方法")
