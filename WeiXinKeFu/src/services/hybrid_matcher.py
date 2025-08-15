@@ -267,14 +267,17 @@ class HybridMatcher:
             # 综合分数
             final_score = candidate['vector_score']
             
-            results.append({
-                'profile': profile,
-                'score': final_score,
-                'match_type': 'balanced',
-                'confidence': 0.8,
-                'matched_conditions': matched_conditions,
-                'explanation': explanation
-            })
+            # 使用意图自身的阈值进行最终过滤
+            intent_threshold = intent.get('threshold', 0.6)
+            if final_score >= intent_threshold:
+                results.append({
+                    'profile': profile,
+                    'score': final_score,
+                    'match_type': 'balanced',
+                    'confidence': 0.8,
+                    'matched_conditions': matched_conditions,
+                    'explanation': explanation
+                })
         
         # 排序
         results.sort(key=lambda x: x['score'], reverse=True)
@@ -326,13 +329,15 @@ class HybridMatcher:
                 intent, profile, use_cache=True
             )
             
-            # 组合分数（向量30% + LLM 70%）
+            # 组合分数（向量25% + LLM 75% - LLM应该占主导地位）
             final_score = (
-                candidate['vector_score'] * 0.3 +
-                judgment.match_score * 0.7
+                candidate['vector_score'] * 0.25 +
+                judgment.match_score * 0.75
             )
             
-            if final_score >= self.llm_threshold:
+            # 使用意图自身的阈值
+            intent_threshold = intent.get('threshold', 0.6)
+            if final_score >= intent_threshold:
                 results.append({
                     'profile': profile,
                     'score': final_score,
@@ -398,16 +403,17 @@ class HybridMatcher:
                 missing_aspects = []
                 confidence = 0.5
             
-            # 3. 综合评分（优化权重配置）
+            # 3. 综合评分（LLM为主导的权重配置）
             if scores['llm'] > 0:
-                # 有LLM分数时：向量40% + LLM 60% (更平衡的权重)
-                final_score = scores['vector'] * 0.40 + scores['llm'] * 0.60
+                # 有LLM分数时：向量25% + LLM 75% (LLM更准确，应该占主导)
+                final_score = scores['vector'] * 0.25 + scores['llm'] * 0.75
             else:
                 # 仅有向量分数
                 final_score = scores['vector']
             
-            # 只保留达到阈值的结果 (降低最终阈值)
-            if final_score >= 0.35:
+            # 使用意图自身的阈值，而不是硬编码阈值
+            intent_threshold = intent.get('threshold', 0.6)  # 使用意图设置的阈值
+            if final_score >= intent_threshold:
                 results.append({
                     'profile': profile,
                     'score': final_score,

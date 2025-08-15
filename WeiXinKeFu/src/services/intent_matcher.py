@@ -313,7 +313,9 @@ class IntentMatcher:
                         match_type = result.get('match_type', 'hybrid')
                         confidence = result.get('confidence', 0.8)
                         
-                        if score >= (intent.get('threshold', 0.35)):  # 进一步降低阈值，匹配更多潜在候选
+                        # 使用意图自身设置的阈值，尊重用户的意图配置
+                        intent_threshold = intent.get('threshold', 0.6)  # 默认0.6，但优先使用用户设置
+                        if score >= intent_threshold:
                             # 保存匹配记录
                             match_id = self._save_match_record(
                                 cursor, intent['id'], profile_id, user_id,
