@@ -42,10 +42,18 @@ class HybridMatcher:
         # 初始化各个匹配组件
         self._init_components()
         
-        # 配置参数
-        self.vector_threshold = 0.5  # 向量相似度阈值
-        self.llm_threshold = 0.7  # LLM判断阈值
-        self.top_k_candidates = 30  # 向量过滤的候选数量
+        # 配置参数（根据测试结果优化）
+        self.vector_threshold = 0.3  # 向量相似度阈值（从0.5降低到0.3）
+        self.llm_threshold = 0.6  # LLM判断阈值（从0.7降低到0.6）
+        self.top_k_candidates = 50  # 向量过滤的候选数量（从30增加到50）
+        
+        # 根据模式动态调整阈值
+        self.mode_thresholds = {
+            'fast': {'vector': 0.5, 'candidates': 20},
+            'balanced': {'vector': 0.4, 'candidates': 30},
+            'accurate': {'vector': 0.3, 'candidates': 40},
+            'comprehensive': {'vector': 0.2, 'candidates': 50}
+        }
         
     def _init_components(self):
         """初始化匹配组件"""
@@ -193,13 +201,17 @@ class HybridMatcher:
         if not self.intent_matcher:
             return []
         
+        # 使用模式特定的阈值
+        threshold = self.mode_thresholds['fast']['vector']
+        max_results = self.mode_thresholds['fast']['candidates']
+        
         results = []
         
         for profile in profiles:
             # 使用意图匹配器计算分数（仅向量和规则）
             score = await self.intent_matcher._calculate_match_score(intent, profile)
             
-            if score >= self.vector_threshold:
+            if score >= threshold:
                 results.append({
                     'profile': profile,
                     'score': score,
@@ -210,7 +222,7 @@ class HybridMatcher:
         
         # 按分数排序
         results.sort(key=lambda x: x['score'], reverse=True)
-        return results[:50]  # 返回前50个
+        return results[:max_results]  # 返回限定数量
     
     async def _balanced_match(
         self,
@@ -224,12 +236,16 @@ class HybridMatcher:
         if not self.intent_matcher:
             return []
         
+        # 使用模式特定的阈值
+        threshold = self.mode_thresholds['balanced']['vector']
+        max_results = self.mode_thresholds['balanced']['candidates']
+        
         # 第一步：向量和规则匹配
         candidates = []
         for profile in profiles:
             score = await self.intent_matcher._calculate_match_score(intent, profile)
             
-            if score >= self.vector_threshold:
+            if score >= threshold:
                 candidates.append({
                     'profile': profile,
                     'vector_score': score
@@ -262,7 +278,7 @@ class HybridMatcher:
         
         # 排序
         results.sort(key=lambda x: x['score'], reverse=True)
-        return results[:30]
+        return results[:max_results]
     
     async def _accurate_match(
         self,
@@ -278,23 +294,27 @@ class HybridMatcher:
             logger.warning("LLM服务不可用，降级到平衡模式")
             return await self._balanced_match(intent, profiles)
         
+        # 使用模式特定的阈值
+        threshold = self.mode_thresholds['accurate']['vector']
+        max_candidates = self.mode_thresholds['accurate']['candidates']
+        
         # 第一步：向量过滤获取候选
         vector_candidates = []
         if self.intent_matcher:
             for profile in profiles:
                 score = await self.intent_matcher._calculate_match_score(intent, profile)
-                if score >= self.vector_threshold * 0.8:  # 降低阈值以获取更多候选
+                if score >= threshold * 0.8:  # 进一步降低阈值以获取更多候选
                     vector_candidates.append({
                         'profile': profile,
                         'vector_score': score
                     })
         else:
             # 如果没有向量匹配，取前N个
-            vector_candidates = [{'profile': p, 'vector_score': 0.5} for p in profiles[:self.top_k_candidates]]
+            vector_candidates = [{'profile': p, 'vector_score': 0.5} for p in profiles[:max_candidates]]
         
         # 按向量分数排序，取Top K
         vector_candidates.sort(key=lambda x: x['vector_score'], reverse=True)
-        top_candidates = vector_candidates[:self.top_k_candidates]
+        top_candidates = vector_candidates[:max_candidates]
         
         # 第二步：LLM精确判断
         results = []
@@ -339,6 +359,10 @@ class HybridMatcher:
         全面模式 - 所有方法综合
         最准确，性能最低，适合高价值场景
         """
+        # 使用模式特定的阈值
+        threshold = self.mode_thresholds['comprehensive']['vector']
+        max_results = self.mode_thresholds['comprehensive']['candidates']
+        
         results = []
         
         for profile in profiles:
@@ -355,8 +379,8 @@ class HybridMatcher:
                 scores['vector'] = 0.5
                 matched_conditions = []
             
-            # 2. LLM判断
-            if self.llm_service and scores['vector'] >= 0.3:  # 基本阈值
+            # 2. LLM判断（使用更低的阈值）
+            if self.llm_service and scores['vector'] >= threshold:  # 使用动态阈值
                 judgment = await self.llm_service.judge_match(
                     intent, profile, use_cache=True
                 )
@@ -399,7 +423,7 @@ class HybridMatcher:
         
         # 排序并返回
         results.sort(key=lambda x: x['score'], reverse=True)
-        return results[:20]  # 返回前20个最佳匹配
+        return results[:max_results]  # 返回限定数量的最佳匹配
     
     async def explain_match(
         self,

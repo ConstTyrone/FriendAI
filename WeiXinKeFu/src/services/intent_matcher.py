@@ -14,15 +14,51 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class IntentMatcher:
-    """意图匹配引擎 - AI增强版"""
+    """意图匹配引擎 - AI增强版（支持混合匹配）"""
     
-    def __init__(self, db_path: str = "user_profiles.db", use_ai: bool = True):
+    def __init__(self, db_path: str = "user_profiles.db", use_ai: bool = True, use_hybrid: bool = False, hybrid_mode: str = "balanced"):
+        """
+        初始化意图匹配引擎
+        
+        Args:
+            db_path: 数据库路径
+            use_ai: 是否使用AI（向量匹配）
+            use_hybrid: 是否使用混合匹配（LLM+向量）
+            hybrid_mode: 混合匹配模式 (fast/balanced/accurate/comprehensive)
+        """
         self.db_path = db_path
         self.use_ai = use_ai
+        self.use_hybrid = use_hybrid
+        self.hybrid_mode = hybrid_mode
         self.vector_service = None
+        self.hybrid_matcher = None
         
-        # 延迟导入向量服务
-        if self.use_ai:
+        # 如果启用混合匹配，初始化混合匹配器
+        if self.use_hybrid:
+            try:
+                from .hybrid_matcher import init_hybrid_matcher, MatchingMode
+                from ..config.config import config
+                
+                # 检查API key是否配置
+                if not config.qwen_api_key:
+                    logger.warning("⚠️ QWEN_API_KEY未配置，降级到向量匹配模式")
+                    self.use_hybrid = False
+                else:
+                    self.hybrid_matcher = init_hybrid_matcher(
+                        db_path=db_path,
+                        use_vector=True,
+                        use_llm=True
+                    )
+                    # 设置匹配模式
+                    self.matching_mode = getattr(MatchingMode, hybrid_mode.upper(), MatchingMode.BALANCED)
+                    logger.info(f"✅ 混合匹配器已启用，模式: {hybrid_mode}")
+            except Exception as e:
+                logger.error(f"❌ 混合匹配器初始化失败: {e}")
+                self.use_hybrid = False
+                self.hybrid_matcher = None
+        
+        # 如果没有启用混合匹配，尝试初始化向量服务
+        if not self.use_hybrid and self.use_ai:
             try:
                 # 先检查numpy是否可用
                 try:
@@ -46,8 +82,9 @@ class IntentMatcher:
                 traceback.print_exc()
                 self.use_ai = False
                 self.vector_service = None
-        else:
-            logger.info("🔄 AI模式已禁用，使用基础规则匹配")
+        
+        if not self.use_hybrid and not self.use_ai:
+            logger.info("🔄 使用基础规则匹配模式")
     
     async def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
         """
@@ -108,33 +145,85 @@ class IntentMatcher:
                 profile = dict(zip(columns, row))
                 profiles.append(profile)
             
-            # 进行匹配
-            matches = []
-            for profile in profiles:
-                score, match_type = await self._calculate_match_score_with_type(intent, profile)
+            # 如果启用混合匹配，使用混合匹配器
+            if self.use_hybrid and self.hybrid_matcher:
+                logger.info(f"使用混合匹配器，模式: {self.hybrid_mode}")
                 
-                if score >= (intent.get('threshold', 0.7)):
-                    # 生成匹配解释
-                    matched_conditions = self._get_matched_conditions(intent, profile)
-                    explanation = await self._generate_explanation(intent, profile, matched_conditions)
+                # 调用混合匹配器
+                hybrid_results = await self.hybrid_matcher.match(
+                    intent=intent,
+                    profiles=profiles,
+                    mode=self.matching_mode
+                )
+                
+                # 处理混合匹配结果
+                matches = []
+                for result in hybrid_results:
+                    profile = result['profile']
+                    score = result['score']
                     
-                    # 保存匹配记录
-                    match_id = self._save_match_record(
-                        cursor, intent_id, profile['id'], user_id,
-                        score, matched_conditions, explanation, match_type
-                    )
+                    # 只保留达到阈值的匹配
+                    if score >= intent.get('threshold', 0.7):
+                        # 保存匹配记录（包含LLM相关信息）
+                        match_id = self._save_hybrid_match_record(
+                            cursor=cursor,
+                            intent_id=intent_id,
+                            profile_id=profile['id'],
+                            user_id=user_id,
+                            result=result
+                        )
+                        
+                        match_result = {
+                            'match_id': match_id,
+                            'intent_id': intent_id,
+                            'intent_name': intent.get('name', ''),
+                            'profile_id': profile['id'],
+                            'profile_name': profile.get('profile_name', profile.get('name', '')),
+                            'score': score,
+                            'match_type': result.get('match_type', 'hybrid'),
+                            'confidence': result.get('confidence', 0.5),
+                            'matched_conditions': result.get('matched_conditions', []),
+                            'matched_aspects': result.get('matched_aspects', []),
+                            'missing_aspects': result.get('missing_aspects', []),
+                            'explanation': result.get('explanation', ''),
+                            'suggestions': result.get('suggestions', '')
+                        }
+                        
+                        # 如果有分数细节，也包含进去
+                        if 'scores_breakdown' in result:
+                            match_result['scores_breakdown'] = result['scores_breakdown']
+                        
+                        matches.append(match_result)
+                
+            else:
+                # 使用传统向量匹配
+                matches = []
+                for profile in profiles:
+                    score, match_type = await self._calculate_match_score_with_type(intent, profile)
                     
-                    match_result = {
-                        'match_id': match_id,
-                        'intent_id': intent_id,
-                        'intent_name': intent.get('name', ''),
-                        'profile_id': profile['id'],
-                        'profile_name': profile.get('profile_name', profile.get('name', '未知')),
-                        'score': score,
-                        'matched_conditions': matched_conditions,
-                        'explanation': explanation
-                    }
-                    matches.append(match_result)
+                    if score >= (intent.get('threshold', 0.7)):
+                        # 生成匹配解释
+                        matched_conditions = self._get_matched_conditions(intent, profile)
+                        explanation = await self._generate_explanation(intent, profile, matched_conditions)
+                        
+                        # 保存匹配记录
+                        match_id = self._save_match_record(
+                            cursor, intent_id, profile['id'], user_id,
+                            score, matched_conditions, explanation, match_type
+                        )
+                        
+                        match_result = {
+                            'match_id': match_id,
+                            'intent_id': intent_id,
+                            'intent_name': intent.get('name', ''),
+                            'profile_id': profile['id'],
+                            'profile_name': profile.get('profile_name', profile.get('name', '未知')),
+                            'score': score,
+                            'match_type': match_type,
+                            'matched_conditions': matched_conditions,
+                            'explanation': explanation
+                        }
+                        matches.append(match_result)
                     
                     # 尝试推送通知（暂时禁用，避免异步冲突）
                     # TODO: 修复异步推送服务
@@ -557,6 +646,91 @@ class IntentMatcher:
                 
         except Exception as e:
             logger.error(f"保存匹配记录失败: {e}")
+            return 0
+    
+    def _save_hybrid_match_record(self, cursor, intent_id: int, profile_id: int, 
+                                 user_id: str, result: Dict) -> int:
+        """保存混合匹配记录（包含LLM信息）"""
+        try:
+            # 提取各种信息
+            score = result.get('score', 0.0)
+            match_type = result.get('match_type', 'hybrid')
+            confidence = result.get('confidence', 0.5)
+            matched_conditions = result.get('matched_conditions', [])
+            matched_aspects = result.get('matched_aspects', [])
+            missing_aspects = result.get('missing_aspects', [])
+            explanation = result.get('explanation', '')
+            suggestions = result.get('suggestions', '')
+            
+            # 获取分数细节
+            scores_breakdown = result.get('scores_breakdown', {})
+            vector_score = scores_breakdown.get('vector', 0.0)
+            llm_score = scores_breakdown.get('llm', 0.0)
+            
+            # 构建扩展信息JSON
+            extended_info = {
+                'confidence': confidence,
+                'matched_aspects': matched_aspects,
+                'missing_aspects': missing_aspects,
+                'suggestions': suggestions,
+                'vector_score': vector_score,
+                'llm_score': llm_score,
+                'scores_breakdown': scores_breakdown
+            }
+            
+            # 检查是否已存在
+            cursor.execute("""
+                SELECT id FROM intent_matches 
+                WHERE intent_id = ? AND profile_id = ?
+            """, (intent_id, profile_id))
+            
+            existing = cursor.fetchone()
+            if existing:
+                # 更新现有记录
+                cursor.execute("""
+                    UPDATE intent_matches 
+                    SET match_score = ?, matched_conditions = ?, 
+                        explanation = ?, match_type = ?, 
+                        extended_info = ?, created_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (
+                    score,
+                    json.dumps(matched_conditions, ensure_ascii=False),
+                    explanation,
+                    match_type,
+                    json.dumps(extended_info, ensure_ascii=False),
+                    existing[0]
+                ))
+                return existing[0]
+            else:
+                # 插入新记录
+                cursor.execute("""
+                    INSERT INTO intent_matches (
+                        intent_id, profile_id, user_id, match_score,
+                        matched_conditions, explanation, match_type, 
+                        extended_info, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                """, (
+                    intent_id, profile_id, user_id, score,
+                    json.dumps(matched_conditions, ensure_ascii=False),
+                    explanation,
+                    match_type,
+                    json.dumps(extended_info, ensure_ascii=False)
+                ))
+                return cursor.lastrowid
+                
+        except Exception as e:
+            logger.error(f"保存混合匹配记录失败: {e}")
+            # 如果extended_info字段不存在，尝试使用传统方法
+            if "no column named extended_info" in str(e).lower():
+                logger.info("数据库缺少extended_info字段，使用传统保存方法")
+                return self._save_match_record(
+                    cursor, intent_id, profile_id, user_id,
+                    result.get('score', 0.0),
+                    result.get('matched_conditions', []),
+                    result.get('explanation', ''),
+                    result.get('match_type', 'hybrid')
+                )
             return 0
     
     def _get_user_table_name(self, user_id: str) -> str:
