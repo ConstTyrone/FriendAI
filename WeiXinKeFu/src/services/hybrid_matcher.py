@@ -69,7 +69,8 @@ class HybridMatcher:
                 
                 self.llm_service = init_llm_matching_service(
                     api_key=config.qwen_api_key,  # 修正为小写
-                    db_path=self.db_path
+                    db_path=self.db_path,
+                    api_endpoint=config.qwen_api_endpoint
                 )
                 logger.info("✅ LLM匹配服务初始化成功")
             except Exception as e:

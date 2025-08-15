@@ -7,6 +7,7 @@ import json
 import asyncio
 import hashlib
 import logging
+import requests
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -44,39 +45,34 @@ class MatchJudgment:
 class LLMMatchingService:
     """LLM意图匹配服务"""
     
-    def __init__(self, qwen_api_key: str, db_path: str = "user_profiles.db"):
+    def __init__(self, qwen_api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None):
         """
         初始化LLM匹配服务
         
         Args:
             qwen_api_key: 通义千问API密钥
             db_path: 数据库路径
+            api_endpoint: API端点（可选）
         """
         self.api_key = qwen_api_key
         self.db_path = db_path
+        self.api_endpoint = api_endpoint or "https://dashscope.aliyuncs.com/compatible-mode/v1"
         self.cache = {}  # 内存缓存
         self.cache_ttl = timedelta(hours=24)  # 缓存有效期
         
         # 配置参数
         self.batch_size = 5  # 批处理大小
         self.max_parallel = 3  # 最大并行数
-        self.timeout = 10  # API调用超时（秒）
+        self.timeout = 30  # API调用超时（秒）
         
-        # 初始化API客户端
-        self._init_client()
+        # 设置请求头
+        self.headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json'
+        }
         
-    def _init_client(self):
-        """初始化API客户端"""
-        try:
-            from openai import AsyncOpenAI
-            self.client = AsyncOpenAI(
-                api_key=self.api_key,
-                base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
-            )
-            logger.info("✅ LLM客户端初始化成功")
-        except Exception as e:
-            logger.error(f"❌ LLM客户端初始化失败: {e}")
-            self.client = None
+        logger.info(f"✅ LLM匹配服务初始化成功 (使用HTTP请求方式)")
+        logger.info(f"   API端点: {self.api_endpoint}")
     
     async def judge_match(
         self,
@@ -358,27 +354,44 @@ class LLMMatchingService:
 要求回答简洁、实用、有建设性。"""
     
     async def _call_llm(self, prompt: str) -> str:
-        """调用LLM API"""
-        if not self.client:
-            raise Exception("LLM客户端未初始化")
+        """调用LLM API (使用异步方式的同步请求)"""
+        
+        # 构造请求数据
+        data = {
+            "model": "qwen-plus",  # 或 "qwen-max"
+            "messages": [
+                {"role": "system", "content": "你是一个专业的匹配分析专家。"},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0,  # 保证一致性
+            "max_tokens": 1000
+        }
         
         try:
-            response = await asyncio.wait_for(
-                self.client.chat.completions.create(
-                    model="qwen-plus",
-                    messages=[
-                        {"role": "system", "content": "你是一个专业的匹配分析专家。"},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0,  # 保证一致性
-                    max_tokens=1000
-                ),
-                timeout=self.timeout
+            # 使用 asyncio 运行同步请求
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: requests.post(
+                    f"{self.api_endpoint}/chat/completions",
+                    headers=self.headers,
+                    data=json.dumps(data),
+                    timeout=self.timeout
+                )
             )
             
-            return response.choices[0].message.content
-            
-        except asyncio.TimeoutError:
+            # 检查响应状态
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content']
+                logger.info(f"LLM响应成功，内容长度: {len(content)}")
+                return content
+            else:
+                error_msg = f"API调用失败: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+                
+        except requests.Timeout:
             raise Exception(f"LLM调用超时（{self.timeout}秒）")
         except Exception as e:
             logger.error(f"LLM调用失败: {e}")
@@ -551,8 +564,8 @@ class LLMMatchingService:
 # 全局实例（延迟初始化）
 llm_matching_service = None
 
-def init_llm_matching_service(api_key: str, db_path: str = "user_profiles.db"):
+def init_llm_matching_service(api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None):
     """初始化全局LLM匹配服务"""
     global llm_matching_service
-    llm_matching_service = LLMMatchingService(api_key, db_path)
+    llm_matching_service = LLMMatchingService(api_key, db_path, api_endpoint)
     return llm_matching_service
