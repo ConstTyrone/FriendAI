@@ -17,7 +17,7 @@ class SQLiteDatabase:
     """SQLite 数据库管理器 - 支持多用户独立数据存储"""
     
     def __init__(self):
-        self.db_path = os.getenv('DATABASE_PATH', 'user_profiles_v2.db')
+        self.db_path = os.getenv('DATABASE_PATH', 'user_profiles.db')  # 统一使用 user_profiles.db
         self._init_database()
         self.pool = True  # 模拟连接池，用于兼容性检查
     

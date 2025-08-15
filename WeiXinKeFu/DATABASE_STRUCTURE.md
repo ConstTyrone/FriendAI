@@ -2,8 +2,8 @@
 
 ## 当前使用版本
 - **代码版本**: `database_sqlite_v2.py`
-- **数据库文件**: `user_profiles.db`
-- **环境变量**: `DATABASE_PATH=user_profiles.db`
+- **数据库文件**: `user_profiles.db` （默认值已更新）
+- **环境变量**: 无需设置，默认使用 `user_profiles.db`
 
 ## 表结构说明
 
@@ -59,25 +59,14 @@ CREATE TABLE profiles_xxx (
 )
 ```
 
-#### 当前额外的列（13个，可能不需要）
-```sql
--- 向量搜索相关
-embedding BLOB,                -- 向量嵌入数据
-embedding_model TEXT,          -- 使用的向量模型
-embedding_updated_at TIMESTAMP,-- 向量更新时间
+#### ~~已删除的额外列（2024-08-15）~~
+已通过 `clean_extra_columns.py` 脚本删除以下13个多余的列：
+- ~~embedding, embedding_model, embedding_updated_at~~ （向量搜索相关）
+- ~~wechat_id, basic_info, recent_activities, raw_messages~~ 
+- ~~source, message_count, industry, school~~
+- ~~profile_picture, last_message_time~~
 
--- 额外信息字段
-wechat_id TEXT,               -- 微信ID
-basic_info TEXT,              -- 基本信息JSON
-recent_activities TEXT,       -- 最近活动JSON
-raw_messages TEXT,            -- 原始消息历史
-source TEXT,                  -- 数据来源
-message_count INTEGER,        -- 消息计数
-industry TEXT,                -- 行业
-school TEXT,                  -- 学校
-profile_picture TEXT,         -- 头像URL
-last_message_time TEXT        -- 最后消息时间
-```
+现在表结构完全符合v2标准定义。
 
 ## API字段映射问题
 
