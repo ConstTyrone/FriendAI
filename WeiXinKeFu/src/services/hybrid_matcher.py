@@ -68,7 +68,7 @@ class HybridMatcher:
                 from ..config.config import config
                 
                 self.llm_service = init_llm_matching_service(
-                    api_key=config.QWEN_API_KEY,
+                    api_key=config.qwen_api_key,  # 修正为小写
                     db_path=self.db_path
                 )
                 logger.info("✅ LLM匹配服务初始化成功")
@@ -478,8 +478,18 @@ class HybridMatcher:
             return {
                 'total': 0,
                 'high_quality': 0,
+                'medium_quality': 0,
+                'low_quality': 0,
                 'average_score': 0,
-                'average_confidence': 0
+                'average_confidence': 0,
+                'max_score': 0,
+                'min_score': 0,
+                'match_types': {
+                    'fast': 0,
+                    'balanced': 0,
+                    'accurate': 0,
+                    'comprehensive': 0
+                }
             }
         
         scores = [r['score'] for r in results]
