@@ -37,11 +37,13 @@ env/
 .DS_Store
 Thumbs.db
 
-# Database (commented out - now tracking database files)
-# *.db
-# *.sqlite
-# *.sqlite3
-# user_profiles*.db
+# Database - 不应该跟踪数据库文件，它们包含用户数据
+*.db
+*.sqlite
+*.sqlite3
+user_profiles*.db
+WeiXinKeFu/*.db
+WeiXinKeFu/user_profiles.db
 
 # Logs
 *.log
