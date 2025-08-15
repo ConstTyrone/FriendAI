@@ -110,6 +110,16 @@ def process_message(message: Dict[str, Any]) -> None:
                         if profile_id:
                             print(f"💾 用户画像已保存到数据库 (ID: {profile_id})")
                             
+                            # 触发意图匹配（异步执行，不阻塞消息处理）
+                            try:
+                                from ..services.intent_matcher import intent_matcher
+                                # 在后台异步执行匹配
+                                asyncio.create_task(intent_matcher.match_profile_with_intents(profile_id, user_id))
+                                print(f"🎯 已触发意图匹配分析 (联系人ID: {profile_id})")
+                            except Exception as match_error:
+                                logger.error(f"触发意图匹配失败: {match_error}")
+                                # 不影响主流程，继续处理
+                            
                             # 记录消息处理日志
                             processing_time = int((time.time() - start_time) * 1000)
                             db.log_message(
@@ -233,6 +243,16 @@ def process_message_and_get_result(message: Dict[str, Any]) -> str:
                         
                         if profile_id:
                             logger.info(f"💾 用户画像已保存到数据库 (ID: {profile_id})")
+                            
+                            # 触发意图匹配（异步执行，不阻塞消息处理）
+                            try:
+                                from ..services.intent_matcher import intent_matcher
+                                # 在后台异步执行匹配
+                                asyncio.create_task(intent_matcher.match_profile_with_intents(profile_id, user_id))
+                                print(f"🎯 已触发意图匹配分析 (联系人ID: {profile_id})")
+                            except Exception as match_error:
+                                logger.error(f"触发意图匹配失败: {match_error}")
+                                # 不影响主流程，继续处理
                             
                             # 记录消息处理日志
                             processing_time = int((time.time() - start_time) * 1000) if 'start_time' in locals() else None
