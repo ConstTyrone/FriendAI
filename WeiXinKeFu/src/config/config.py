@@ -28,5 +28,8 @@ class WeWorkConfig:
     # 微信小程序配置
     wechat_mini_appid: str = os.getenv('WECHAT_MINI_APPID', 'wx50fc05960f4152a6')  # 你提供的AppID
     wechat_mini_secret: str = os.getenv('WECHAT_MINI_SECRET', '')  # 需要在环境变量中设置
+    
+    # 微信客服配置
+    wechat_kf_id: str = os.getenv('WECHAT_KF_ID', 'wkYmCgEAAAHFRYA1D9Nhs-VPqFPSvylQ')  # 客服账号ID
 
 config = WeWorkConfig()

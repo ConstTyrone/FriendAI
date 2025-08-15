@@ -388,6 +388,17 @@ class IntentMatcher:
             conn.close()
             
             logger.info(f"联系人 {profile_id} 匹配完成，找到 {len(matches)} 个匹配")
+            
+            # 如果有匹配结果，尝试推送通知
+            if matches:
+                try:
+                    # 异步推送通知，不阻塞主流程
+                    asyncio.create_task(self._async_push_matches(matches, user_id))
+                    logger.info(f"已触发异步推送任务，共 {len(matches)} 个匹配")
+                except Exception as push_error:
+                    logger.warning(f"触发推送任务失败: {push_error}")
+                    # 推送失败不影响主流程
+            
             return matches
             
         except Exception as e:
@@ -806,6 +817,100 @@ class IntentMatcher:
         # 清理用户ID中的特殊字符
         clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
         return f"profiles_{clean_id}"
+    
+    async def _async_push_matches(self, matches: List[Dict], user_id: str):
+        """
+        异步推送匹配结果通知
+        
+        Args:
+            matches: 匹配结果列表
+            user_id: 用户ID
+        """
+        try:
+            # 导入推送服务
+            from .push_service import push_service
+            
+            logger.info(f"开始异步推送 {len(matches)} 个匹配结果给用户 {user_id}")
+            
+            # 批量处理推送
+            push_service.batch_process_matches(matches, user_id)
+            
+            # 如果有微信客服接口，发送微信通知
+            try:
+                await self._send_wechat_notification(matches, user_id)
+            except Exception as wx_error:
+                logger.warning(f"微信通知发送失败: {wx_error}")
+            
+        except Exception as e:
+            logger.error(f"异步推送失败: {e}")
+    
+    async def _send_wechat_notification(self, matches: List[Dict], user_id: str):
+        """
+        发送微信客服通知
+        
+        Args:
+            matches: 匹配结果列表
+            user_id: 用户ID
+        """
+        try:
+            # 检查是否有企业微信客户端
+            from ..services.wework_client import wework_client
+            
+            # 对于测试用户，直接使用user_id作为external_userid
+            # 实际生产环境应该查询绑定关系
+            external_userid = user_id  # 简化处理：直接使用user_id
+            
+            logger.info(f"准备发送微信通知给用户 {user_id} (external_userid: {external_userid})")
+            
+            # 构建通知消息
+            message_lines = [
+                "🎯 找到新的匹配联系人！",
+                ""
+            ]
+            
+            for i, match in enumerate(matches[:3], 1):  # 最多显示3个
+                intent_name = match.get('intent_name', '未知意图')
+                profile_name = match.get('profile_name', '未知联系人')
+                score = match.get('score', 0)
+                explanation = match.get('explanation', '')
+                
+                message_lines.append(f"{i}. [{intent_name}]")
+                message_lines.append(f"   匹配联系人：{profile_name}")
+                message_lines.append(f"   匹配度：{score:.0%}")
+                if explanation:
+                    # 限制解释长度
+                    if len(explanation) > 50:
+                        explanation = explanation[:50] + "..."
+                    message_lines.append(f"   原因：{explanation}")
+                message_lines.append("")
+            
+            if len(matches) > 3:
+                message_lines.append(f"... 还有 {len(matches) - 3} 个匹配")
+                message_lines.append("")
+            
+            message_lines.append("💡 登录小程序查看详情")
+            
+            message_text = "\n".join(message_lines)
+            
+            # 发送微信消息
+            # 获取客服账号ID
+            from ..config.config import config
+            open_kfid = config.wechat_kf_id
+            
+            result = wework_client.send_text_message(
+                external_userid=external_userid,
+                open_kfid=open_kfid,
+                text=message_text
+            )
+            
+            if result:
+                logger.info(f"微信通知发送成功给用户 {user_id} (external_userid: {external_userid})")
+            else:
+                logger.warning(f"微信通知发送失败给用户 {user_id}")
+                
+        except Exception as e:
+            logger.error(f"发送微信通知失败: {e}")
+            raise
 
 # 全局匹配引擎实例（启用最强LLM加成混合匹配）
 intent_matcher = IntentMatcher(
