@@ -59,7 +59,8 @@ SAFE_TO_ADD_COLUMNS = {
     'industry': 'TEXT',
     'school': 'TEXT',
     'profile_picture': 'TEXT',
-    'last_message_time': 'TEXT'
+    'last_message_time': 'TEXT',
+    'ai_summary': 'TEXT'  # AI摘要字段
 }
 
 
