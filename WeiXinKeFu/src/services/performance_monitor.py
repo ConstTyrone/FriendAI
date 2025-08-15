@@ -105,29 +105,33 @@ class PerformanceMonitor:
                     api_cost REAL,
                     cache_hits INTEGER,
                     cache_miss INTEGER,
-                    metadata TEXT,
-                    INDEX idx_timestamp (timestamp),
-                    INDEX idx_user_id (user_id),
-                    INDEX idx_method (match_method)
+                    metadata TEXT
                 )
             """)
+            
+            # 创建索引（SQLite需要单独创建）
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON performance_metrics(timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_id ON performance_metrics(user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_method ON performance_metrics(match_method)")
             
             # 创建API调用记录表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS api_call_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
-                    api_type TEXT NOT NULL,  -- qwen/vector/other
+                    api_type TEXT NOT NULL,
                     model TEXT,
                     tokens_used INTEGER,
                     cost REAL,
                     response_time REAL,
                     success BOOLEAN,
-                    error_message TEXT,
-                    INDEX idx_api_timestamp (timestamp),
-                    INDEX idx_api_type (api_type)
+                    error_message TEXT
                 )
             """)
+            
+            # 创建索引
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_timestamp ON api_call_logs(timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_type ON api_call_logs(api_type)")
             
             # 创建日统计表
             cursor.execute("""
@@ -347,6 +351,23 @@ class PerformanceMonitor:
             mode_stats = cursor.fetchall()
             
             conn.close()
+            
+            # 处理空结果情况
+            if not overall_stats or overall_stats[0] is None:
+                return {
+                    'overall': {
+                        'total_operations': 0,
+                        'avg_response_time': 0,
+                        'max_response_time': 0,
+                        'min_response_time': 0,
+                        'avg_matches': 0,
+                        'total_api_calls': 0,
+                        'total_api_cost': 0,
+                        'cache_hit_rate': 0
+                    },
+                    'by_method': [],
+                    'by_mode': []
+                }
             
             return {
                 'overall': {
