@@ -1,5 +1,6 @@
 import authManager from './utils/auth-manager';
 import dataManager from './utils/data-manager';
+import notificationManager from './utils/notification-manager';
 
 App({
   globalData: {
@@ -9,6 +10,11 @@ App({
     
     // 应用配置
     systemInfo: null,
+    
+    // 通知相关
+    hasNewMatches: false,
+    unreadMatchCount: 0,
+    latestMatches: [],
     
     // 版本信息
     version: '1.0.0'
@@ -108,6 +114,9 @@ App({
           this.globalData.userInfo = authManager.getCurrentUser();
           
           console.log('用户已登录:', this.globalData.userInfo);
+          
+          // 启动通知轮询
+          this.startNotificationPolling();
         } else {
           console.log('Token已失效，需要重新登录');
         }
@@ -117,6 +126,25 @@ App({
     } catch (error) {
       console.error('初始化认证状态失败:', error);
     }
+  },
+  
+  /**
+   * 启动通知轮询
+   */
+  startNotificationPolling() {
+    // 延迟2秒后开始轮询，避免启动时资源竞争
+    setTimeout(() => {
+      console.log('启动匹配通知轮询...');
+      notificationManager.startPolling(30000); // 每30秒检查一次
+    }, 2000);
+  },
+  
+  /**
+   * 停止通知轮询
+   */
+  stopNotificationPolling() {
+    console.log('停止匹配通知轮询');
+    notificationManager.stopPolling();
   },
 
   /**
@@ -169,6 +197,14 @@ App({
   clearUserInfo() {
     this.globalData.userInfo = null;
     this.globalData.isLoggedIn = false;
+    
+    // 停止通知轮询
+    this.stopNotificationPolling();
+    
+    // 清除通知相关状态
+    this.globalData.hasNewMatches = false;
+    this.globalData.unreadMatchCount = 0;
+    this.globalData.latestMatches = [];
   },
 
   /**
