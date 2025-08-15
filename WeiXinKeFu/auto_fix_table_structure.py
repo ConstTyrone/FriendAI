@@ -61,7 +61,9 @@ SAFE_TO_ADD_COLUMNS = {
     'profile_picture': 'TEXT',
     'last_message_time': 'TEXT',
     'ai_summary': 'TEXT',  # AI摘要字段
-    'source_type': 'TEXT'  # 消息来源类型字段
+    'source_type': 'TEXT',  # 消息来源类型字段
+    'raw_message_content': 'TEXT',  # 原始消息内容字段
+    'raw_ai_response': 'TEXT'  # 原始AI响应字段
 }
 
 
