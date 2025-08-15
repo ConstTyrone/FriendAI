@@ -49,10 +49,10 @@ class HybridMatcher:
         
         # 根据模式动态调整阈值
         self.mode_thresholds = {
-            'fast': {'vector': 0.5, 'candidates': 20},
-            'balanced': {'vector': 0.4, 'candidates': 30},
-            'accurate': {'vector': 0.3, 'candidates': 40},
-            'comprehensive': {'vector': 0.2, 'candidates': 50}
+            'fast': {'vector': 0.4, 'candidates': 20},
+            'balanced': {'vector': 0.3, 'candidates': 30},
+            'accurate': {'vector': 0.25, 'candidates': 40},
+            'comprehensive': {'vector': 0.15, 'candidates': 50}  # 降低向量阈值，让更多候选进入LLM判断
         }
         
     def _init_components(self):
@@ -398,16 +398,16 @@ class HybridMatcher:
                 missing_aspects = []
                 confidence = 0.5
             
-            # 3. 综合评分（加权平均）
+            # 3. 综合评分（优化权重配置）
             if scores['llm'] > 0:
-                # 有LLM分数时：向量25% + LLM 75%
-                final_score = scores['vector'] * 0.25 + scores['llm'] * 0.75
+                # 有LLM分数时：向量40% + LLM 60% (更平衡的权重)
+                final_score = scores['vector'] * 0.40 + scores['llm'] * 0.60
             else:
                 # 仅有向量分数
                 final_score = scores['vector']
             
-            # 只保留达到阈值的结果
-            if final_score >= 0.5:
+            # 只保留达到阈值的结果 (降低最终阈值)
+            if final_score >= 0.35:
                 results.append({
                     'profile': profile,
                     'score': final_score,

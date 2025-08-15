@@ -313,7 +313,7 @@ class IntentMatcher:
                         match_type = result.get('match_type', 'hybrid')
                         confidence = result.get('confidence', 0.8)
                         
-                        if score >= (intent.get('threshold', 0.6)):  # 降低阈值以获得更多匹配
+                        if score >= (intent.get('threshold', 0.35)):  # 进一步降低阈值，匹配更多潜在候选
                             # 保存匹配记录
                             match_id = self._save_match_record(
                                 cursor, intent['id'], profile_id, user_id,
