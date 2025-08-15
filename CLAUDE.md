@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Note: You must push the results to the remote server at https://github.com/ConstTyrone/FriendAI after completing each task.
+
 ## Project Overview
 
 FriendAI is a WeChat ecosystem social relationship management system with AI-powered capabilities:

@@ -700,7 +700,8 @@ async def create_profile(
         
         # 准备画像数据
         profile_data = {
-            "name": request.name.strip(),
+            "profile_name": request.name.strip(),  # 修正字段名
+            "name": request.name.strip(),  # 保留兼容性
             "gender": request.gender or "未知",
             "age": request.age or "未知",
             "phone": request.phone or "未知",
