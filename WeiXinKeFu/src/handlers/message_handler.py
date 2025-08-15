@@ -1,6 +1,7 @@
 # message_handler_v2.py
 import logging
 import xml.etree.ElementTree as ET
+import asyncio
 from typing import Dict, Any
 from .message_classifier import classifier
 from .message_formatter import text_extractor
