@@ -71,9 +71,9 @@
       <!-- 底部信息 -->
       <view class="match-footer">
         <text class="match-time">{{item.createdAtFormat}}</text>
-        <text class="match-type" wx:if="{{item.matchTypeDisplay}}">
-          {{item.matchTypeDisplay}}
-        </text>
+        <view class="match-type-wrapper" wx:if="{{item.matchTypeDisplay}}">
+          <text class="match-type-text">{{item.matchTypeDisplay}}</text>
+        </view>
       </view>
     </view>
   </view>
