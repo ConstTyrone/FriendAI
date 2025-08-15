@@ -319,7 +319,7 @@ class IntentMatcher:
                             # 保存匹配记录
                             match_id = self._save_match_record(
                                 cursor, intent['id'], profile_id, user_id,
-                                score, matched_conditions, explanation
+                                score, matched_conditions, explanation, match_type
                             )
                             
                             matches.append({
@@ -346,7 +346,7 @@ class IntentMatcher:
                         # 保存匹配记录
                         match_id = self._save_match_record(
                             cursor, intent['id'], profile_id, user_id,
-                            score, matched_conditions, explanation
+                            score, matched_conditions, explanation, 'traditional'
                         )
                         
                         matches.append({
