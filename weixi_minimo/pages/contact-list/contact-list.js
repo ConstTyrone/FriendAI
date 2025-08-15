@@ -137,13 +137,13 @@ Page({
   /**
    * 加载初始数据
    */
-  async loadInitialData() {
+  async loadInitialData(forceRefresh = false) {
     try {
       this.setData({ loading: true });
       
       // 并行加载联系人数据和统计信息
       const [contactsResult] = await Promise.allSettled([
-        this.loadContacts(1, false),
+        this.loadContacts(1, false, forceRefresh),
         this.loadStats()
       ]);
       
@@ -171,13 +171,13 @@ Page({
   /**
    * 加载联系人数据
    */
-  async loadContacts(page = 1, append = false) {
+  async loadContacts(page = 1, append = false, forceRefresh = false) {
     try {
       const params = {
         page,
         pageSize: UI_CONFIG.PAGE_SIZE,
         search: this.data.searchQuery,
-        forceRefresh: page === 1 && !append
+        forceRefresh: forceRefresh || (page === 1 && !append)
       };
       
       const result = await dataManager.getContacts(params);
@@ -282,7 +282,8 @@ Page({
         hasMore: true 
       });
       
-      await this.loadInitialData();
+      // 强制刷新数据，不使用缓存
+      await this.loadInitialData(true);
       
       if (showToast) {
         wx.showToast({
@@ -369,7 +370,8 @@ Page({
         hasMore: true 
       });
       
-      await this.loadContacts(1, false);
+      // 搜索时强制刷新，确保获取最新数据
+      await this.loadContacts(1, false, true);
       
       // 保存搜索历史
       if (query.trim()) {
@@ -588,10 +590,46 @@ Page({
       switch (eventType) {
         case 'contactsUpdated':
           console.log('联系人数据更新:', data?.length);
+          // 更新页面联系人数据
+          if (data && Array.isArray(data)) {
+            const processedContacts = this.processContacts(data);
+            this.setData({ 
+              contacts: processedContacts,
+              loading: false,
+              loadingMore: false 
+            });
+          }
           break;
           
         case 'contactDeleted':
           console.log('联系人已删除:', data);
+          // 从列表中移除已删除的联系人
+          if (data && data.id) {
+            const updatedContacts = this.data.contacts.filter(contact => contact.id !== data.id);
+            this.setData({ contacts: updatedContacts });
+          }
+          break;
+          
+        case 'contactCreated':
+          console.log('新增联系人:', data);
+          // 将新联系人添加到列表开头
+          if (data) {
+            const processedContact = this.processContacts([data]);
+            this.setData({ 
+              contacts: [...processedContact, ...this.data.contacts]
+            });
+          }
+          break;
+          
+        case 'contactUpdated':
+          console.log('联系人已更新:', data);
+          // 更新列表中的联系人
+          if (data && data.id) {
+            const updatedContacts = this.data.contacts.map(contact => 
+              contact.id === data.id ? this.processContacts([data])[0] : contact
+            );
+            this.setData({ contacts: updatedContacts });
+          }
           break;
           
         case 'statsUpdated':
@@ -613,7 +651,7 @@ Page({
    */
   removeDataListeners() {
     if (this.dataListener) {
-      // dataManager.removeListener(this.dataListener);
+      dataManager.removeListener(this.dataListener);
       this.dataListener = null;
     }
   }
