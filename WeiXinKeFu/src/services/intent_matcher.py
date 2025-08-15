@@ -292,29 +292,70 @@ class IntentMatcher:
                     intent['conditions'] = {}
                 intents.append(intent)
             
-            # 进行匹配
+            # 进行匹配 - 使用混合匹配器（如果启用）或传统匹配
             matches = []
-            for intent in intents:
-                score = await self._calculate_match_score(intent, profile)
-                
-                if score >= (intent.get('threshold', 0.7)):
-                    matched_conditions = self._get_matched_conditions(intent, profile)
-                    explanation = await self._generate_explanation(intent, profile, matched_conditions)
-                    
-                    # 保存匹配记录
-                    match_id = self._save_match_record(
-                        cursor, intent['id'], profile_id, user_id,
-                        score, matched_conditions, explanation
+            
+            if self.use_hybrid and self.hybrid_matcher:
+                # 使用最强的混合匹配器
+                logger.info(f"🚀 使用混合匹配器 ({self.hybrid_mode}模式) 进行意图匹配")
+                for intent in intents:
+                    # 使用comprehensive模式获得最佳匹配结果
+                    hybrid_results = await self.hybrid_matcher.match(
+                        intent, [profile], 
+                        mode=self.matching_mode
                     )
                     
-                    matches.append({
-                        'match_id': match_id,
-                        'intent_id': intent['id'],
-                        'intent_name': intent['name'],
-                        'score': score,
-                        'matched_conditions': matched_conditions,
-                        'explanation': explanation
-                    })
+                    if hybrid_results:
+                        result = hybrid_results[0]  # 取第一个结果
+                        score = result['score']
+                        explanation = result.get('explanation', '')
+                        matched_conditions = result.get('matched_conditions', [])
+                        match_type = result.get('match_type', 'hybrid')
+                        confidence = result.get('confidence', 0.8)
+                        
+                        if score >= (intent.get('threshold', 0.6)):  # 降低阈值以获得更多匹配
+                            # 保存匹配记录
+                            match_id = self._save_match_record(
+                                cursor, intent['id'], profile_id, user_id,
+                                score, matched_conditions, explanation
+                            )
+                            
+                            matches.append({
+                                'match_id': match_id,
+                                'intent_id': intent['id'],
+                                'intent_name': intent['name'],
+                                'score': score,
+                                'matched_conditions': matched_conditions,
+                                'explanation': explanation,
+                                'match_type': match_type,
+                                'confidence': confidence
+                            })
+                            logger.info(f"✅ 混合匹配成功: {intent['name']} -> {profile.get('profile_name', 'Unknown')} (分数: {score:.2%})")
+            else:
+                # 使用传统匹配方法
+                logger.info("🔄 使用传统意图匹配方法")
+                for intent in intents:
+                    score = await self._calculate_match_score(intent, profile)
+                    
+                    if score >= (intent.get('threshold', 0.7)):
+                        matched_conditions = self._get_matched_conditions(intent, profile)
+                        explanation = await self._generate_explanation(intent, profile, matched_conditions)
+                        
+                        # 保存匹配记录
+                        match_id = self._save_match_record(
+                            cursor, intent['id'], profile_id, user_id,
+                            score, matched_conditions, explanation
+                        )
+                        
+                        matches.append({
+                            'match_id': match_id,
+                            'intent_id': intent['id'],
+                            'intent_name': intent['name'],
+                            'score': score,
+                            'matched_conditions': matched_conditions,
+                            'explanation': explanation,
+                            'match_type': 'traditional'
+                        })
             
             conn.commit()
             conn.close()
@@ -739,5 +780,9 @@ class IntentMatcher:
         clean_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in user_id)
         return f"profiles_{clean_id}"
 
-# 全局匹配引擎实例（启用AI增强）
-intent_matcher = IntentMatcher(use_ai=True)
+# 全局匹配引擎实例（启用最强LLM加成混合匹配）
+intent_matcher = IntentMatcher(
+    use_ai=True, 
+    use_hybrid=True, 
+    hybrid_mode="comprehensive"  # 使用全面模式：向量+规则+LLM判断
+)
