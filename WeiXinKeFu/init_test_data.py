@@ -71,29 +71,55 @@ def init_test_data():
     clean_user = ''.join(c if c.isalnum() or c == '_' else '_' for c in test_user)
     user_table = f"profiles_{clean_user}"
     
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {user_table} (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            profile_name TEXT NOT NULL,
-            gender TEXT,
-            age TEXT,
-            phone TEXT,
-            location TEXT,
-            marital_status TEXT,
-            education TEXT,
-            company TEXT,
-            position TEXT,
-            asset_level TEXT,
-            personality TEXT,
-            tags TEXT,
-            basic_info TEXT,
-            recent_activities TEXT,
-            raw_messages TEXT,
-            embedding BLOB,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+    # 检查表是否存在以及结构是否正确
+    cursor.execute(f"PRAGMA table_info({user_table})")
+    columns = cursor.fetchall()
+    column_names = [col[1] for col in columns] if columns else []
+    
+    # 必需的字段列表
+    required_fields = [
+        'profile_name', 'gender', 'age', 'phone', 'location', 
+        'marital_status', 'education', 'company', 'position', 
+        'asset_level', 'personality', 'tags', 'basic_info', 
+        'recent_activities', 'raw_messages'
+    ]
+    
+    # 检查是否所有必需字段都存在
+    missing_fields = [field for field in required_fields if field not in column_names]
+    
+    if missing_fields or not columns:
+        print(f"⚠️ 表结构不完整或不存在，重新创建表...")
+        print(f"   缺少字段: {missing_fields}")
+        
+        # 删除旧表并创建新表
+        cursor.execute(f"DROP TABLE IF EXISTS {user_table}")
+        
+        cursor.execute(f"""
+            CREATE TABLE {user_table} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_name TEXT NOT NULL,
+                gender TEXT,
+                age TEXT,
+                phone TEXT,
+                location TEXT,
+                marital_status TEXT,
+                education TEXT,
+                company TEXT,
+                position TEXT,
+                asset_level TEXT,
+                personality TEXT,
+                tags TEXT,
+                basic_info TEXT,
+                recent_activities TEXT,
+                raw_messages TEXT,
+                embedding BLOB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        print(f"✅ 表 {user_table} 已重新创建")
+    else:
+        print(f"✅ 表 {user_table} 结构完整")
     
     print("✅ 数据库表创建完成")
     
