@@ -111,7 +111,7 @@ class IntentMatcher:
             # 进行匹配
             matches = []
             for profile in profiles:
-                score = await self._calculate_match_score(intent, profile)
+                score, match_type = await self._calculate_match_score_with_type(intent, profile)
                 
                 if score >= (intent.get('threshold', 0.7)):
                     # 生成匹配解释
@@ -121,7 +121,7 @@ class IntentMatcher:
                     # 保存匹配记录
                     match_id = self._save_match_record(
                         cursor, intent_id, profile['id'], user_id,
-                        score, matched_conditions, explanation
+                        score, matched_conditions, explanation, match_type
                     )
                     
                     match_result = {
@@ -237,6 +237,21 @@ class IntentMatcher:
             logger.error(f"匹配联系人时出错: {e}")
             return []
     
+    async def _calculate_match_score_with_type(self, intent: Dict, profile: Dict) -> tuple:
+        """计算匹配分数并返回匹配类型"""
+        score = await self._calculate_match_score(intent, profile)
+        
+        # 判断匹配类型
+        if self.use_ai and hasattr(self, '_last_semantic_score') and self._last_semantic_score > 0:
+            if score > 0 and self._last_semantic_score < score:
+                match_type = 'hybrid'  # AI增强匹配（AI+规则）
+            else:
+                match_type = 'vector'  # 纯AI语义匹配
+        else:
+            match_type = 'rule'  # 规则匹配
+        
+        return score, match_type
+    
     async def _calculate_match_score(self, intent: Dict, profile: Dict) -> float:
         """
         计算匹配分数
@@ -255,9 +270,14 @@ class IntentMatcher:
                 # 现在可以使用异步调用
                 semantic_score, explanation = await self.vector_service.calculate_semantic_similarity(intent, profile, use_cache=False)
                 logger.info(f"AI匹配 - 意图:{intent.get('name')} 联系人:{profile.get('profile_name', profile.get('name'))} 语义分数:{semantic_score:.2f} 说明:{explanation}")
+                # 保存语义分数供判断匹配类型使用
+                self._last_semantic_score = semantic_score
             except Exception as e:
                 logger.warning(f"语义相似度计算失败: {e}")
                 semantic_score = 0.0
+                self._last_semantic_score = 0.0
+        else:
+            self._last_semantic_score = 0.0
         
         # 权重分配（AI模式和基础模式不同）
         if self.use_ai and semantic_score > 0:
@@ -495,7 +515,7 @@ class IntentMatcher:
     def _save_match_record(self, cursor, intent_id: int, profile_id: int, 
                           user_id: str, score: float, 
                           matched_conditions: List[str], 
-                          explanation: str) -> int:
+                          explanation: str, match_type: str = 'rule') -> int:
         """保存匹配记录"""
         try:
             # 检查是否已存在
@@ -510,12 +530,13 @@ class IntentMatcher:
                 cursor.execute("""
                     UPDATE intent_matches 
                     SET match_score = ?, matched_conditions = ?, 
-                        explanation = ?, created_at = CURRENT_TIMESTAMP
+                        explanation = ?, match_type = ?, created_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                 """, (
                     score,
                     json.dumps(matched_conditions, ensure_ascii=False),
                     explanation,
+                    match_type,
                     existing[0]
                 ))
                 return existing[0]
@@ -524,12 +545,13 @@ class IntentMatcher:
                 cursor.execute("""
                     INSERT INTO intent_matches (
                         intent_id, profile_id, user_id, match_score,
-                        matched_conditions, explanation, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')
+                        matched_conditions, explanation, match_type, status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
                 """, (
                     intent_id, profile_id, user_id, score,
                     json.dumps(matched_conditions, ensure_ascii=False),
-                    explanation
+                    explanation,
+                    match_type
                 ))
                 return cursor.lastrowid
                 

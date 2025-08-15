@@ -238,11 +238,13 @@
 }
 
 .match-type {
+  display: inline-block;
   font-size: 22rpx;
-  color: #666;
-  background: #f0f0f0;
-  padding: 4rpx 8rpx;
-  border-radius: 8rpx;
+  color: #1890ff;
+  background: #e6f4ff;
+  padding: 2rpx 12rpx;
+  border-radius: 4rpx;
+  line-height: 32rpx;
 }
 
 /* 空状态 */
