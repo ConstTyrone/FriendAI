@@ -42,13 +42,14 @@ def test_save_profile():
         'user_profiles': [profile_data]
     }
     
-    raw_message = "测试消息内容：赵翊辰的详细信息"
+    raw_message = '能把隐私计算和量子加密写成童话讲给女儿听；在公司推行"数据伦理三会签"制度，被同事戏称"温柔的守门人"。'
     message_type = "general_text"
     
     print("开始测试数据库插入功能...")
     print(f"用户ID: {test_user_id}")
     print(f"用户画像: {profile_data['profile_name']}")
     print(f"AI摘要: {ai_response['summary']}")
+    print(f"消息类型: {message_type}")
     
     try:
         # 保存用户画像

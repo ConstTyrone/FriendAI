@@ -60,7 +60,8 @@ SAFE_TO_ADD_COLUMNS = {
     'school': 'TEXT',
     'profile_picture': 'TEXT',
     'last_message_time': 'TEXT',
-    'ai_summary': 'TEXT'  # AI摘要字段
+    'ai_summary': 'TEXT',  # AI摘要字段
+    'source_type': 'TEXT'  # 消息来源类型字段
 }
 
 
