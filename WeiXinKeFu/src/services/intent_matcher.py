@@ -900,7 +900,7 @@ class IntentMatcher:
             result = wework_client.send_text_message(
                 external_userid=external_userid,
                 open_kfid=open_kfid,
-                text=message_text
+                content=message_text  # 修正参数名
             )
             
             if result:
