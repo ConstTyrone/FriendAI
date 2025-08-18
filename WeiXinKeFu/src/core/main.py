@@ -1267,6 +1267,7 @@ async def update_intent(
     try:
         import json
         import sqlite3
+        import asyncio
         
         # 获取用户ID
         query_user_id = get_query_user_id(current_user)
@@ -1275,17 +1276,27 @@ async def update_intent(
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
         
-        # 检查意图是否存在
+        # 获取原始意图数据，用于比较变化
         cursor.execute(
-            "SELECT id FROM user_intents WHERE id = ? AND user_id = ?",
+            "SELECT id, description, conditions, threshold FROM user_intents WHERE id = ? AND user_id = ?",
             (intent_id, query_user_id)
         )
-        if not cursor.fetchone():
+        original_intent = cursor.fetchone()
+        if not original_intent:
             conn.close()
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="意图不存在"
             )
+        
+        # 解析原始数据
+        original_description = original_intent[1]
+        original_conditions = json.loads(original_intent[2]) if original_intent[2] else {}
+        original_threshold = original_intent[3]
+        
+        # 检测是否需要重新匹配
+        need_full_rematch = False  # 需要完全重新匹配（description或conditions变化）
+        need_threshold_reeval = False  # 只需要重新评估阈值
         
         # 构建更新语句
         update_fields = []
@@ -1294,21 +1305,43 @@ async def update_intent(
         if request.name is not None:
             update_fields.append("name = ?")
             update_values.append(request.name)
+            # 名称变化不需要重新匹配
+            
         if request.description is not None:
             update_fields.append("description = ?")
             update_values.append(request.description)
+            # 检查描述是否真的变化了
+            if request.description != original_description:
+                need_full_rematch = True
+                logger.info(f"意图{intent_id}的描述发生变化，需要重新匹配")
+                
         if request.conditions is not None:
             update_fields.append("conditions = ?")
-            update_values.append(json.dumps(request.conditions, ensure_ascii=False))
+            conditions_json = json.dumps(request.conditions, ensure_ascii=False)
+            update_values.append(conditions_json)
+            # 检查条件是否真的变化了
+            if request.conditions != original_conditions:
+                need_full_rematch = True
+                logger.info(f"意图{intent_id}的条件发生变化，需要重新匹配")
+                
         if request.threshold is not None:
             update_fields.append("threshold = ?")
             update_values.append(request.threshold)
+            # 检查阈值是否真的变化了
+            if abs(request.threshold - original_threshold) > 0.001:
+                need_threshold_reeval = True
+                logger.info(f"意图{intent_id}的阈值发生变化，需要重新评估")
+                
         if request.priority is not None:
             update_fields.append("priority = ?")
             update_values.append(request.priority)
+            # 优先级变化不需要重新匹配
+            
         if request.max_push_per_day is not None:
             update_fields.append("max_push_per_day = ?")
             update_values.append(request.max_push_per_day)
+            # 推送次数变化不需要重新匹配
+            
         if request.status is not None:
             update_fields.append("status = ?")
             update_values.append(request.status)
@@ -1327,9 +1360,45 @@ async def update_intent(
         
         conn.close()
         
+        # 根据变化情况触发重新匹配（异步执行）
+        if need_full_rematch:
+            # 描述或条件变化，需要完全重新匹配
+            async def run_full_rematch():
+                try:
+                    from src.services.intent_matcher import intent_matcher
+                    # 重新生成embedding并进行全量匹配
+                    matches = await intent_matcher.match_intent_with_profiles(intent_id, query_user_id, regenerate_embedding=True)
+                    logger.info(f"意图{intent_id}重新匹配完成，找到{len(matches)}个匹配")
+                except Exception as e:
+                    logger.error(f"意图{intent_id}重新匹配失败: {e}")
+            
+            # 创建后台任务
+            asyncio.create_task(run_full_rematch())
+            message = "意图更新成功，正在后台重新匹配"
+            
+        elif need_threshold_reeval:
+            # 只是阈值变化，重新评估现有匹配
+            async def run_threshold_reeval():
+                try:
+                    from src.services.intent_matcher import intent_matcher
+                    # 只重新评估阈值，不重新计算匹配分数
+                    updated_count = await intent_matcher.reevaluate_intent_threshold(intent_id, query_user_id, request.threshold)
+                    logger.info(f"意图{intent_id}阈值重新评估完成，更新了{updated_count}个匹配")
+                except Exception as e:
+                    logger.error(f"意图{intent_id}阈值重新评估失败: {e}")
+            
+            # 创建后台任务
+            asyncio.create_task(run_threshold_reeval())
+            message = "意图更新成功，正在重新评估匹配阈值"
+        else:
+            # 其他字段变化，不需要重新匹配
+            message = "意图更新成功"
+        
         return {
             "success": True,
-            "message": "意图更新成功"
+            "message": message,
+            "need_rematch": need_full_rematch,
+            "need_threshold_reeval": need_threshold_reeval
         }
         
     except HTTPException:

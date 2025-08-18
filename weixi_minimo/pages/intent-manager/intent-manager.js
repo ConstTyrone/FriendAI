@@ -93,7 +93,11 @@ Page({
       { value: 'recruitment', label: '招聘' },
       { value: 'social', label: '社交' },
       { value: 'resource', label: '资源' }
-    ]
+    ],
+    
+    // 重新匹配提示
+    showMatchingHint: false,
+    matchingHintText: ''
   },
 
   onLoad() {
@@ -388,19 +392,93 @@ Page({
       
       if (response.success) {
         wx.hideLoading();
-        wx.showToast({
-          title: editMode ? '保存成功' : '创建成功',
-          icon: 'success'
-        });
         
-        // 隐藏对话框并刷新列表
-        this.hideCreateDialog();
-        this.loadIntents();
-        
-        // 创建模式下触发匹配分析
-        if (!editMode && response.data && response.data.intentId) {
-          this.triggerMatch(response.data.intentId);
+        // 处理编辑模式下的重新匹配提示
+        if (editMode && response.data) {
+          const { need_rematch, need_threshold_reeval } = response.data;
+          
+          if (need_rematch) {
+            // 显示保存成功提示
+            wx.showToast({
+              title: '保存成功',
+              icon: 'success',
+              duration: 1500
+            });
+            
+            // 显示重新匹配进度提示
+            setTimeout(() => {
+              this.setData({
+                showMatchingHint: true,
+                matchingHintText: '正在根据新的条件重新匹配联系人...'
+              });
+              
+              // 5秒后隐藏提示并刷新列表
+              setTimeout(() => {
+                this.setData({ showMatchingHint: false });
+                this.loadIntents();
+              }, 5000);
+            }, 1600);
+            
+          } else if (need_threshold_reeval) {
+            // 显示保存成功提示
+            wx.showToast({
+              title: '保存成功',
+              icon: 'success',
+              duration: 1500
+            });
+            
+            // 显示阈值重新评估提示
+            setTimeout(() => {
+              this.setData({
+                showMatchingHint: true,
+                matchingHintText: '正在根据新阈值更新匹配结果...'
+              });
+              
+              // 3秒后隐藏提示并刷新列表
+              setTimeout(() => {
+                this.setData({ showMatchingHint: false });
+                this.loadIntents();
+              }, 3000);
+            }, 1600);
+            
+          } else {
+            // 只修改了不影响匹配的字段
+            wx.showToast({
+              title: '保存成功',
+              icon: 'success'
+            });
+            this.loadIntents();
+          }
+        } else {
+          // 创建模式
+          wx.showToast({
+            title: '创建成功',
+            icon: 'success'
+          });
+          this.loadIntents();
+          
+          // 创建模式下显示匹配分析提示
+          if (response.data && response.data.intentId) {
+            setTimeout(() => {
+              this.setData({
+                showMatchingHint: true,
+                matchingHintText: '正在为您匹配符合条件的联系人...'
+              });
+              
+              // 触发匹配
+              this.triggerMatch(response.data.intentId);
+              
+              // 5秒后隐藏提示
+              setTimeout(() => {
+                this.setData({ showMatchingHint: false });
+                this.loadIntents();
+              }, 5000);
+            }, 1500);
+          }
         }
+        
+        // 隐藏对话框
+        this.hideCreateDialog();
       } else {
         wx.hideLoading();
         wx.showToast({
@@ -500,12 +578,28 @@ Page({
       return;
     }
     
+    // 保存原始数据用于对比
+    const originalData = {
+      name: intent.name || '',
+      description: intent.description || '',
+      type: intent.type || 'general',
+      conditions: JSON.parse(JSON.stringify(intent.conditions || {
+        required: [],
+        preferred: [],
+        keywords: []
+      })),
+      threshold: Math.round((intent.threshold || 0.7) * 100),
+      priority: intent.priority || 5,
+      maxPushPerDay: intent.max_push_per_day || 5
+    };
+    
     // 设置编辑模式和填充表单数据
     this.setData({
       editMode: true,
       editingIntentId: intentId,
       showCreateDialog: true,
       createMode: 'natural', // 默认使用自然语言模式
+      originalFormData: originalData, // 保存原始数据
       formData: {
         name: intent.name || '',
         description: intent.description || '',

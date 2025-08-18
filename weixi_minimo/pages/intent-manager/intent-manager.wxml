@@ -80,6 +80,16 @@
     </view>
   </view>
   
+  <!-- 重新匹配提示 -->
+  <view wx:if="{{showMatchingHint}}" class="matching-hint">
+    <view class="hint-content">
+      <view class="hint-icon">
+        <view class="spinning-icon"></view>
+      </view>
+      <text class="hint-text">{{matchingHintText}}</text>
+    </view>
+  </view>
+  
   <!-- 创建/编辑意图对话框 -->
   <view class="dialog-overlay {{showCreateDialog ? 'show' : ''}}" 
         bindtap="hideCreateDialog">

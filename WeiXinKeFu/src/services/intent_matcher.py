@@ -86,7 +86,7 @@ class IntentMatcher:
         if not self.use_hybrid and not self.use_ai:
             logger.info("🔄 使用基础规则匹配模式")
     
-    async def match_intent_with_profiles(self, intent_id: int, user_id: str) -> List[Dict]:
+    async def match_intent_with_profiles(self, intent_id: int, user_id: str, regenerate_embedding: bool = False) -> List[Dict]:
         """
         将意图与用户的所有联系人进行匹配
         
@@ -121,6 +121,38 @@ class IntentMatcher:
                 intent['conditions'] = json.loads(intent['conditions']) if intent['conditions'] else {}
             except:
                 intent['conditions'] = {}
+            
+            # 如果需要重新生成embedding
+            if regenerate_embedding and self.vector_service:
+                try:
+                    description = intent.get('description', '')
+                    conditions = intent.get('conditions', {})
+                    
+                    # 构建意图文本用于生成embedding
+                    intent_text = f"{description}"
+                    if conditions.get('keywords'):
+                        intent_text += f" 关键词: {' '.join(conditions['keywords'])}"
+                    
+                    # 生成新的embedding
+                    embedding = await self.vector_service.generate_embedding(intent_text)
+                    
+                    if embedding:
+                        # 更新数据库中的embedding
+                        import pickle
+                        embedding_blob = pickle.dumps(embedding)
+                        cursor.execute("""
+                            UPDATE user_intents
+                            SET embedding = ?
+                            WHERE id = ? AND user_id = ?
+                        """, (embedding_blob, intent_id, user_id))
+                        
+                        conn.commit()
+                        logger.info(f"意图{intent_id}的embedding已重新生成")
+                        
+                        # 更新intent对象中的embedding
+                        intent['embedding'] = embedding_blob
+                except Exception as e:
+                    logger.error(f"重新生成embedding失败: {e}")
             
             # 获取用户表名
             user_table = self._get_user_table_name(user_id)
@@ -913,6 +945,62 @@ class IntentMatcher:
         except Exception as e:
             logger.error(f"发送微信通知失败: {e}")
             raise
+    
+    async def reevaluate_intent_threshold(self, intent_id: int, user_id: str, new_threshold: float) -> int:
+        """
+        重新评估意图的阈值（不重新计算匹配分数）
+        
+        Args:
+            intent_id: 意图ID
+            user_id: 用户ID
+            new_threshold: 新的阈值
+            
+        Returns:
+            更新的匹配记录数量
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            updated_count = 0
+            
+            # 获取该意图的所有匹配记录
+            cursor.execute("""
+                SELECT id, match_score, is_pushed
+                FROM intent_matches
+                WHERE intent_id = ? AND user_id = ?
+                ORDER BY match_score DESC
+            """, (intent_id, user_id))
+            
+            matches = cursor.fetchall()
+            
+            for match_id, score, is_pushed in matches:
+                # 根据新阈值判断是否应该保留或删除匹配
+                if score < new_threshold:
+                    # 分数低于新阈值，删除匹配记录
+                    cursor.execute("""
+                        DELETE FROM intent_matches
+                        WHERE id = ?
+                    """, (match_id,))
+                    updated_count += 1
+                    logger.info(f"删除低于新阈值的匹配: match_id={match_id}, score={score:.3f} < {new_threshold:.3f}")
+                else:
+                    # 分数高于阈值，保留记录
+                    logger.debug(f"保留匹配: match_id={match_id}, score={score:.3f} >= {new_threshold:.3f}")
+            
+            # 提交更改
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"意图{intent_id}阈值重新评估完成，更新了{updated_count}个匹配记录")
+            return updated_count
+            
+        except Exception as e:
+            logger.error(f"重新评估意图阈值失败: {e}")
+            if conn:
+                conn.close()
+            raise
+    
 
 # 全局匹配引擎实例（启用最强LLM加成混合匹配）
 intent_matcher = IntentMatcher(
