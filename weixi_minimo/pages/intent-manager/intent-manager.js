@@ -17,9 +17,11 @@ Page({
       todayPush: 0
     },
     
-    // 创建对话框
+    // 创建/编辑对话框
     showCreateDialog: false,
     createMode: 'natural', // natural | template | advanced
+    editMode: false, // 是否为编辑模式
+    editingIntentId: null, // 正在编辑的意图ID
     
     // 表单数据
     formData: {
@@ -200,6 +202,8 @@ Page({
       showCreateDialog: true,
       createMode: 'natural',
       typeIndex: 0,
+      editMode: false,  // 确保是创建模式
+      editingIntentId: null,
       formData: {
         name: '',
         description: '',
@@ -221,7 +225,23 @@ Page({
    */
   hideCreateDialog() {
     this.setData({
-      showCreateDialog: false
+      showCreateDialog: false,
+      editMode: false,
+      editingIntentId: null,
+      // 重置表单
+      formData: {
+        name: '',
+        description: '',
+        type: 'general',
+        conditions: {
+          required: [],
+          preferred: [],
+          keywords: []
+        },
+        threshold: 70,
+        priority: 5,
+        maxPushPerDay: 5
+      }
     });
   },
 
@@ -304,10 +324,10 @@ Page({
   },
 
   /**
-   * 创建意图
+   * 保存意图（创建或编辑）
    */
-  async createIntent() {
-    const { formData } = this.data;
+  async saveIntent() {
+    const { formData, editMode, editingIntentId } = this.data;
     
     // 验证必填字段
     if (!formData.name || !formData.name.trim()) {
@@ -327,7 +347,7 @@ Page({
     }
     
     wx.showLoading({
-      title: '创建中...',
+      title: editMode ? '保存中...' : '创建中...',
       mask: true  // 防止用户重复点击
     });
     
@@ -348,16 +368,28 @@ Page({
         max_push_per_day: formData.maxPushPerDay
       };
       
-      const response = await apiClient.request({
-        url: '/api/intents',
-        method: 'POST',
-        data: requestData
-      });
+      // 根据模式选择API
+      let response;
+      if (editMode) {
+        // 编辑模式：更新意图
+        response = await apiClient.request({
+          url: `/api/intents/${editingIntentId}`,
+          method: 'PUT',
+          data: requestData
+        });
+      } else {
+        // 创建模式：新建意图
+        response = await apiClient.request({
+          url: '/api/intents',
+          method: 'POST',
+          data: requestData
+        });
+      }
       
       if (response.success) {
         wx.hideLoading();
         wx.showToast({
-          title: '创建成功',
+          title: editMode ? '保存成功' : '创建成功',
           icon: 'success'
         });
         
@@ -365,23 +397,23 @@ Page({
         this.hideCreateDialog();
         this.loadIntents();
         
-        // 触发匹配分析
-        if (response.data && response.data.intentId) {
+        // 创建模式下触发匹配分析
+        if (!editMode && response.data && response.data.intentId) {
           this.triggerMatch(response.data.intentId);
         }
       } else {
         wx.hideLoading();
         wx.showToast({
-          title: response.message || '创建失败',
+          title: response.message || (editMode ? '保存失败' : '创建失败'),
           icon: 'none',
           duration: 2000
         });
       }
     } catch (error) {
-      console.error('创建意图失败:', error);
+      console.error(editMode ? '保存意图失败:' : '创建意图失败:', error);
       wx.hideLoading();
       wx.showToast({
-        title: error.message || '创建失败',
+        title: error.message || (editMode ? '保存失败' : '创建失败'),
         icon: 'error'
       });
     }
@@ -457,16 +489,41 @@ Page({
    */
   editIntent(e) {
     const intentId = e.currentTarget.dataset.id;
-    // 暂时显示提示，编辑功能待开发
-    wx.showToast({
-      title: '编辑功能开发中',
-      icon: 'none',
-      duration: 2000
+    
+    // 找到要编辑的意图
+    const intent = this.data.intents.find(item => item.id === intentId);
+    if (!intent) {
+      wx.showToast({
+        title: '意图不存在',
+        icon: 'error'
+      });
+      return;
+    }
+    
+    // 设置编辑模式和填充表单数据
+    this.setData({
+      editMode: true,
+      editingIntentId: intentId,
+      showCreateDialog: true,
+      createMode: 'natural', // 默认使用自然语言模式
+      formData: {
+        name: intent.name || '',
+        description: intent.description || '',
+        type: intent.type || 'general',
+        conditions: intent.conditions || {
+          required: [],
+          preferred: [],
+          keywords: []
+        },
+        threshold: Math.round((intent.threshold || 0.7) * 100), // 转换为百分比
+        priority: intent.priority || 5,
+        maxPushPerDay: intent.max_push_per_day || 5
+      }
     });
-    // TODO: 后续实现编辑功能
-    // wx.navigateTo({
-    //   url: `/pages/intent-edit/intent-edit?id=${intentId}`
-    // });
+    
+    // 设置类型选择索引
+    const typeIndex = this.data.typeOptions.findIndex(opt => opt.value === intent.type);
+    this.setData({ typeIndex: typeIndex >= 0 ? typeIndex : 0 });
   },
 
   /**

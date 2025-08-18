@@ -80,16 +80,16 @@
     </view>
   </view>
   
-  <!-- 创建意图对话框 -->
+  <!-- 创建/编辑意图对话框 -->
   <view class="dialog-overlay {{showCreateDialog ? 'show' : ''}}" 
         bindtap="hideCreateDialog">
     <view class="dialog-content" catchtap="stopPropagation">
-      <text class="dialog-title">创建新意图</text>
+      <text class="dialog-title">{{editMode ? '编辑意图' : '创建新意图'}}</text>
       
       <!-- 可滚动内容区域 -->
       <scroll-view class="dialog-scroll-content" scroll-y="{{true}}">
-        <!-- 创建方式选择 -->
-        <view class="create-mode-tabs">
+        <!-- 创建方式选择（编辑模式下隐藏） -->
+        <view class="create-mode-tabs" wx:if="{{!editMode}}">
           <text class="tab {{createMode === 'natural' ? 'active' : ''}}"
                 bindtap="switchMode" data-mode="natural">自然语言</text>
           <text class="tab {{createMode === 'template' ? 'active' : ''}}"
@@ -176,7 +176,7 @@
       <!-- 对话框按钮 -->
       <view class="dialog-actions">
         <view class="cancel-btn" bindtap="hideCreateDialog">取消</view>
-        <view class="confirm-btn" bindtap="createIntent">创建</view>
+        <view class="confirm-btn" bindtap="saveIntent">{{editMode ? '保存' : '创建'}}</view>
       </view>
     </view>
   </view>
