@@ -2,9 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Note: You must push the results to the remote server at https://github.com/ConstTyrone/FriendAI after completing each task.
+## Important Instructions
 
-All tests should use the user I assigned to you: **wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q**.
+- **Git**: Push all changes to https://github.com/ConstTyrone/FriendAI after completing each task
+- **Testing**: Use test user ID `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` for all tests
+- **Documentation**: Refer to `weixin_doc/` folder for WeChat Customer Service documentation
 
 ## Project Overview
 
@@ -72,61 +74,75 @@ The intent matching system (`src/services/intent_matcher.py`) is the core innova
 
 ## Development Commands
 
-### Backend Development (WeiXinKeFu)
+### Quick Start
 
 ```bash
-# Start development server
+# Backend setup
 cd WeiXinKeFu
-python run.py  # Uses uvicorn with auto-reload
+pip install -r requirements.txt
+cp .env.example .env                    # Configure your credentials
+python run.py                            # Start server on port 8000
 
-# Or use uvicorn directly
-uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000
-
-# Test intent matching system
-python test_intent_system.py        # Test complete intent system
-python test_intent_matching.py      # Test matching logic
-python test_ai_matching.py          # Test AI-enhanced matching
-
-# Initialize intent system
-python scripts/create_intent_tables.py  # Create database tables
-python scripts/add_vector_columns.py    # Add vector columns
-python scripts/initialize_vectors.py    # Generate initial embeddings
-
-# Database management
-python scripts/db_viewer_sqlite.py  # View SQLite database
-python scripts/db_viewer_pg.py      # View PostgreSQL database
-python scripts/check_users.py       # Check user data
-
-# Add test data
-python test-scripts/add_test_data.py
-python test-scripts/test_create_contact.py
-python test-scripts/test_user_data.py
+# Frontend setup  
+# 1. Open WeChat Developer Tools
+# 2. Import weixi_minimo/ directory
+# 3. Tools → Build npm (first time only)
+# 4. Compile (Ctrl+B/Cmd+B)
 ```
 
-### Frontend Development (weixi_minimo)
+### Backend Commands
 
 ```bash
-# Open WeChat Developer Tools and import the weixi_minimo directory
-# Configure server domain: http://localhost:8000 (development) or https://weixin.dataelem.com (production)
+# Core services
+python run.py                            # Start FastAPI server with auto-reload
+uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000  # Alternative start
 
-# Build npm dependencies (required first time)
-# In WeChat Developer Tools: Menu → Tools → Build npm
+# Intent system testing
+python test_intent_system.py             # Full intent system test
+python test_intent_matching.py           # Test matching logic
+python test_ai_matching.py               # Test AI-enhanced matching
+python test_hybrid_matching.py           # Test hybrid matching
+python test_integrated_system.py         # Integration tests
 
-# Compile and preview
-# Use Ctrl+B (Win) / Cmd+B (Mac) or click Compile button
+# Database operations
+python scripts/create_intent_tables.py   # Initialize intent tables
+python scripts/add_vector_columns.py     # Add vector columns to existing tables
+python scripts/initialize_vectors.py     # Generate embeddings for existing data
+python scripts/db_viewer_sqlite.py       # Interactive SQLite viewer
+python scripts/db_viewer_pg.py           # Interactive PostgreSQL viewer
+python scripts/check_users.py            # Check user data integrity
+python scripts/migrate_add_tags.py       # Migrate tags column
 
-# Clear cache if needed
-# Settings page → "Clear Local Data" button
+# Test data management
+python test-scripts/add_test_data.py     # Add sample contacts
+python test-scripts/test_create_contact.py # Test contact creation
+python test-scripts/test_user_data.py    # Verify user data
+python test-scripts/reset_test_data.py   # Reset test environment
+
+# API testing
+python tests/test_api.py                 # Full API test suite
+python test_api_simple.py                # Simple API tests
+python test_notification_api.py          # Notification system tests
+
+# Performance optimization
+python optimize_prompts.py               # Optimize AI prompts
+python ab_testing_framework.py           # A/B testing for matching algorithms
+python generate_embeddings.py            # Batch generate embeddings
 ```
 
-### Environment Setup
+### Frontend Commands (WeChat Mini Program)
 
 ```bash
-# Backend dependencies
-pip install -r WeiXinKeFu/requirements.txt
+# In WeChat Developer Tools:
+# 1. Tools → Build npm                   # Required for TDesign components
+# 2. Compile (Ctrl+B/Cmd+B)              # Build project
+# 3. Preview                             # Test on mobile device
+# 4. Upload                              # Deploy to production
 
-# Configure environment variables
-cp WeiXinKeFu/.env.example WeiXinKeFu/.env  # Edit with your credentials
+# Debug commands (in Settings page):
+# - "Clear Local Data"                   # Clear cache and storage
+# - "View Storage Info"                  # Check cache usage
+# - Switch login modes                   # Test different auth methods
 ```
 
 ## Architecture Patterns
@@ -274,105 +290,101 @@ WECHAT_MINI_SECRET=your_secret
 
 ## Testing Strategy
 
+### Test Users
+- **Primary test user**: `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` (use for all tests)
+- **Development users**: `dev_user_001` (auto-selected in dev environment)
+- **Manual test users**: `test_user_001`, `test_user_002`, `demo_user_001`
+
 ### Backend Testing
-- Use `test_api.py` for API endpoint validation
-- Test accounts: `test_user_001`, `dev_user_001`
-- Mock mode for offline testing
+```bash
+python tests/test_api.py                 # Run full test suite
+python test_intent_system.py             # Test intent matching
+python test_hybrid_matching.py           # Test hybrid scoring
+python test_integrated_system.py         # Integration tests
+```
 
 ### Frontend Testing
-- Development environment auto-uses `dev_user_001`
-- Mock mode with 5 pre-configured test contacts
-- Settings page provides all login methods for testing
+- **Mock Mode**: 5 pre-configured contacts for offline testing
+- **Dev Mode**: Auto-uses `dev_user_001` in WeChat Developer Tools
+- **Settings Page**: Switch between WeChat login, test accounts, and mock mode
 
 ## Common Development Tasks
 
-### Working with Intent Matching System
+### Adding New Features
 
-#### Creating New Intent Types
-1. Define intent structure in database schema
-2. Update `IntentMatcher._calculate_match_score()` for custom scoring logic
-3. Add condition operators in `_check_condition()` method
-4. Update AI prompts in `vector_service.py` for better embeddings
+**Backend (Python/FastAPI)**:
+1. **New API endpoint**: Edit `src/core/main.py`
+2. **Business logic**: Add to `src/services/`
+3. **Database changes**: Update `src/database/database_sqlite_v2.py`
+4. **Test**: Add tests to `tests/test_api.py`
 
-#### Optimizing Match Performance
-1. Index frequently queried fields in database
-2. Cache vector embeddings in `vector_index` table
-3. Use batch operations for multiple matches
-4. Implement async processing for large datasets
+**Frontend (WeChat Mini Program)**:
+1. **New page**: Create folder in `pages/` with `.js/.json/.wxml/.wxss` files
+2. **Register page**: Add to `app.json` pages array
+3. **Protected page**: Add to `app.js` protectedPages array (line 184-189)
+4. **API client**: Update `utils/api-client.js` and `utils/data-manager.js`
 
-#### Testing Intent Matching
+### Working with Intent Matching
+
 ```python
-# Quick test of intent matching
+# Test intent matching quickly
 from src.services.intent_matcher import intent_matcher
 
-# Test with specific intent and profiles
+# Match intent with all profiles
 matches = intent_matcher.match_intent_with_profiles(
     intent_id=1, 
-    user_id="test_user"
+    user_id="wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
+)
+
+# Match profile with all intents
+matches = intent_matcher.match_profile_with_intents(
+    profile_id=1,
+    user_id="wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
 )
 ```
 
-### Adding New Message Types
-1. Update classification in `handlers/message_classifier.py`
-2. Add processing logic in `handlers/message_handler.py`
-3. Implement text extraction in `handlers/message_formatter.py`
-4. Update AI prompts in `services/ai_service.py` if needed
+### Modifying Scoring Algorithm
+- **Scoring weights**: Edit `src/services/intent_matcher.py` → `_calculate_match_score()`
+- **AI embeddings**: Edit `src/services/vector_service.py` → `generate_embedding()`
+- **Hybrid matching**: Edit `src/services/hybrid_matcher.py`
 
-### Modifying API Endpoints
-1. Add/update endpoint in `core/main.py`
-2. Update frontend `api-client.js` with new methods
-3. Add business logic in `data-manager.js`
-4. Update `constants.js` with any new configurations
-
-### Adding Frontend Pages
-1. Create page folder in `pages/`
-2. Add `.js`, `.json`, `.wxml`, `.wxss` files
-3. Register in `app.json` pages array
-4. Add to protected pages in `app.js` if authentication required
-
-## Important Notes
-
-### Security Considerations
-- Token authentication is simplified (Base64), upgrade to JWT for production
-- Each user's data is completely isolated in separate tables
-- WeChat messages are encrypted in transit
-- Sensitive information should be masked in AI responses
-
-### Performance Optimization
-- Frontend implements 5-minute cache to reduce API calls
-- Backend uses connection pooling for database
-- AI calls are rate-limited by Qwen API quotas
-- Media processing has timeout protection
-
-### Error Handling
-- Backend: Comprehensive try-catch with detailed logging
-- Frontend: 3x retry with exponential backoff
-- Fallback: Cache data → Mock data → Error message
-- User feedback: Toast notifications for all operations
-
-### Deployment Considerations
-- Production requires valid HTTPS certificates
-- WeChat platform domain whitelist configuration
-- Database migration tools for SQLite → PostgreSQL
-- Environment-specific configuration files
-
-## Debugging Tips
-
-### Backend Debugging
-- Check uvicorn console for request logs
-- Database viewers for data inspection
-- Test API endpoints with `test_api.py`
-- Verify WeChat signature in callbacks
-
-### Frontend Debugging
-- WeChat Developer Tools console for logs
-- Network panel for API request inspection
-- Storage panel for cache inspection
-- Settings page for authentication status
+## Troubleshooting
 
 ### Common Issues
-- **Login fails**: Check backend running, verify credentials
-- **No data displayed**: Validate token, check API response format
-- **WeChat callback errors**: Verify encryption keys, check signature
-- **AI analysis fails**: Confirm Qwen API key and quotas
-- **TDesign components missing**: Run "Build npm" in developer tools
+
+**Backend Issues**:
+- **Login fails**: Check backend is running on port 8000, verify `.env` credentials
+- **AI analysis fails**: Verify `QWEN_API_KEY` in `.env`, check API quotas
+- **Database errors**: Run `python scripts/create_intent_tables.py` to initialize
+- **WeChat callback errors**: Verify `WEWORK_TOKEN` and `WEWORK_AES_KEY` match platform config
+
+**Frontend Issues**:
+- **TDesign components missing**: Tools → Build npm in WeChat Developer Tools
+- **No data displayed**: Check API server URL in `utils/constants.js`
+- **Page not found**: Verify page is registered in `app.json`
+- **Auth errors**: Clear local data in Settings page and re-login
+
+### Debug Tools
+
+**Backend**:
+- Console logs in uvicorn output
+- `python scripts/db_viewer_sqlite.py` - Interactive database viewer
+- FastAPI docs at `http://localhost:8000/docs`
+
+**Frontend**:
+- WeChat Developer Tools Console
+- Network panel for API debugging
+- Settings page → "View Storage Info"
+
+## Key Files Reference
+
+### Core Services
+- `src/services/intent_matcher.py` - Intent matching engine
+- `src/services/vector_service.py` - AI embeddings and semantic search
+- `src/services/push_service.py` - Push notification system
+- `src/core/main.py` - All API endpoints
+
+### Configuration
+- `WeiXinKeFu/.env` - Backend environment variables
+- `weixi_minimo/utils/constants.js` - Frontend configuration
+- `weixi_minimo/app.json` - Mini program pages and components
