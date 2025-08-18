@@ -19,7 +19,7 @@
   
   <!-- 匹配结果列表 -->
   <view class="match-list" wx:if="{{matches.length > 0}}">
-    <view wx:for="{{matches}}" wx:key="id" class="match-card">
+    <view wx:for="{{matches}}" wx:key="id" class="match-card {{item.isHighlighted ? 'highlighted' : ''}}">
       <!-- 匹配信息 -->
       <view class="match-header">
         <view class="match-title-row">

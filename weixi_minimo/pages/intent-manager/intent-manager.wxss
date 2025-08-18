@@ -249,7 +249,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100; /* 提高z-index，确保在tabbar上方 */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s;

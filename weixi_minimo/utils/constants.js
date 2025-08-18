@@ -34,7 +34,15 @@ export const EVENT_TYPES = {
 export const UI_CONFIG = {
   PAGE_SIZE: 20,
   SEARCH_DEBOUNCE: 500,
-  CACHE_EXPIRE_TIME: 5 * 60 * 1000, // 5分钟
+  CACHE_EXPIRE_TIME: 30 * 60 * 1000, // 30分钟基础缓存
+  // 分级缓存配置
+  CACHE_LEVELS: {
+    CONTACT_LIST: 30 * 60 * 1000,    // 联系人列表30分钟
+    CONTACT_DETAIL: 15 * 60 * 1000,  // 联系人详情15分钟
+    SEARCH_RESULT: 10 * 60 * 1000,   // 搜索结果10分钟
+    STATS: 60 * 60 * 1000,            // 统计信息1小时
+    USER_INFO: 24 * 60 * 60 * 1000   // 用户信息24小时
+  },
   AUTO_REFRESH_INTERVAL: 30 * 1000, // 30秒
   // 企微客服配置
   CORP_ID: 'ww7b4256dcdcea9b3e', // 企业ID，需要配置

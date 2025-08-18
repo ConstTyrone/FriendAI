@@ -349,7 +349,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
+  z-index: 1100; /* 提高z-index，确保在tabbar上方 */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s;
@@ -362,13 +362,16 @@
 
 .action-sheet {
   position: absolute;
-  bottom: 0;
+  bottom: 120rpx; /* 给底部留出tabbar的空间 */
   left: 0;
   right: 0;
   background: #FFFFFF;
   border-radius: 12rpx 12rpx 0 0;
-  transform: translateY(100%);
+  transform: translateY(calc(100% + 120rpx)); /* 隐藏时考虑底部偏移 */
   transition: transform 0.25s;
+  /* 添加安全区域适配 */
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
 }
 
 .action-overlay.show .action-sheet {

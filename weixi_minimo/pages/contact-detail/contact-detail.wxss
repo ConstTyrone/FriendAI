@@ -300,13 +300,15 @@
 /* 底部操作栏 */
 .bottom-bar {
   position: fixed;
-  bottom: 0;
+  bottom: 120rpx; /* 给底部tabbar留出空间 */
   left: 0;
   right: 0;
   display: flex;
   background: #FFFFFF;
   border-top: 1rpx solid #E5E5E5;
   z-index: 100;
+  /* 适配iPhone底部安全区域 */
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bar-button {

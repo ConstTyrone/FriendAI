@@ -1,10 +1,11 @@
 import { STORAGE_KEYS, EVENT_TYPES, UI_CONFIG } from './constants';
-import { StorageManager } from './storage-utils';
 import apiClient from './api-client';
+import cacheManager from './cache-manager';
+import compatibility from './compatibility';
 
 class DataManager {
   constructor() {
-    this.storage = new StorageManager('data');
+    // 统一使用cacheManager，不再使用StorageManager
     this.contacts = [];
     this.contactsMap = new Map();
     this.searchResults = [];
@@ -13,10 +14,15 @@ class DataManager {
     this.listeners = [];
     this.lastUpdateTime = null;
     this.isMockMode = false;  // Mock模式标识
+    this.maxMapSize = 500;  // Map最大容量限制
+    this.memoryCleanupTimer = null; // 内存清理定时器
+    this.isAppActive = true; // 应用是否活跃
     
     // 初始化时加载缓存数据
     this.loadFromCache();
     this.initMockMode();
+    
+    // 不立即启动清理，等待应用初始化完成
   }
 
   /**
@@ -54,7 +60,7 @@ class DataManager {
     
     // 更新统计信息
     this.stats = this.mockStats;
-    this.storage.cache('stats', this.stats);
+    cacheManager.set('stats', this.stats, 'STATS');
     
     // 通知监听器
     this.notifyListeners('mockModeEnabled', this.mockContacts);
@@ -168,17 +174,18 @@ class DataManager {
    */
   loadFromCache() {
     try {
-      const cachedContacts = this.storage.get('contacts', []);
+      // 使用新的分级缓存管理器
+      const cachedContacts = cacheManager.get('contacts', []);
       this.contacts = cachedContacts;
       this.buildContactsMap();
       
-      const cachedStats = this.storage.get('stats', {});
+      const cachedStats = cacheManager.get('stats', {});
       this.stats = cachedStats;
       
-      const cachedSearchHistory = this.storage.get('search_history', []);
+      const cachedSearchHistory = cacheManager.get('search_history', []);
       this.searchHistory = cachedSearchHistory;
       
-      const cachedUpdateTime = this.storage.get('last_update_time');
+      const cachedUpdateTime = cacheManager.get('last_update_time');
       this.lastUpdateTime = cachedUpdateTime;
       
       console.log('从缓存加载数据完成:', {
@@ -318,7 +325,13 @@ class DataManager {
       }
       
       this.lastUpdateTime = Date.now();
-      this.storage.cache('last_update_time', this.lastUpdateTime);
+      cacheManager.set('last_update_time', this.lastUpdateTime, 'default');
+      
+      // 缓存搜索结果（如果是搜索请求）
+      if (params.search) {
+        const cacheKey = `search_${params.search}_${page}`;
+        cacheManager.set(cacheKey, result, 'SEARCH_RESULT');
+      }
       
       // 触发数据更新事件
       this.notifyListeners('contactsUpdated', this.contacts);
@@ -536,7 +549,8 @@ class DataManager {
       
       const stats = await apiClient.getStats();
       this.stats = stats;
-      this.storage.cache('stats', stats);
+      // 统计信息缓存1小时
+      cacheManager.set('stats', stats, 'STATS');
       
       return stats;
     } catch (error) {
@@ -605,7 +619,7 @@ class DataManager {
     }
     
     // 保存到缓存
-    this.storage.cache('search_history', this.searchHistory);
+    cacheManager.set('search_history', this.searchHistory, 'default');
   }
 
   /**
@@ -620,14 +634,15 @@ class DataManager {
    */
   clearSearchHistory() {
     this.searchHistory = [];
-    this.storage.remove('search_history');
+    cacheManager.clear('search_history');
   }
 
   /**
    * 缓存联系人数据
    */
   cacheContacts() {
-    this.storage.cache('contacts', this.contacts);
+    // 使用分级缓存，联系人列表缓存30分钟
+    cacheManager.set('contacts', this.contacts, 'CONTACT_LIST');
   }
 
   /**
@@ -688,10 +703,10 @@ class DataManager {
     this.stats = {};
     this.lastUpdateTime = null;
     
-    this.storage.remove('contacts');
-    this.storage.remove('stats');
-    this.storage.remove('search_history');
-    this.storage.remove('last_update_time');
+    cacheManager.clear('contacts');
+    cacheManager.clear('stats');
+    cacheManager.clear('search_history');
+    cacheManager.clear('last_update_time');
   }
 
   /**
@@ -706,6 +721,14 @@ class DataManager {
         this.listeners.splice(index, 1);
       }
     };
+  }
+  
+  /**
+   * 移除所有监听器
+   */
+  removeAllListeners() {
+    this.listeners = [];
+    console.log('已移除所有数据监听器');
   }
 
   /**
@@ -805,6 +828,122 @@ class DataManager {
       console.error('更新联系人失败:', error);
       throw error;
     }
+  }
+  
+  /**
+   * 启动内存清理定时器
+   */
+  startMemoryCleanup() {
+    // 如果已经在运行，不重复启动
+    if (this.memoryCleanupTimer) {
+      console.log('内存清理定时器已在运行');
+      return;
+    }
+    
+    // 标记为活跃
+    this.isAppActive = true;
+    
+    // 每5分钟清理一次
+    this.memoryCleanupTimer = setInterval(() => {
+      // 只在应用活跃时清理
+      if (this.isAppActive) {
+        this.cleanupMemory();
+      }
+    }, 5 * 60 * 1000);
+    
+    console.log('内存清理定时器已启动');
+  }
+  
+  /**
+   * 停止内存清理定时器
+   */
+  stopMemoryCleanup() {
+    this.isAppActive = false;
+    
+    if (this.memoryCleanupTimer) {
+      clearInterval(this.memoryCleanupTimer);
+      this.memoryCleanupTimer = null;
+      console.log('内存清理定时器已停止');
+    }
+  }
+  
+  /**
+   * 设置应用活跃状态
+   */
+  setAppActive(active) {
+    this.isAppActive = active;
+    console.log('应用活跃状态:', active);
+  }
+  
+  /**
+   * 清理内存
+   */
+  cleanupMemory() {
+    console.log('开始内存清理...');
+    
+    // 1. 限制Map大小
+    if (this.contactsMap.size > this.maxMapSize) {
+      const excess = this.contactsMap.size - this.maxMapSize;
+      const iterator = this.contactsMap.keys();
+      
+      // 删除最早的条目
+      for (let i = 0; i < excess; i++) {
+        const key = iterator.next().value;
+        this.contactsMap.delete(key);
+      }
+      
+      console.log(`清理了 ${excess} 个Map条目`);
+    }
+    
+    // 2. 限制搜索历史长度
+    if (this.searchHistory.length > 50) {
+      this.searchHistory = this.searchHistory.slice(-50);
+      console.log('清理搜索历史，保留最近50条');
+    }
+    
+    // 3. 清理搜索结果缓存
+    if (this.searchResults.length > 100) {
+      this.searchResults = this.searchResults.slice(0, 100);
+      console.log('清理搜索结果缓存');
+    }
+    
+    // 4. 触发微信垃圾回收（如果可用）
+    compatibility.safeTriggerGC();
+    
+    // 5. 清理过期缓存
+    cacheManager.cleanExpired();
+    
+    console.log('内存清理完成', this.getMemoryStats());
+  }
+  
+  /**
+   * 获取内存统计信息
+   */
+  getMemoryStats() {
+    return {
+      contactsCount: this.contacts.length,
+      mapSize: this.contactsMap.size,
+      searchHistoryLength: this.searchHistory.length,
+      searchResultsLength: this.searchResults.length,
+      listenersCount: this.listeners.length
+    };
+  }
+  
+  /**
+   * 手动触发垃圾回收
+   */
+  forceGarbageCollection() {
+    this.cleanupMemory();
+    
+    // 清空不必要的引用
+    this.searchResults = [];
+    
+    // 重建Map以释放内存
+    const tempMap = new Map(this.contactsMap);
+    this.contactsMap.clear();
+    this.contactsMap = tempMap;
+    
+    console.log('强制垃圾回收完成');
   }
 }
 

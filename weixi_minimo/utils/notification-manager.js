@@ -3,6 +3,7 @@
  */
 
 import apiClient from './api-client';
+import compatibility from './compatibility';
 
 class NotificationManager {
   constructor() {
@@ -10,6 +11,7 @@ class NotificationManager {
     this.lastNotificationCount = 0;
     this.audioContext = null;
     this.isPolling = false;
+    this.currentInterval = null;
   }
 
   /**
@@ -23,7 +25,8 @@ class NotificationManager {
     }
 
     this.isPolling = true;
-    console.log('开始轮询匹配通知...');
+    this.currentInterval = interval;
+    console.log('开始轮询匹配通知，间隔:', interval / 1000, '秒');
 
     // 立即检查一次
     this.checkNotifications();
@@ -44,6 +47,35 @@ class NotificationManager {
       this.isPolling = false;
       console.log('停止轮询通知');
     }
+  }
+  
+  /**
+   * 调整轮询间隔
+   * @param {number} newInterval - 新的轮询间隔（毫秒）
+   */
+  adjustPollingInterval(newInterval) {
+    if (!this.isPolling) return;
+    
+    // 如果新间隔与当前间隔相同，不做任何操作
+    if (this.currentInterval === newInterval) {
+      return;
+    }
+    
+    console.log('调整轮询间隔为:', newInterval / 1000, '秒');
+    
+    // 停止当前轮询
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    
+    // 记录当前间隔
+    this.currentInterval = newInterval;
+    
+    // 使用新间隔重新开始轮询
+    this.pollingInterval = setInterval(() => {
+      this.checkNotifications();
+    }, newInterval);
   }
 
   /**
@@ -106,29 +138,31 @@ class NotificationManager {
    */
   playNotificationSound() {
     try {
-      // 使用微信的振动API
-      wx.vibrateShort({
-        type: 'medium',
-        success: () => {
-          console.log('振动提醒');
-        }
-      });
+      // 使用兼容性检查器安全调用振动API
+      compatibility.safeVibrate({ type: 'medium' });
 
       // 播放系统提示音
-      const innerAudioContext = wx.createInnerAudioContext();
-      innerAudioContext.src = '/assets/sounds/notification.mp3'; // 需要添加音频文件
-      innerAudioContext.volume = 0.8;
-      innerAudioContext.play();
+      const audioContext = compatibility.safePlayAudio('/assets/sounds/notification.mp3', {
+        volume: 0.8,
+        onError: (res) => {
+          console.log('播放提示音失败，使用默认提示');
+          // 如果自定义音频失败，使用系统toast
+          wx.showToast({
+            title: '有新匹配！',
+            icon: 'none',
+            duration: 1000
+          });
+        }
+      });
       
-      innerAudioContext.onError((res) => {
-        console.log('播放提示音失败，使用默认提示');
-        // 如果自定义音频失败，使用系统beep
+      if (!audioContext) {
+        // 如果音频API不可用，显示toast提示
         wx.showToast({
           title: '有新匹配！',
           icon: 'none',
           duration: 1000
         });
-      });
+      }
     } catch (error) {
       console.error('播放提示音失败:', error);
     }
@@ -151,9 +185,21 @@ class NotificationManager {
       cancelText: '稍后查看',
       success: (res) => {
         if (res.confirm) {
-          // 跳转到匹配列表页面
+          // 跳转到匹配列表页面，传递意图ID以只显示该意图的匹配
+          // 同时传递matchId用于高亮显示
+          // 标记该匹配为已读
+          if (match.id) {
+            this.markAsRead(match.id);
+          }
+          
+          // 构建跳转URL，传递意图ID和匹配ID
+          let url = `/pages/matches/matches?intentId=${match.intent_id}`;
+          if (match.id) {
+            url += `&highlightId=${match.id}`;
+          }
+          
           wx.navigateTo({
-            url: '/pages/matches/matches'
+            url: url
           });
         }
       }
@@ -165,30 +211,28 @@ class NotificationManager {
    */
   updateTabBarBadge(count) {
     try {
+      // 由于使用自定义tabbar，改为通过全局数据更新
+      const app = getApp();
+      if (app && app.globalData) {
+        app.globalData.unreadMatchCount = count;
+        
+        // 触发自定义tabbar更新事件
+        const pages = getCurrentPages();
+        const currentPage = pages[pages.length - 1];
+        if (currentPage && currentPage.updateTabBarBadge) {
+          currentPage.updateTabBarBadge(count);
+        }
+      }
+      
+      // 如果有未读消息，在标题栏显示提示
       if (count > 0) {
-        // 在"匹配"tab上显示红点和数字
-        wx.setTabBarBadge({
-          index: 2, // 假设匹配是第3个tab
-          text: count > 99 ? '99+' : count.toString()
-        });
-        
-        // 显示红点
-        wx.showTabBarRedDot({
-          index: 2
-        });
-      } else {
-        // 移除badge
-        wx.removeTabBarBadge({
-          index: 2
-        });
-        
-        // 隐藏红点
-        wx.hideTabBarRedDot({
-          index: 2
+        const title = count > 99 ? '(99+) 新匹配' : `(${count}) 新匹配`;
+        wx.setNavigationBarTitle({
+          title: title
         });
       }
     } catch (error) {
-      console.error('更新TabBar Badge失败:', error);
+      console.error('更新未读计数失败:', error);
     }
   }
 

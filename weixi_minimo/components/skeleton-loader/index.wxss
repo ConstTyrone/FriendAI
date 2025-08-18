@@ -1,0 +1,260 @@
+.skeleton-container {
+  padding: 16rpx;
+}
+
+/* 基础骨架元素 */
+.skeleton-avatar,
+.skeleton-avatar-small,
+.skeleton-avatar-large,
+.skeleton-avatar-xlarge,
+.skeleton-title,
+.skeleton-subtitle,
+.skeleton-line,
+.skeleton-tag,
+.skeleton-section-title,
+.skeleton-match-score {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: 8rpx;
+}
+
+/* 动画效果 */
+.wave .skeleton-avatar,
+.wave .skeleton-avatar-small,
+.wave .skeleton-avatar-large,
+.wave .skeleton-avatar-xlarge,
+.wave .skeleton-title,
+.wave .skeleton-subtitle,
+.wave .skeleton-line,
+.wave .skeleton-tag,
+.wave .skeleton-section-title,
+.wave .skeleton-match-score {
+  animation: wave 1.5s ease-in-out infinite;
+}
+
+.pulse .skeleton-avatar,
+.pulse .skeleton-avatar-small,
+.pulse .skeleton-avatar-large,
+.pulse .skeleton-avatar-xlarge,
+.pulse .skeleton-title,
+.pulse .skeleton-subtitle,
+.pulse .skeleton-line,
+.pulse .skeleton-tag,
+.pulse .skeleton-section-title,
+.pulse .skeleton-match-score {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* 列表骨架屏 */
+.skeleton-list-item {
+  display: flex;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skeleton-list-item .skeleton-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.skeleton-list-item .skeleton-content {
+  flex: 1;
+}
+
+.skeleton-list-item .skeleton-title {
+  height: 36rpx;
+  width: 60%;
+  margin-bottom: 16rpx;
+}
+
+.skeleton-list-item .skeleton-subtitle {
+  height: 28rpx;
+  width: 80%;
+  margin-bottom: 16rpx;
+}
+
+.skeleton-list-item .skeleton-tags {
+  display: flex;
+  gap: 16rpx;
+}
+
+.skeleton-list-item .skeleton-tag {
+  height: 40rpx;
+  width: 120rpx;
+  border-radius: 20rpx;
+}
+
+/* 卡片骨架屏 */
+.skeleton-card {
+  padding: 24rpx;
+  background: white;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.skeleton-card-header {
+  display: flex;
+  margin-bottom: 24rpx;
+}
+
+.skeleton-card .skeleton-avatar-large {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  margin-right: 24rpx;
+}
+
+.skeleton-card-title {
+  flex: 1;
+}
+
+.skeleton-card-title .skeleton-title {
+  height: 40rpx;
+  width: 70%;
+  margin-bottom: 16rpx;
+}
+
+.skeleton-card-title .skeleton-subtitle {
+  height: 32rpx;
+  width: 50%;
+}
+
+.skeleton-card-body .skeleton-line {
+  height: 28rpx;
+  width: 100%;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-card-body .skeleton-line.short {
+  width: 60%;
+}
+
+/* 详情骨架屏 */
+.skeleton-detail {
+  padding: 24rpx;
+}
+
+.skeleton-detail-header {
+  display: flex;
+  padding: 32rpx;
+  background: white;
+  margin-bottom: 24rpx;
+  border-radius: 16rpx;
+}
+
+.skeleton-detail .skeleton-avatar-xlarge {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  margin-right: 32rpx;
+}
+
+.skeleton-detail-info {
+  flex: 1;
+}
+
+.skeleton-detail-info .skeleton-title.large {
+  height: 48rpx;
+  width: 60%;
+  margin-bottom: 20rpx;
+}
+
+.skeleton-detail-info .skeleton-subtitle {
+  height: 32rpx;
+  width: 80%;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-detail-body {
+  background: white;
+  padding: 32rpx;
+  border-radius: 16rpx;
+}
+
+.skeleton-section {
+  margin-bottom: 40rpx;
+}
+
+.skeleton-section-title {
+  height: 36rpx;
+  width: 30%;
+  margin-bottom: 20rpx;
+}
+
+.skeleton-detail-body .skeleton-line {
+  height: 28rpx;
+  width: 90%;
+  margin-bottom: 12rpx;
+}
+
+.skeleton-detail-body .skeleton-line.short {
+  width: 50%;
+}
+
+/* 搜索结果骨架屏 */
+.skeleton-search-item {
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skeleton-search-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.skeleton-search .skeleton-avatar-small {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.skeleton-search-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skeleton-search-content .skeleton-title {
+  height: 32rpx;
+  width: 50%;
+}
+
+.skeleton-match-score {
+  height: 32rpx;
+  width: 80rpx;
+  border-radius: 16rpx;
+}
+
+.skeleton-search-body .skeleton-line {
+  height: 24rpx;
+  width: 100%;
+  margin-bottom: 8rpx;
+}
+
+.skeleton-search-body .skeleton-line.short {
+  width: 70%;
+}

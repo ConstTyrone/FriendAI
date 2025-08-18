@@ -17,10 +17,22 @@ Page({
   },
 
   onLoad(options) {
-    // 获取意图ID
+    // 获取意图ID和高亮ID
     if (options.intentId) {
       this.setData({
         intentId: options.intentId
+      });
+    }
+    
+    // 保存需要高亮的匹配ID
+    if (options.highlightId) {
+      this.highlightMatchId = options.highlightId;
+    }
+    
+    // 设置页面标题
+    if (options.intentId) {
+      wx.setNavigationBarTitle({
+        title: '意图匹配结果'
       });
     }
     
@@ -81,7 +93,9 @@ Page({
           isAIMatch: match.match_type === 'hybrid' || match.match_type === 'vector',
           hasVectorSimilarity: match.vector_similarity !== undefined && match.vector_similarity > 0,
           vectorSimilarity: match.vector_similarity ? Math.round(match.vector_similarity * 100) : 0,
-          matchTypeDisplay: this.getMatchTypeDisplay(match.match_type)
+          matchTypeDisplay: this.getMatchTypeDisplay(match.match_type),
+          // 高亮标记
+          isHighlighted: this.highlightMatchId && String(match.id) === String(this.highlightMatchId)
         }));
         
         this.setData({

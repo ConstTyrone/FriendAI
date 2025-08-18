@@ -1,6 +1,7 @@
 import authManager from './utils/auth-manager';
 import dataManager from './utils/data-manager';
 import notificationManager from './utils/notification-manager';
+import cacheManager from './utils/cache-manager';
 
 App({
   globalData: {
@@ -15,6 +16,9 @@ App({
     hasNewMatches: false,
     unreadMatchCount: 0,
     latestMatches: [],
+    
+    // 应用状态
+    isBackground: false,
     
     // 版本信息
     version: '1.0.0'
@@ -39,12 +43,41 @@ App({
   onShow(options) {
     console.log('小程序显示', options);
     
+    // 标记为前台运行
+    this.globalData.isBackground = false;
+    
     // 处理场景值
     this.handleScene(options.scene);
+    
+    // 启动缓存自动清理
+    cacheManager.startAutoCleanup();
+    
+    // 启动内存清理（仅在前台）
+    dataManager.startMemoryCleanup();
+    dataManager.setAppActive(true);
+    
+    // 如果已登录，调整轮询频率为活跃状态
+    if (this.globalData.isLoggedIn) {
+      notificationManager.adjustPollingInterval(this.getPollingInterval());
+    }
   },
 
   onHide() {
     console.log('小程序隐藏');
+    
+    // 标记为后台运行
+    this.globalData.isBackground = true;
+    
+    // 停止缓存自动清理
+    cacheManager.stopAutoCleanup();
+    
+    // 暂停内存清理
+    dataManager.setAppActive(false);
+    
+    // 调整轮询频率为后台状态
+    if (this.globalData.isLoggedIn) {
+      notificationManager.adjustPollingInterval(60000); // 后台时60秒轮询
+    }
   },
 
   onError(error) {
@@ -52,6 +85,21 @@ App({
     
     // 错误上报
     this.reportError(error);
+  },
+  
+  /**
+   * 小程序卸载时清理资源
+   */
+  onUnload() {
+    console.log('小程序卸载，清理资源');
+    
+    // 停止所有定时器
+    notificationManager.stopPolling();
+    cacheManager.stopAutoCleanup();
+    dataManager.stopMemoryCleanup();
+    
+    // 清理监听器
+    dataManager.removeAllListeners();
   },
 
   /**
@@ -135,8 +183,35 @@ App({
     // 延迟1秒后开始轮询，避免启动时资源竞争
     setTimeout(() => {
       console.log('启动匹配通知轮询...');
-      notificationManager.startPolling(5000); // 每5秒检查一次，更快响应
+      // 智能轮询策略：初始30秒，用户活跃时15秒，后台时60秒
+      const pollingInterval = this.getPollingInterval();
+      notificationManager.startPolling(pollingInterval);
     }, 1000);
+  },
+  
+  /**
+   * 获取智能轮询间隔
+   */
+  getPollingInterval() {
+    // 基础间隔30秒
+    let interval = 30000;
+    
+    // 如果用户刚刚创建了意图，短时间内使用更短的间隔
+    const recentIntentCreation = wx.getStorageSync('recent_intent_creation');
+    if (recentIntentCreation) {
+      const timeSinceCreation = Date.now() - recentIntentCreation;
+      if (timeSinceCreation < 5 * 60 * 1000) { // 5分钟内
+        interval = 15000; // 15秒轮询
+      }
+    }
+    
+    // 如果是后台运行，延长轮询间隔
+    if (this.globalData.isBackground) {
+      interval = 60000; // 60秒
+    }
+    
+    console.log('通知轮询间隔:', interval / 1000, '秒');
+    return interval;
   },
   
   /**

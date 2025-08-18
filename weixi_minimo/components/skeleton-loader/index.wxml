@@ -1,0 +1,82 @@
+<view class="skeleton-container" wx:if="{{loading}}">
+  <!-- 列表骨架屏 -->
+  <view wx:if="{{type === 'list'}}" class="skeleton-list">
+    <view 
+      wx:for="{{items}}" 
+      wx:key="id"
+      class="skeleton-list-item {{animation}}"
+    >
+      <view class="skeleton-avatar"></view>
+      <view class="skeleton-content">
+        <view class="skeleton-title"></view>
+        <view class="skeleton-subtitle"></view>
+        <view class="skeleton-tags">
+          <view class="skeleton-tag"></view>
+          <view class="skeleton-tag"></view>
+          <view class="skeleton-tag"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 卡片骨架屏 -->
+  <view wx:elif="{{type === 'card'}}" class="skeleton-card {{animation}}">
+    <view class="skeleton-card-header">
+      <view class="skeleton-avatar-large"></view>
+      <view class="skeleton-card-title">
+        <view class="skeleton-title"></view>
+        <view class="skeleton-subtitle"></view>
+      </view>
+    </view>
+    <view class="skeleton-card-body">
+      <view class="skeleton-line"></view>
+      <view class="skeleton-line"></view>
+      <view class="skeleton-line short"></view>
+    </view>
+  </view>
+
+  <!-- 详情骨架屏 -->
+  <view wx:elif="{{type === 'detail'}}" class="skeleton-detail {{animation}}">
+    <view class="skeleton-detail-header">
+      <view class="skeleton-avatar-xlarge"></view>
+      <view class="skeleton-detail-info">
+        <view class="skeleton-title large"></view>
+        <view class="skeleton-subtitle"></view>
+        <view class="skeleton-subtitle"></view>
+      </view>
+    </view>
+    <view class="skeleton-detail-body">
+      <view class="skeleton-section">
+        <view class="skeleton-section-title"></view>
+        <view class="skeleton-line"></view>
+        <view class="skeleton-line"></view>
+      </view>
+      <view class="skeleton-section">
+        <view class="skeleton-section-title"></view>
+        <view class="skeleton-line"></view>
+        <view class="skeleton-line short"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索结果骨架屏 -->
+  <view wx:elif="{{type === 'search'}}" class="skeleton-search {{animation}}">
+    <view 
+      wx:for="{{items}}" 
+      wx:key="id"
+      class="skeleton-search-item"
+    >
+      <view class="skeleton-search-header">
+        <view class="skeleton-avatar-small"></view>
+        <view class="skeleton-search-content">
+          <view class="skeleton-title"></view>
+          <view class="skeleton-match-score"></view>
+        </view>
+      </view>
+      <view class="skeleton-search-body">
+        <view class="skeleton-line"></view>
+        <view class="skeleton-line short"></view>
+      </view>
+    </view>
+  </view>
+</view>
