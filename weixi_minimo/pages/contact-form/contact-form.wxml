@@ -266,6 +266,16 @@
     </view>
   </view>
 
+  <!-- 意图匹配提示（可选显示） -->
+  <view class="intent-matching-hint" wx:if="{{showIntentMatchingHint}}">
+    <view class="hint-content">
+      <view class="hint-icon">
+        <view class="spinning-icon"></view>
+      </view>
+      <text class="hint-text">正在后台进行意图匹配分析...</text>
+    </view>
+  </view>
+
   <!-- 底部操作栏 -->
   <view class="bottom-bar" wx:if="{{!loading}}">
     <view 

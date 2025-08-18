@@ -45,6 +45,7 @@ Page({
     
     // 对话框状态
     showCancelDialog: false,
+    showIntentMatchingHint: false, // 意图匹配提示
     
     // 选择器选项
     genderOptions: ['男', '女', '未知'],
@@ -457,19 +458,31 @@ Page({
         result = await dataManager.createProfile(submitData);
       }
       
-      
+      // 立即隐藏加载提示
       wx.hideLoading();
       
+      // 显示保存成功提示
       wx.showToast({
         title: this.data.mode === 'edit' ? '保存成功' : '创建成功',
         icon: 'success',
-        duration: 2000
+        duration: 1500
       });
+      
+      // 触发数据刷新
+      if (dataManager && dataManager.emit) {
+        dataManager.emit('dataChanged', { type: 'profile', action: this.data.mode });
+      }
+      
+      // 显示意图匹配提示（可选，5秒后自动消失）
+      this.setData({ showIntentMatchingHint: true });
+      setTimeout(() => {
+        this.setData({ showIntentMatchingHint: false });
+      }, 5000);
       
       // 延迟返回，让用户看到成功提示
       setTimeout(() => {
         wx.navigateBack();
-      }, 2000);
+      }, 1500);
       
       console.log('联系人保存成功:', result);
     } catch (error) {

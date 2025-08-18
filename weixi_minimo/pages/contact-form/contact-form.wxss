@@ -454,6 +454,62 @@
   font-weight: 500;
 }
 
+/* 意图匹配提示 */
+.intent-matching-hint {
+  position: fixed;
+  bottom: 140rpx;
+  left: 32rpx;
+  right: 32rpx;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8rpx;
+  padding: 16rpx 24rpx;
+  z-index: 90;
+  animation: slideInUp 0.3s ease;
+}
+
+.hint-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.hint-icon {
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.spinning-icon {
+  width: 24rpx;
+  height: 24rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.hint-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #FFFFFF;
+  line-height: 1.4;
+}
+
 /* 响应式调整 */
 @media (max-width: 375px) {
   .form-section {

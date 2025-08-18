@@ -871,16 +871,19 @@ async def create_profile(
             # 获取创建的画像详情
             created_profile = db.get_user_profile_detail(query_user_id, profile_id)
             
-            # 触发意图匹配（异步执行，不阻塞返回）
-            try:
-                from src.services.intent_matcher import intent_matcher
-                # 在后台异步执行匹配
-                matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
-                if matches:
-                    logger.info(f"新联系人{profile_id}匹配到{len(matches)}个意图")
-            except Exception as e:
-                logger.error(f"触发意图匹配失败: {e}")
-                # 不影响主流程，继续返回成功
+            # 触发意图匹配（真正的异步执行，不阻塞返回）
+            import asyncio
+            async def run_intent_matching():
+                try:
+                    from src.services.intent_matcher import intent_matcher
+                    matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
+                    if matches:
+                        logger.info(f"新联系人{profile_id}匹配到{len(matches)}个意图")
+                except Exception as e:
+                    logger.error(f"触发意图匹配失败: {e}")
+            
+            # 创建后台任务，不等待完成
+            asyncio.create_task(run_intent_matching())
             
             return {
                 "success": True,
@@ -966,16 +969,19 @@ async def update_profile(
             # 获取更新后的画像详情
             updated_profile = db.get_user_profile_detail(query_user_id, profile_id)
             
-            # 触发意图匹配（异步执行，不阻塞返回）
-            try:
-                from src.services.intent_matcher import intent_matcher
-                # 在后台异步执行匹配
-                matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
-                if matches:
-                    logger.info(f"更新的联系人{profile_id}匹配到{len(matches)}个意图")
-            except Exception as e:
-                logger.error(f"触发意图匹配失败: {e}")
-                # 不影响主流程，继续返回成功
+            # 触发意图匹配（真正的异步执行，不阻塞返回）
+            import asyncio
+            async def run_intent_matching():
+                try:
+                    from src.services.intent_matcher import intent_matcher
+                    matches = await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
+                    if matches:
+                        logger.info(f"更新的联系人{profile_id}匹配到{len(matches)}个意图")
+                except Exception as e:
+                    logger.error(f"触发意图匹配失败: {e}")
+            
+            # 创建后台任务，不等待完成
+            asyncio.create_task(run_intent_matching())
             
             return {
                 "success": True,
