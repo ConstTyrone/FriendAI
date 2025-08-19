@@ -402,6 +402,55 @@ class APIClient {
     const queryString = objectToQueryString({ openid });
     return await this.request(`/api/binding/info?${queryString}`);
   }
+
+  /**
+   * 便捷方法：POST请求
+   * @param {string} endpoint - API端点
+   * @param {Object} data - 请求数据
+   * @returns {Promise} 请求结果
+   */
+  async post(endpoint, data) {
+    return await this.request(endpoint, {
+      method: 'POST',
+      data: JSON.stringify(data)
+    });
+  }
+
+  /**
+   * 便捷方法：GET请求
+   * @param {string} endpoint - API端点
+   * @param {Object} params - 查询参数
+   * @returns {Promise} 请求结果
+   */
+  async get(endpoint, params = {}) {
+    const queryString = objectToQueryString(params);
+    const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+    return await this.request(url);
+  }
+
+  /**
+   * 便捷方法：PUT请求
+   * @param {string} endpoint - API端点
+   * @param {Object} data - 请求数据
+   * @returns {Promise} 请求结果
+   */
+  async put(endpoint, data) {
+    return await this.request(endpoint, {
+      method: 'PUT',
+      data: JSON.stringify(data)
+    });
+  }
+
+  /**
+   * 便捷方法：DELETE请求
+   * @param {string} endpoint - API端点
+   * @returns {Promise} 请求结果
+   */
+  async delete(endpoint) {
+    return await this.request(endpoint, {
+      method: 'DELETE'
+    });
+  }
 }
 
 // 创建单例实例

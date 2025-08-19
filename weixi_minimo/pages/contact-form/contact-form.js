@@ -2,6 +2,7 @@ import { PAGE_ROUTES } from '../../utils/constants';
 import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, isValidGender } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import apiClient from '../../utils/api-client';
 
 // 使用小程序原生录音管理器
 const recordManager = wx.getRecorderManager();
@@ -870,7 +871,7 @@ Page({
       }
       
       // 获取正确的API地址
-      const baseURL = dataManager.apiClient.baseURL || 'https://weixin.dataelem.com';
+      const baseURL = apiClient.baseURL || 'https://weixin.dataelem.com';
       const uploadUrl = `${baseURL}/api/profiles/parse-voice-audio`;
       
       console.log('上传URL:', uploadUrl);
@@ -1080,8 +1081,23 @@ Page({
             isParsing: true
           });
           
-          // 调用文本解析API
-          await this.parseVoiceText(res.content);
+          try {
+            // 调用文本解析API
+            await this.parseVoiceText(res.content);
+            wx.hideLoading();
+          } catch (error) {
+            wx.hideLoading();
+            console.error('解析失败:', error);
+            wx.showToast({
+              title: '解析失败，请重试',
+              icon: 'none',
+              duration: 2000
+            });
+          } finally {
+            this.setData({
+              isParsing: false
+            });
+          }
         }
       }
     });
