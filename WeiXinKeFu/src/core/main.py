@@ -1328,10 +1328,9 @@ async def update_intent(
             update_fields.append("threshold = ?")
             update_values.append(request.threshold)
             # 检查阈值是否真的变化了
-            logger.info(f"意图{intent_id}阈值对比: 原始={original_threshold}, 新={request.threshold}, 差值={abs(request.threshold - original_threshold)}")
             if abs(request.threshold - original_threshold) > 0.001:
                 need_threshold_reeval = True
-                logger.info(f"意图{intent_id}的阈值发生变化，需要重新评估")
+                logger.info(f"意图{intent_id}的阈值发生变化: {original_threshold:.2f} -> {request.threshold:.2f}")
                 
         if request.priority is not None:
             update_fields.append("priority = ?")
@@ -1395,15 +1394,12 @@ async def update_intent(
             # 其他字段变化，不需要重新匹配
             message = "意图更新成功"
         
-        response_data = {
+        return {
             "success": True,
             "message": message,
             "need_rematch": need_full_rematch,
             "need_threshold_reeval": need_threshold_reeval
         }
-        
-        logger.info(f"意图{intent_id}更新响应: {response_data}")
-        return response_data
         
     except HTTPException:
         raise
