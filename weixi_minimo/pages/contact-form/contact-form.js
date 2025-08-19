@@ -929,20 +929,14 @@ Page({
               const result = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
               
               if (result.success && result.data) {
-                // 先显示识别内容
+                console.log('语音解析成功，返回数据:', result.data);
+                
+                // 直接处理解析结果，不需要先显示弹窗
+                this.handleParseResult(result.data);
+                
+                // 如果有识别文本，可以在toast中简短提示
                 if (result.data.recognized_text) {
-                  wx.showModal({
-                    title: '识别成功',
-                    content: `识别内容：${result.data.recognized_text}`,
-                    showCancel: false,
-                    success: () => {
-                      // 处理解析结果
-                      this.handleParseResult(result.data);
-                    }
-                  });
-                } else {
-                  // 直接处理解析结果
-                  this.handleParseResult(result.data);
+                  console.log('识别到的文本:', result.data.recognized_text);
                 }
               } else {
                 // 即使失败，也可能有识别的原始文本
@@ -1047,6 +1041,9 @@ Page({
    * 处理解析结果
    */
   handleParseResult(parsedData) {
+    console.log('=== handleParseResult 开始处理 ===');
+    console.log('接收到的原始数据:', parsedData);
+    
     // 字段映射：后端字段映射到前端表单字段
     const fieldMapping = {
       'name': 'name',           // 姓名
@@ -1063,13 +1060,24 @@ Page({
       'notes': 'notes'                     // 备注
     };
     
+    console.log('字段映射配置:', fieldMapping);
+    
     const mappedData = {};
     Object.keys(parsedData).forEach(key => {
-      if (key !== 'recognized_text' && fieldMapping[key]) { // 排除recognized_text字段
-        const targetField = fieldMapping[key];
-        mappedData[targetField] = parsedData[key];
+      if (key !== 'recognized_text') { // 排除recognized_text字段
+        if (fieldMapping[key]) {
+          const targetField = fieldMapping[key];
+          mappedData[targetField] = parsedData[key];
+          console.log(`映射字段: ${key} -> ${targetField} = ${parsedData[key]}`);
+        } else if (parsedData[key]) {
+          // 如果没有映射但有值，直接使用
+          mappedData[key] = parsedData[key];
+          console.log(`直接使用字段: ${key} = ${parsedData[key]}`);
+        }
       }
     });
+    
+    console.log('映射后的数据:', mappedData);
     
     // 过滤掉"未知"值，避免覆盖空字段
     const filteredData = {};
@@ -1079,7 +1087,7 @@ Page({
       }
     });
     
-    console.log('音频解析后的数据:', filteredData);
+    console.log('过滤后的数据:', filteredData);
     
     // 如果是编辑模式，合并数据
     if (this.data.mode === 'edit') {
@@ -1150,9 +1158,15 @@ Page({
         }
       }
       
-      console.log('音频解析更新后的表单数据:', newFormData);
+      console.log('最终要更新的表单数据:', newFormData);
+      console.log('最终要更新的完整数据对象:', updateData);
       
-      this.setData(updateData);
+      this.setData(updateData, () => {
+        console.log('setData完成，当前表单数据:', this.data.formData);
+        console.log('当前性别索引:', this.data.genderIndex);
+        console.log('当前婚姻状况索引:', this.data.maritalIndex);
+        console.log('当前资产水平索引:', this.data.assetIndex);
+      });
       
       wx.showToast({
         title: '信息已填充',
