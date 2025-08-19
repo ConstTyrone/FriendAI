@@ -916,18 +916,30 @@ async def parse_voice_audio(
         ai_service = UserProfileExtractor()
         result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
         
-        if not result or "user_profiles" not in result:
+        if not result:
+            logger.warning(f"AI解析失败，无返回结果。识别文本: {recognized_text}")
             return ParseVoiceTextResponse(
                 success=False,
-                message="无法从语音中提取有效信息"
+                message="AI解析失败，请重试",
+                data={"recognized_text": recognized_text}  # 返回识别的原始文本
+            )
+        
+        if "user_profiles" not in result:
+            logger.warning(f"AI解析结果缺少user_profiles。识别文本: {recognized_text}")
+            return ParseVoiceTextResponse(
+                success=False,
+                message="无法从语音中提取有效信息",
+                data={"recognized_text": recognized_text}
             )
         
         user_profiles = result.get("user_profiles", [])
         
         if not user_profiles:
+            logger.warning(f"AI解析结果为空。识别文本: {recognized_text}")
             return ParseVoiceTextResponse(
                 success=False,
-                message="未能识别出联系人信息"
+                message="未能识别出联系人信息",
+                data={"recognized_text": recognized_text}
             )
         
         # 取第一个识别到的用户画像

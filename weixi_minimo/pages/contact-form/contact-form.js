@@ -945,7 +945,23 @@ Page({
                   this.handleParseResult(result.data);
                 }
               } else {
-                throw new Error(result.message || '解析失败');
+                // 即使失败，也可能有识别的原始文本
+                if (result.data && result.data.recognized_text) {
+                  wx.showModal({
+                    title: '识别内容',
+                    content: `识别到：${result.data.recognized_text}\n\n${result.message || '但无法提取有效信息'}`,
+                    confirmText: '手动输入',
+                    cancelText: '重新录音',
+                    success: (res) => {
+                      if (res.confirm) {
+                        // 使用识别的文本进行手动输入
+                        this.showManualInputDialog(result.data.recognized_text);
+                      }
+                    }
+                  });
+                } else {
+                  throw new Error(result.message || '解析失败');
+                }
               }
             } else if (res.statusCode === 401) {
               wx.showToast({
@@ -1147,11 +1163,12 @@ Page({
 
   /**
    * 显示手动输入对话框
+   * @param {string} prefilledText - 预填充的文本（例如从语音识别得到的文本）
    */
-  showManualInputDialog() {
+  showManualInputDialog(prefilledText = '') {
     wx.showModal({
       title: '智能填写',
-      content: '语音识别暂不可用，请直接输入联系人信息',
+      content: prefilledText || '语音识别暂不可用，请直接输入联系人信息',
       editable: true,
       placeholderText: '例如：张三，男，35岁，在腾讯工作...',
       confirmText: '智能解析',
