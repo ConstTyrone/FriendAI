@@ -301,8 +301,8 @@
 
   <!-- 浮动语音按钮 -->
   <view class="voice-fab {{isRecording ? 'recording' : ''}} {{isParsing ? 'parsing' : ''}}" 
-        bindtouchstart="onStartRecording" 
-        bindtouchend="onStopRecording"
+        bindtouchstart="startVoiceInput" 
+        bindtouchend="stopVoiceInput"
         wx:if="{{!loading && mode === 'add'}}">
     <view class="fab-icon">
       <text class="icon-mic">🎤</text>

@@ -713,26 +713,23 @@ Page({
       success: () => {
         console.log('开始语音输入');
         
-        // 提示用户如何使用
-        wx.showModal({
-          title: '语音输入',
-          content: '请说出联系人信息，例如：“张三，男，35岁，在腾讯工作，是产品经理，住在深圳”',
-          showCancel: false,
-          confirmText: '开始录音',
-          success: () => {
-            this.setData({
-              isRecording: true
-            });
-            
-            // 开始录音
-            recordManager.start({
-              duration: 60000, // 最长录音时间60秒
-              sampleRate: 16000, // 采样率
-              numberOfChannels: 1, // 单声道
-              encodeBitRate: 96000, // 编码码率
-              format: 'mp3' // 音频格式
-            });
-          }
+        // 直接开始录音，不弹出对话框
+        this.setData({
+          isRecording: true
+        });
+        
+        // 开始录音
+        recordManager.start({
+          duration: 60000, // 最长录音时间60秒
+          sampleRate: 16000, // 采样率
+          numberOfChannels: 1, // 单声道
+          encodeBitRate: 96000, // 编码码率
+          format: 'mp3' // 音频格式
+        });
+        
+        // 振动反馈
+        wx.vibrateShort({
+          type: 'light'
         });
       },
       fail: () => {
