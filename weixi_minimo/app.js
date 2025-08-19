@@ -2,6 +2,7 @@ import authManager from './utils/auth-manager';
 import dataManager from './utils/data-manager';
 import notificationManager from './utils/notification-manager';
 import cacheManager from './utils/cache-manager';
+import themeManager from './utils/theme-manager';
 
 App({
   globalData: {
@@ -29,6 +30,9 @@ App({
     
     // 获取系统信息
     this.getSystemInfo();
+    
+    // 初始化主题
+    this.initTheme();
     
     // 检查更新
     this.checkForUpdate();
@@ -114,6 +118,18 @@ App({
     } catch (error) {
       console.error('获取系统信息失败:', error);
     }
+  },
+
+  /**
+   * 初始化主题
+   */
+  initTheme() {
+    const theme = themeManager.init();
+    this.globalData.theme = theme;
+    console.log('当前主题:', theme);
+    
+    // 设置全局主题管理器引用
+    this.themeManager = themeManager;
   },
 
   /**

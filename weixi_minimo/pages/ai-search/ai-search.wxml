@@ -1,5 +1,5 @@
 <!--AI搜索页面-->
-<view class="ai-search-page">
+<view class="ai-search-page {{themeClass}}">
   <!-- 搜索容器 -->
   <view class="search-container">
     <view class="search-input-wrapper">

@@ -2,6 +2,7 @@ import { PAGE_ROUTES } from '../../utils/constants';
 import { formatDate, formatPhone as formatPhoneUtil, getNameInitial, getAvatarColor } from '../../utils/format-utils';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -26,6 +27,9 @@ Page({
 
   onLoad(options) {
     console.log('联系人详情页面加载', options);
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     const contactId = options.id || options.contactId;
     

@@ -1,0 +1,351 @@
+/**
+ * 全局深色模式样式
+ * 适用于所有页面的通用深色模式样式
+ */
+
+/* 深色模式根样式 */
+.theme-dark {
+  color-scheme: dark;
+}
+
+/* 页面背景 */
+.theme-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* 通用卡片样式 */
+.theme-dark .card,
+.theme-dark .content-card,
+.theme-dark .info-card {
+  background-color: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #3a3a3a;
+}
+
+/* 通用文本颜色 */
+.theme-dark .text-primary {
+  color: #ffffff;
+}
+
+.theme-dark .text-secondary {
+  color: #cccccc;
+}
+
+.theme-dark .text-tertiary {
+  color: #999999;
+}
+
+.theme-dark .text-muted {
+  color: #666666;
+}
+
+/* 分割线 */
+.theme-dark .divider {
+  background-color: #3a3a3a;
+}
+
+/* 输入框 */
+.theme-dark .input,
+.theme-dark input,
+.theme-dark textarea {
+  background-color: #252525;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .input::placeholder,
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: #666666;
+}
+
+.theme-dark .input:focus,
+.theme-dark input:focus,
+.theme-dark textarea:focus {
+  border-color: #06ae56;
+  box-shadow: 0 0 0 2px rgba(6, 174, 86, 0.2);
+}
+
+/* 按钮样式 */
+.theme-dark .btn-primary {
+  background: linear-gradient(135deg, #06ae56 0%, #05994d 100%);
+  color: #ffffff;
+}
+
+.theme-dark .btn-secondary {
+  background-color: #3a3a3a;
+  color: #ffffff;
+  border: 1px solid #4a4a4a;
+}
+
+.theme-dark .btn-tertiary {
+  background-color: #2d2d2d;
+  color: #cccccc;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .btn:active {
+  opacity: 0.8;
+}
+
+/* 列表项 */
+.theme-dark .list-item {
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.theme-dark .list-item:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .list-item:last-child {
+  border-bottom: none;
+}
+
+/* 标签 */
+.theme-dark .tag {
+  background-color: #3a3a3a;
+  color: #cccccc;
+  border: 1px solid #4a4a4a;
+}
+
+.theme-dark .tag.active {
+  background-color: #06ae56;
+  color: #ffffff;
+  border-color: #06ae56;
+}
+
+/* 头像 */
+.theme-dark .avatar {
+  background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+  border: 2px solid #3a3a3a;
+  color: #ffffff;
+}
+
+/* 搜索框 */
+.theme-dark .search-box {
+  background-color: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .search-input {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+.theme-dark .search-input::placeholder {
+  color: #666666;
+}
+
+/* 选项卡 */
+.theme-dark .tab-item {
+  color: #999999;
+  border-bottom: 2px solid transparent;
+}
+
+.theme-dark .tab-item.active {
+  color: #06ae56;
+  border-bottom-color: #06ae56;
+}
+
+.theme-dark .tab-content {
+  background-color: #2d2d2d;
+}
+
+/* 模态框 */
+.theme-dark .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.theme-dark .modal-content {
+  background-color: #2d2d2d;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .modal-header {
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.theme-dark .modal-footer {
+  border-top: 1px solid #3a3a3a;
+}
+
+/* 提示信息 */
+.theme-dark .toast {
+  background-color: #2d2d2d;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .alert {
+  background-color: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .alert.success {
+  background-color: #1a4d32;
+  border-color: #06ae56;
+  color: #ffffff;
+}
+
+.theme-dark .alert.error {
+  background-color: #4d1a1a;
+  border-color: #dc0a1a;
+  color: #ffffff;
+}
+
+.theme-dark .alert.warning {
+  background-color: #4d3a1a;
+  border-color: #ff976a;
+  color: #ffffff;
+}
+
+/* 加载状态 */
+.theme-dark .loading {
+  background-color: rgba(26, 26, 26, 0.8);
+}
+
+.theme-dark .loading-spinner {
+  border-color: #3a3a3a;
+  border-top-color: #06ae56;
+}
+
+.theme-dark .loading-text {
+  color: #cccccc;
+}
+
+/* 空状态 */
+.theme-dark .empty-state {
+  color: #999999;
+}
+
+.theme-dark .empty-icon {
+  color: #666666;
+}
+
+/* 工具栏和导航 */
+.theme-dark .toolbar {
+  background-color: #2d2d2d;
+  border-top: 1px solid #3a3a3a;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.theme-dark .nav-item {
+  color: #999999;
+}
+
+.theme-dark .nav-item.active {
+  color: #06ae56;
+}
+
+/* 进度条 */
+.theme-dark .progress {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .progress-bar {
+  background-color: #06ae56;
+}
+
+/* 开关组件 */
+.theme-dark switch[checked] .wx-switch-input {
+  background-color: #06ae56 !important;
+  border-color: #06ae56 !important;
+}
+
+.theme-dark switch .wx-switch-input {
+  background-color: #4a4a4a !important;
+  border-color: #4a4a4a !important;
+}
+
+/* 选择器组件 */
+.theme-dark picker {
+  color: #ffffff;
+}
+
+.theme-dark .picker-view {
+  background-color: #2d2d2d;
+}
+
+/* 滚动条 */
+.theme-dark ::-webkit-scrollbar {
+  background-color: #2d2d2d;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #5a5a5a;
+}
+
+/* 特定组件覆盖 */
+.theme-dark .wx-switch-input {
+  background-color: #4a4a4a !important;
+  border-color: #4a4a4a !important;
+}
+
+.theme-dark .wx-switch-input.wx-switch-input-checked {
+  background-color: #06ae56 !important;
+  border-color: #06ae56 !important;
+}
+
+/* TDesign组件深色模式适配 */
+.theme-dark .t-cell {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+}
+
+.theme-dark .t-cell__title {
+  color: #ffffff !important;
+}
+
+.theme-dark .t-cell__note {
+  color: #999999 !important;
+}
+
+.theme-dark .t-cell-group {
+  background-color: #2d2d2d !important;
+}
+
+.theme-dark .t-input {
+  background-color: #252525 !important;
+  color: #ffffff !important;
+  border-color: #3a3a3a !important;
+}
+
+.theme-dark .t-button--primary {
+  background-color: #06ae56 !important;
+}
+
+.theme-dark .t-button--default {
+  background-color: #3a3a3a !important;
+  color: #ffffff !important;
+  border-color: #4a4a4a !important;
+}
+
+.theme-dark .t-search {
+  background-color: #2d2d2d !important;
+}
+
+.theme-dark .t-search__input {
+  background-color: #252525 !important;
+  color: #ffffff !important;
+}
+
+.theme-dark .t-empty {
+  color: #999999 !important;
+}
+
+.theme-dark .t-avatar {
+  background-color: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+.theme-dark .t-tag {
+  background-color: #3a3a3a !important;
+  color: #cccccc !important;
+  border-color: #4a4a4a !important;
+}

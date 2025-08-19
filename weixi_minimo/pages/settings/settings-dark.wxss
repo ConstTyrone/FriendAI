@@ -1,0 +1,194 @@
+/**
+ * 设置页面深色模式样式
+ */
+
+/* 深色模式根容器 */
+.settings-page.theme-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* 用户卡片 */
+.theme-dark .user-card {
+  background: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .user-avatar {
+  background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+  border: 3px solid #333333;
+}
+
+.theme-dark .avatar-text {
+  color: #ffffff;
+}
+
+.theme-dark .user-name {
+  color: #ffffff;
+}
+
+.theme-dark .user-id {
+  color: #999999;
+}
+
+.theme-dark .stats-item {
+  background-color: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .stats-value {
+  color: #ffffff;
+}
+
+.theme-dark .stats-label {
+  color: #999999;
+}
+
+/* 登录卡片 */
+.theme-dark .login-card {
+  background-color: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .login-title {
+  color: #ffffff;
+}
+
+.theme-dark .login-desc {
+  color: #999999;
+}
+
+.theme-dark .login-input {
+  background-color: #252525;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+}
+
+.theme-dark .login-input::placeholder {
+  color: #666666;
+}
+
+.theme-dark .wechat-login-btn {
+  background: linear-gradient(135deg, #06ae56 0%, #05994d 100%);
+}
+
+.theme-dark .quick-login-btn {
+  background-color: #3a3a3a;
+  color: #ffffff;
+}
+
+.theme-dark .mock-login-btn {
+  background-color: #4a4a4a;
+  color: #cccccc;
+}
+
+/* 选项组 */
+.theme-dark .option-group {
+  background-color: #2d2d2d;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .group-title {
+  color: #999999;
+  background-color: #1a1a1a;
+}
+
+.theme-dark .option-item {
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.theme-dark .option-item:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .option-title {
+  color: #ffffff;
+}
+
+.theme-dark .option-note {
+  color: #999999;
+}
+
+.theme-dark .option-value {
+  color: #999999;
+}
+
+.theme-dark .option-arrow {
+  color: #666666;
+}
+
+/* 开关组件 */
+.theme-dark .option-switch {
+  /* 微信小程序的switch组件样式需要特殊处理 */
+}
+
+.theme-dark switch[checked] .wx-switch-input {
+  background-color: #06ae56 !important;
+  border-color: #06ae56 !important;
+}
+
+.theme-dark switch .wx-switch-input {
+  background-color: #4a4a4a !important;
+  border-color: #4a4a4a !important;
+}
+
+/* 底部操作栏 */
+.theme-dark .bottom-actions {
+  background-color: #2d2d2d;
+  border-top: 1px solid #3a3a3a;
+}
+
+.theme-dark .logout-btn {
+  background-color: #dc0a1a;
+  color: #ffffff;
+}
+
+.theme-dark .logout-btn:active {
+  background-color: #b00818;
+}
+
+.theme-dark .clear-cache-btn {
+  background-color: #3a3a3a;
+  color: #ffffff;
+}
+
+.theme-dark .clear-cache-btn:active {
+  background-color: #4a4a4a;
+}
+
+/* 对话框 */
+.theme-dark .confirm-dialog {
+  background-color: #2d2d2d;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .confirm-title {
+  color: #ffffff;
+}
+
+.theme-dark .confirm-message {
+  color: #cccccc;
+}
+
+.theme-dark .confirm-actions {
+  border-top: 1px solid #3a3a3a;
+}
+
+.theme-dark .confirm-button {
+  color: #06ae56;
+}
+
+.theme-dark .confirm-button.cancel {
+  color: #999999;
+  border-right: 1px solid #3a3a3a;
+}
+
+.theme-dark .confirm-button:active {
+  background-color: #3a3a3a;
+}
+
+/* 版本信息 */
+.theme-dark .version-info {
+  color: #666666;
+}

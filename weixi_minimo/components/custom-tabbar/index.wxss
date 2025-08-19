@@ -1,4 +1,30 @@
 /* 自定义TabBar - 现代扁平设计 */
+
+/* 深色模式适配 */
+.theme-dark .custom-tabbar {
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0) 0%, rgba(26, 26, 26, 0.8) 20%, rgba(26, 26, 26, 1) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .tab-item {
+  color: #999999;
+}
+
+.theme-dark .tab-item.active {
+  color: #06ae56;
+}
+
+.theme-dark .tab-item.highlight .tab-text {
+  color: #ff6b6b;
+}
+
+.theme-dark .tab-badge {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+}
+
+.theme-dark .badge-text {
+  color: #ffffff;
+}
 .custom-tabbar {
   position: fixed;
   bottom: 0;

@@ -3,6 +3,7 @@ import { formatContactDisplayName, getNameInitial, getAvatarColor } from '../../
 import { isValidSearchQuery } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -27,6 +28,9 @@ Page({
 
   onLoad(options) {
     console.log('AI搜索页面加载', options);
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     // 检查登录状态
     if (!authManager.isLoggedIn()) {

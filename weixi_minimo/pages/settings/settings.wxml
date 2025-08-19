@@ -1,5 +1,5 @@
 <!--设置页面-->
-<view class="settings-page">
+<view class="settings-page {{themeClass}}">
   <!-- 用户信息区域 -->
   <view class="user-section" wx:if="{{isLoggedIn}}">
     <view class="user-card">

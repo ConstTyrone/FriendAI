@@ -1,5 +1,5 @@
 <!--联系人详情页面-->
-<view class="detail-page">
+<view class="detail-page {{themeClass}}">
   <!-- 加载状态 -->
   <view class="loading-state" wx:if="{{loading}}">
     <view class="loading-spinner"></view>

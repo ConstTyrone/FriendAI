@@ -1,5 +1,5 @@
 <!--联系人列表页面-->
-<view class="contact-list-page">
+<view class="contact-list-page {{themeClass}}">
   <!-- 搜索栏 -->
   <view class="search-header">
     <view class="search-box">

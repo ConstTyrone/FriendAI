@@ -3,6 +3,7 @@ import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, 
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import apiClient from '../../utils/api-client';
+import themeManager from '../../utils/theme-manager';
 
 // 使用小程序原生录音管理器
 const recordManager = wx.getRecorderManager();
@@ -70,6 +71,9 @@ Page({
 
   onLoad(options) {
     console.log('联系人表单页面加载', options);
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     const mode = options.mode || 'add';
     const contactId = options.id || '';

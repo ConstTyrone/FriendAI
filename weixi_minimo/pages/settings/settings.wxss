@@ -1,4 +1,5 @@
 /* 设置页面 - 扁平设计风格 */
+@import './settings-dark.wxss';
 
 /* 页面容器 */
 .settings-page {

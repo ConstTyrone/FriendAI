@@ -4,6 +4,7 @@ import { isValidSearchQuery } from '../../utils/validator';
 import { getStorageSync, setStorageSync, defaultStorage } from '../../utils/storage-utils';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -34,6 +35,9 @@ Page({
 
   onLoad(options) {
     console.log('设置页面加载', options);
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     // 初始化页面数据
     this.initPageData();
@@ -95,12 +99,13 @@ Page({
   loadSettings() {
     try {
       const savedSettings = getStorageSync(STORAGE_KEYS.APP_SETTINGS, {});
+      const currentTheme = themeManager.getTheme();
       
       this.setData({
         settings: {
           autoSync: savedSettings.autoSync !== false, // 默认true
           notifications: savedSettings.notifications !== false, // 默认true
-          darkMode: savedSettings.darkMode || false // 默认false
+          darkMode: currentTheme === 'dark' // 使用主题管理器的当前主题
         }
       });
       
@@ -665,20 +670,24 @@ Page({
   onDarkModeChange(event) {
     const darkMode = event.detail.value;
     
+    // 使用主题管理器切换主题
+    const newTheme = darkMode ? 'dark' : 'light';
+    themeManager.setTheme(newTheme);
+    
     this.setData({
       'settings.darkMode': darkMode
     });
     
     this.saveSettings();
     
-    // 这里可以实现深色模式切换逻辑
-    if (darkMode) {
-      // 启用深色模式
-      console.log('启用深色模式');
-    } else {
-      // 禁用深色模式
-      console.log('禁用深色模式');
-    }
+    console.log(`切换到${darkMode ? '深色' : '浅色'}模式`);
+    
+    // 显示提示
+    wx.showToast({
+      title: darkMode ? '已启用深色模式' : '已启用浅色模式',
+      icon: 'success',
+      duration: 1500
+    });
   },
 
   /**

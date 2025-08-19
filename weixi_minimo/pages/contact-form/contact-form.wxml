@@ -1,5 +1,5 @@
 <!--联系人表单页面-->
-<view class="form-page">
+<view class="form-page {{themeClass}}">
   <!-- 加载状态 -->
   <view class="loading-state" wx:if="{{loading}}">
     <view class="loading-spinner"></view>

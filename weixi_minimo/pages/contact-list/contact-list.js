@@ -2,6 +2,7 @@ import { UI_CONFIG, PAGE_ROUTES, EVENT_TYPES } from '../../utils/constants';
 import { formatContactDisplayName, getNameInitial, getAvatarColor } from '../../utils/format-utils';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -28,6 +29,9 @@ Page({
 
   onLoad(options) {
     console.log('联系人列表页面加载', options);
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     // 检查登录状态
     if (!authManager.isLoggedIn()) {

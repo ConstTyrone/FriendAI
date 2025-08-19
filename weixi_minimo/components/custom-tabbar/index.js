@@ -1,3 +1,5 @@
+import themeManager from '../../utils/theme-manager';
+
 Component({
   properties: {
     current: {
@@ -34,6 +36,13 @@ Component({
         path: '/pages/settings/settings'
       }
     ]
+  },
+
+  lifetimes: {
+    attached() {
+      // 应用主题
+      themeManager.applyToPage(this);
+    }
   },
 
   methods: {
