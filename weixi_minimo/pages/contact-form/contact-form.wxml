@@ -304,7 +304,7 @@
         bindtouchstart="startVoiceInput" 
         bindtouchend="stopVoiceInput"
         bindtouchcancel="stopVoiceInput"
-        wx:if="{{!loading && mode === 'add'}}">
+        wx:if="{{!loading}}">
     <view class="fab-icon">
       <text class="icon-mic">🎤</text>
     </view>

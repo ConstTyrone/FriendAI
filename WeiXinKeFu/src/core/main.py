@@ -873,12 +873,14 @@ async def parse_voice_text(
 async def parse_voice_audio(
     audio_file: UploadFile = File(...),
     merge_mode: str = Form("false"),  # 接收字符串形式的布尔值
+    contact_id: Optional[str] = Form(None),  # 编辑模式下的联系人ID
     current_user: str = Depends(verify_user_token)
 ):
     """接收音频文件，进行ASR识别后解析用户画像"""
     logger.info(f"收到语音上传请求，用户: {current_user}")
     logger.info(f"音频文件名: {audio_file.filename}, 大小: {audio_file.size if hasattr(audio_file, 'size') else '未知'}")
     logger.info(f"合并模式: {merge_mode}")
+    logger.info(f"联系人ID: {contact_id}")
     
     # 将字符串转换为布尔值
     merge_mode = merge_mode.lower() == "true"
@@ -932,9 +934,59 @@ async def parse_voice_audio(
         
         logger.info(f"语音识别结果: {recognized_text}")
         
-        # 使用AI服务解析识别出的文本
-        ai_service = UserProfileExtractor()
-        result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
+        # 如果是编辑模式且有contact_id，获取现有联系人数据并与新识别的文本合并
+        if merge_mode and contact_id:
+            logger.info(f"编辑模式，获取现有联系人数据: {contact_id}")
+            try:
+                # 获取现有联系人数据
+                db = db_manager.get_database(current_user)
+                existing_profile = db.get_profile_by_id(contact_id)
+                
+                if existing_profile:
+                    logger.info(f"找到现有联系人: {existing_profile.get('profile_name', '')}")
+                    
+                    # 构建合并提示，让AI整合新旧数据
+                    merge_prompt = f"""你需要整合以下两部分信息：
+
+【现有联系人信息】
+姓名: {existing_profile.get('profile_name', '未知')}
+性别: {existing_profile.get('basic_info', {}).get('gender', '未知')}
+年龄: {existing_profile.get('basic_info', {}).get('age', '未知')}
+电话: {existing_profile.get('phone', '未知')}
+所在地: {existing_profile.get('basic_info', {}).get('location', '未知')}
+婚育: {existing_profile.get('basic_info', {}).get('marital_status', '未知')}
+学历: {existing_profile.get('basic_info', {}).get('education', '未知')}
+公司: {existing_profile.get('basic_info', {}).get('company', '未知')}
+职位: {existing_profile.get('basic_info', {}).get('position', '未知')}
+资产水平: {existing_profile.get('basic_info', {}).get('asset_level', '未知')}
+性格: {existing_profile.get('basic_info', {}).get('personality', '未知')}
+
+【新输入的信息】
+{recognized_text}
+
+请整合上述信息，生成一个完整的用户画像。规则：
+1. 如果新信息中有明确的数据，优先使用新信息
+2. 如果新信息中没有提到某个字段，保留现有信息
+3. 如果新信息与现有信息冲突，使用新信息
+4. 输出一个完整的用户画像，包含所有字段"""
+                    
+                    # 使用AI服务解析整合后的文本
+                    ai_service = UserProfileExtractor()
+                    result = ai_service.extract_user_profile(merge_prompt, is_chat_record=False)
+                else:
+                    logger.warning(f"未找到联系人: {contact_id}")
+                    # 如果没找到现有联系人，直接使用新识别的文本
+                    ai_service = UserProfileExtractor()
+                    result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
+            except Exception as e:
+                logger.error(f"获取现有联系人数据失败: {e}")
+                # 出错时直接使用新识别的文本
+                ai_service = UserProfileExtractor()
+                result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
+        else:
+            # 新建模式，直接使用识别的文本
+            ai_service = UserProfileExtractor()
+            result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
         
         if not result:
             logger.warning(f"AI解析失败，无返回结果。识别文本: {recognized_text}")
@@ -990,9 +1042,8 @@ async def parse_voice_audio(
             "recognized_text": recognized_text  # 返回识别的原始文本供参考
         }
         
-        # 如果是合并模式，只返回非空字段
-        if merge_mode:
-            parsed_data = {k: v for k, v in parsed_data.items() if v and v != ""}
+        # 在编辑模式下，AI已经整合了完整数据，不需要前端再合并
+        # 所以直接返回完整数据即可
         
         # 添加识别的原始文本和中间结果到返回数据中
         parsed_data['recognized_text'] = recognized_text

@@ -938,7 +938,8 @@ Page({
         filePath: tempFilePath,
         name: 'audio_file',  // 确保这个名字与后端接收的参数名一致
         formData: {
-          'merge_mode': this.data.mode === 'edit' ? 'true' : 'false'
+          'merge_mode': this.data.mode === 'edit' ? 'true' : 'false',
+          'contact_id': this.data.mode === 'edit' ? this.data.contactId : ''
         },
         header: {
           'Authorization': `Bearer ${token}`,
@@ -1127,25 +1128,22 @@ Page({
     
     console.log('过滤后的数据:', filteredData);
     
-    // 如果是编辑模式，合并数据
+    // 如果是编辑模式，AI已经智能整合了数据，直接使用
     if (this.data.mode === 'edit') {
-      const mergedData = { ...this.data.formData };
+      // 后端AI已经将现有数据和新识别的内容智能整合，直接使用返回的完整数据
+      const mergedData = { ...filteredData };
       
-      // 只更新非空字段
-      Object.keys(filteredData).forEach(key => {
-        if (filteredData[key]) {
-          // 如果是备注字段，追加内容
-          if (key === 'notes' && mergedData.notes) {
-            mergedData[key] = mergedData.notes + '\n' + filteredData[key];
-          } else {
-            mergedData[key] = filteredData[key];
-          }
-        }
-      });
+      // 保留原有的标签（如果AI没有返回标签）
+      if (!mergedData.tags && this.data.formData.tags) {
+        mergedData.tags = this.data.formData.tags;
+      }
       
       this.setData({
         formData: mergedData
       });
+      
+      // 更新选择器索引
+      this.updatePickerIndexes(mergedData);
       
       wx.showToast({
         title: '信息已更新',
@@ -1167,49 +1165,55 @@ Page({
         newFormData.tags = this.data.formData.tags;
       }
       
-      // 更新选择器索引
-      const updateData = {
+      // 更新表单数据
+      this.setData({
         formData: newFormData
-      };
+      });
       
-      // 更新性别选择器
-      if (newFormData.gender) {
-        const genderIndex = this.data.genderOptions.indexOf(newFormData.gender);
-        if (genderIndex >= 0) {
-          updateData.genderIndex = genderIndex;
-        }
-      }
-      
-      // 更新婚姻状况选择器
-      if (newFormData.marital_status) {
-        const maritalIndex = this.data.maritalOptions.indexOf(newFormData.marital_status);
-        if (maritalIndex >= 0) {
-          updateData.maritalIndex = maritalIndex;
-        }
-      }
-      
-      // 更新资产水平选择器
-      if (newFormData.asset_level) {
-        const assetIndex = this.data.assetOptions.indexOf(newFormData.asset_level);
-        if (assetIndex >= 0) {
-          updateData.assetIndex = assetIndex;
-        }
-      }
+      // 更新选择器索引
+      this.updatePickerIndexes(newFormData);
       
       console.log('最终要更新的表单数据:', newFormData);
-      console.log('最终要更新的完整数据对象:', updateData);
-      
-      this.setData(updateData, () => {
-        console.log('setData完成，当前表单数据:', this.data.formData);
-        console.log('当前性别索引:', this.data.genderIndex);
-        console.log('当前婚姻状况索引:', this.data.maritalIndex);
-        console.log('当前资产水平索引:', this.data.assetIndex);
-      });
       
       wx.showToast({
         title: '信息已填充',
         icon: 'success'
       });
+    }
+  },
+
+  /**
+   * 更新选择器索引
+   */
+  updatePickerIndexes(formData) {
+    const updateData = {};
+    
+    // 更新性别选择器
+    if (formData.gender) {
+      const genderIndex = this.data.genderOptions.indexOf(formData.gender);
+      if (genderIndex >= 0) {
+        updateData.genderIndex = genderIndex;
+      }
+    }
+    
+    // 更新婚姻状况选择器
+    if (formData.marital_status) {
+      const maritalIndex = this.data.maritalOptions.indexOf(formData.marital_status);
+      if (maritalIndex >= 0) {
+        updateData.maritalIndex = maritalIndex;
+      }
+    }
+    
+    // 更新资产水平选择器
+    if (formData.asset_level) {
+      const assetIndex = this.data.assetOptions.indexOf(formData.asset_level);
+      if (assetIndex >= 0) {
+        updateData.assetIndex = assetIndex;
+      }
+    }
+    
+    if (Object.keys(updateData).length > 0) {
+      this.setData(updateData);
     }
   },
 
