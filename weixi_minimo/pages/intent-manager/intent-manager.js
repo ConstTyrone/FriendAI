@@ -375,6 +375,10 @@ Page({
       // 根据模式选择API
       let response;
       if (editMode) {
+        console.log('更新意图请求数据:', requestData);
+        console.log('原始formData.threshold:', formData.threshold);
+        console.log('转换后threshold:', requestData.threshold);
+        
         // 编辑模式：更新意图
         response = await apiClient.request({
           url: `/api/intents/${editingIntentId}`,
@@ -395,6 +399,7 @@ Page({
         
         // 处理编辑模式下的重新匹配提示
         if (editMode && response.data) {
+          console.log('意图更新响应:', response.data);
           const { need_rematch, need_threshold_reeval } = response.data;
           
           if (need_rematch) {

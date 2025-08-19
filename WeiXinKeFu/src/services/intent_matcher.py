@@ -959,6 +959,8 @@ class IntentMatcher:
             更新的匹配记录数量
         """
         try:
+            logger.info(f"开始重新评估意图{intent_id}的阈值: new_threshold={new_threshold}")
+            
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
@@ -973,6 +975,7 @@ class IntentMatcher:
             """, (intent_id, user_id))
             
             matches = cursor.fetchall()
+            logger.info(f"找到{len(matches)}个现有匹配记录")
             
             for match_id, score, is_pushed in matches:
                 # 根据新阈值判断是否应该保留或删除匹配
