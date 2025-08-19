@@ -16,7 +16,7 @@ import sqlite3
 from datetime import datetime
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
-from ..services.ai_service import AIService
+from ..services.ai_service import UserProfileExtractor
 from ..services.media_processor import MediaProcessor
 
 
@@ -799,7 +799,7 @@ async def parse_voice_text(
     """解析语音文本，提取用户画像信息"""
     try:
         # 初始化AI服务
-        ai_service = AIService()
+        ai_service = UserProfileExtractor()
         
         # 使用AI服务解析文本
         result = ai_service.extract_user_profile(request.text, is_chat_record=False)
@@ -901,7 +901,7 @@ async def parse_voice_audio(
         logger.info(f"语音识别结果: {recognized_text}")
         
         # 使用AI服务解析识别出的文本
-        ai_service = AIService()
+        ai_service = UserProfileExtractor()
         result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
         
         if not result or "user_profiles" not in result:
