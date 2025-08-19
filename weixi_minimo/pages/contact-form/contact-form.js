@@ -712,6 +712,14 @@ Page({
    * 开始语音输入
    */
   startVoiceInput() {
+    console.log('startVoiceInput 被调用');
+    
+    // 防止重复调用
+    if (this.data.isRecording) {
+      console.log('已经在录音中，忽略');
+      return;
+    }
+    
     // 请求麦克风权限
     wx.authorize({
       scope: 'scope.record',
