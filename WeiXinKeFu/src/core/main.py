@@ -804,13 +804,22 @@ async def parse_voice_text(
         # 使用AI服务解析文本
         result = ai_service.extract_user_profile(request.text, is_chat_record=False)
         
-        if not result or "user_profiles" not in result:
+        # AI服务返回的格式是 {"success": True, "data": {"user_profiles": [...]}, "error": None}
+        # 需要从嵌套的data字段中获取user_profiles
+        if not result or not result.get("data"):
             return ParseVoiceTextResponse(
                 success=False,
                 message="无法从文本中提取有效信息"
             )
         
-        user_profiles = result.get("user_profiles", [])
+        ai_data = result.get("data", {})
+        if "user_profiles" not in ai_data:
+            return ParseVoiceTextResponse(
+                success=False,
+                message="无法从文本中提取有效信息"
+            )
+        
+        user_profiles = ai_data.get("user_profiles", [])
         
         if not user_profiles:
             return ParseVoiceTextResponse(
@@ -924,15 +933,20 @@ async def parse_voice_audio(
                 data={"recognized_text": recognized_text}  # 返回识别的原始文本
             )
         
-        if "user_profiles" not in result:
+        # AI服务返回的格式是 {"success": True, "data": {"user_profiles": [...]}, "error": None}
+        # 需要从嵌套的data字段中获取user_profiles
+        ai_data = result.get("data", {})
+        
+        if not ai_data or "user_profiles" not in ai_data:
             logger.warning(f"AI解析结果缺少user_profiles。识别文本: {recognized_text}")
+            logger.warning(f"AI返回结果: {result}")
             return ParseVoiceTextResponse(
                 success=False,
                 message="无法从语音中提取有效信息",
                 data={"recognized_text": recognized_text}
             )
         
-        user_profiles = result.get("user_profiles", [])
+        user_profiles = ai_data.get("user_profiles", [])
         
         if not user_profiles:
             logger.warning(f"AI解析结果为空。识别文本: {recognized_text}")
