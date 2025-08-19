@@ -782,18 +782,38 @@ Page({
         throw new Error('未能识别出有效信息');
       }
       
+      // 字段映射：后端返回的location映射到前端的address
+      const mappedData = {};
+      Object.keys(parsedData).forEach(key => {
+        if (key === 'location') {
+          mappedData['address'] = parsedData[key];
+        } else {
+          mappedData[key] = parsedData[key];
+        }
+      });
+      
+      // 过滤掉"未知"值，避免覆盖空字段
+      const filteredData = {};
+      Object.keys(mappedData).forEach(key => {
+        if (mappedData[key] && mappedData[key] !== '未知' && mappedData[key] !== '') {
+          filteredData[key] = mappedData[key];
+        }
+      });
+      
+      console.log('解析后的数据:', filteredData);
+      
       // 如果是编辑模式，合并数据
       if (this.data.mode === 'edit') {
         const mergedData = { ...this.data.formData };
         
         // 只更新非空字段
-        Object.keys(parsedData).forEach(key => {
-          if (parsedData[key] && parsedData[key] !== '') {
+        Object.keys(filteredData).forEach(key => {
+          if (filteredData[key]) {
             // 如果是备注字段，追加内容
             if (key === 'notes' && mergedData.notes) {
-              mergedData[key] = mergedData.notes + '\n' + parsedData[key];
+              mergedData[key] = mergedData.notes + '\n' + filteredData[key];
             } else {
-              mergedData[key] = parsedData[key];
+              mergedData[key] = filteredData[key];
             }
           }
         });
@@ -808,16 +828,22 @@ Page({
           icon: 'success'
         });
       } else {
-        // 新增模式，直接替换
-        const newFormData = {
-          ...this.data.formData,
-          ...parsedData
-        };
+        // 新增模式，只更新有值的字段
+        const newFormData = { ...this.data.formData };
+        
+        // 只填充有效字段，不覆盖现有值
+        Object.keys(filteredData).forEach(key => {
+          if (filteredData[key]) {
+            newFormData[key] = filteredData[key];
+          }
+        });
         
         // 保留原有的标签
         if (this.data.formData.tags && this.data.formData.tags.length > 0) {
           newFormData.tags = this.data.formData.tags;
         }
+        
+        console.log('更新后的表单数据:', newFormData);
         
         this.setData({
           formData: newFormData,
@@ -1007,18 +1033,38 @@ Page({
    * 处理解析结果
    */
   handleParseResult(parsedData) {
+    // 字段映射：后端返回的location映射到前端的address
+    const mappedData = {};
+    Object.keys(parsedData).forEach(key => {
+      if (key === 'location') {
+        mappedData['address'] = parsedData[key];
+      } else if (key !== 'recognized_text') { // 排除recognized_text字段
+        mappedData[key] = parsedData[key];
+      }
+    });
+    
+    // 过滤掉"未知"值，避免覆盖空字段
+    const filteredData = {};
+    Object.keys(mappedData).forEach(key => {
+      if (mappedData[key] && mappedData[key] !== '未知' && mappedData[key] !== '') {
+        filteredData[key] = mappedData[key];
+      }
+    });
+    
+    console.log('音频解析后的数据:', filteredData);
+    
     // 如果是编辑模式，合并数据
     if (this.data.mode === 'edit') {
       const mergedData = { ...this.data.formData };
       
       // 只更新非空字段
-      Object.keys(parsedData).forEach(key => {
-        if (parsedData[key] && parsedData[key] !== '' && key !== 'recognized_text') {
+      Object.keys(filteredData).forEach(key => {
+        if (filteredData[key]) {
           // 如果是备注字段，追加内容
           if (key === 'notes' && mergedData.notes) {
-            mergedData[key] = mergedData.notes + '\n' + parsedData[key];
+            mergedData[key] = mergedData.notes + '\n' + filteredData[key];
           } else {
-            mergedData[key] = parsedData[key];
+            mergedData[key] = filteredData[key];
           }
         }
       });
@@ -1032,15 +1078,13 @@ Page({
         icon: 'success'
       });
     } else {
-      // 新增模式，直接替换
-      const newFormData = {
-        ...this.data.formData
-      };
+      // 新增模式，只更新有值的字段
+      const newFormData = { ...this.data.formData };
       
-      // 填充解析的数据（排除recognized_text）
-      Object.keys(parsedData).forEach(key => {
-        if (key !== 'recognized_text' && parsedData[key]) {
-          newFormData[key] = parsedData[key];
+      // 只填充有效字段，不覆盖现有值
+      Object.keys(filteredData).forEach(key => {
+        if (filteredData[key]) {
+          newFormData[key] = filteredData[key];
         }
       });
       
@@ -1048,6 +1092,8 @@ Page({
       if (this.data.formData.tags && this.data.formData.tags.length > 0) {
         newFormData.tags = this.data.formData.tags;
       }
+      
+      console.log('音频解析更新后的表单数据:', newFormData);
       
       this.setData({
         formData: newFormData
