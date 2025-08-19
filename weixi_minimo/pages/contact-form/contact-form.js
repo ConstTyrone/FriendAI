@@ -3,9 +3,8 @@ import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, 
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 
-// 引入语音识别插件
-const WechatSI = requirePlugin('WechatSI');
-const recordManager = WechatSI.getRecordRecognitionManager();
+// 使用小程序原生录音管理器
+const recordManager = wx.getRecorderManager();
 
 Page({
   data: {
@@ -604,43 +603,41 @@ Page({
    * 初始化语音识别
    */
   initVoiceRecognition() {
-    // 识别结束事件
+    // 录音结束事件
     recordManager.onStop = async (res) => {
       console.log('录音停止', res);
       
-      if (res.result) {
-        // 显示识别结果
-        wx.showToast({
-          title: '识别成功，正在解析...',
-          icon: 'loading',
-          duration: 10000
+      this.setData({
+        isRecording: false
+      });
+      
+      // 检查录音文件
+      if (res.tempFilePath) {
+        wx.showLoading({
+          title: '正在识别...',
+          mask: true
         });
         
         this.setData({
-          isRecording: false,
           isParsing: true
         });
         
-        // 调用后端API解析文本
-        await this.parseVoiceText(res.result);
+        // 上传音频文件到后端进行识别
+        await this.uploadAndParseAudio(res.tempFilePath);
       } else {
         wx.showToast({
-          title: '未识别到内容',
+          title: '录音失败',
           icon: 'none'
-        });
-        
-        this.setData({
-          isRecording: false
         });
       }
     };
     
-    // 识别错误事件
+    // 录音错误事件
     recordManager.onError = (res) => {
-      console.error('语音识别错误', res);
+      console.error('录音错误', res);
       
       wx.showToast({
-        title: res.msg || '识别失败',
+        title: '录音失败',
         icon: 'none'
       });
       
@@ -699,10 +696,13 @@ Page({
               isRecording: true
             });
             
-            // 开始录音识别
+            // 开始录音
             recordManager.start({
-              lang: 'zh_CN',
-              duration: 60000 // 最长录音时间60秒
+              duration: 60000, // 最长录音时间60秒
+              sampleRate: 16000, // 采样率
+              numberOfChannels: 1, // 单声道
+              encodeBitRate: 96000, // 编码码率
+              format: 'mp3' // 音频格式
             });
           }
         });
@@ -811,5 +811,172 @@ Page({
         duration: 2000
       });
     }
+  },
+
+  /**
+   * 上传音频并解析
+   */
+  async uploadAndParseAudio(tempFilePath) {
+    try {
+      console.log('准备上传音频文件:', tempFilePath);
+      
+      // 获取token
+      const token = authManager.getToken();
+      if (!token) {
+        throw new Error('未登录，请先登录');
+      }
+      
+      // 上传音频文件到后端
+      wx.uploadFile({
+        url: `${dataManager.apiClient.baseURL}/api/profiles/parse-voice-audio`,
+        filePath: tempFilePath,
+        name: 'audio_file',
+        formData: {
+          'merge_mode': this.data.mode === 'edit' ? 'true' : 'false'
+        },
+        header: {
+          'Authorization': `Bearer ${token}`
+        },
+        success: (res) => {
+          wx.hideLoading();
+          console.log('上传成功:', res);
+          
+          if (res.statusCode === 200) {
+            const result = JSON.parse(res.data);
+            
+            if (result.success && result.data) {
+              // 处理解析结果
+              this.handleParseResult(result.data);
+              
+              // 如果返回了识别的原始文本，显示给用户
+              if (result.data.recognized_text) {
+                wx.showModal({
+                  title: '识别成功',
+                  content: `识别内容：${result.data.recognized_text}`,
+                  showCancel: false
+                });
+              }
+            } else {
+              throw new Error(result.message || '解析失败');
+            }
+          } else {
+            throw new Error('上传失败');
+          }
+        },
+        fail: (error) => {
+          wx.hideLoading();
+          console.error('上传失败:', error);
+          
+          // 提示用户手动输入
+          this.showManualInputDialog();
+        },
+        complete: () => {
+          this.setData({
+            isParsing: false
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error('上传音频失败:', error);
+      wx.hideLoading();
+      
+      this.setData({
+        isParsing: false
+      });
+      
+      wx.showToast({
+        title: error.message || '上传失败',
+        icon: 'none'
+      });
+      
+      // 提示用户手动输入
+      this.showManualInputDialog();
+    }
+  },
+
+  /**
+   * 处理解析结果
+   */
+  handleParseResult(parsedData) {
+    // 如果是编辑模式，合并数据
+    if (this.data.mode === 'edit') {
+      const mergedData = { ...this.data.formData };
+      
+      // 只更新非空字段
+      Object.keys(parsedData).forEach(key => {
+        if (parsedData[key] && parsedData[key] !== '' && key !== 'recognized_text') {
+          // 如果是备注字段，追加内容
+          if (key === 'notes' && mergedData.notes) {
+            mergedData[key] = mergedData.notes + '\n' + parsedData[key];
+          } else {
+            mergedData[key] = parsedData[key];
+          }
+        }
+      });
+      
+      this.setData({
+        formData: mergedData
+      });
+      
+      wx.showToast({
+        title: '信息已更新',
+        icon: 'success'
+      });
+    } else {
+      // 新增模式，直接替换
+      const newFormData = {
+        ...this.data.formData
+      };
+      
+      // 填充解析的数据（排除recognized_text）
+      Object.keys(parsedData).forEach(key => {
+        if (key !== 'recognized_text' && parsedData[key]) {
+          newFormData[key] = parsedData[key];
+        }
+      });
+      
+      // 保留原有的标签
+      if (this.data.formData.tags && this.data.formData.tags.length > 0) {
+        newFormData.tags = this.data.formData.tags;
+      }
+      
+      this.setData({
+        formData: newFormData
+      });
+      
+      wx.showToast({
+        title: '信息已填充',
+        icon: 'success'
+      });
+    }
+  },
+
+  /**
+   * 显示手动输入对话框
+   */
+  showManualInputDialog() {
+    wx.showModal({
+      title: '智能填写',
+      content: '语音识别暂不可用，请直接输入联系人信息',
+      editable: true,
+      placeholderText: '例如：张三，男，35岁，在腾讯工作...',
+      confirmText: '智能解析',
+      success: async (res) => {
+        if (res.confirm && res.content) {
+          wx.showLoading({
+            title: '正在解析...',
+            mask: true
+          });
+          
+          this.setData({
+            isParsing: true
+          });
+          
+          // 调用文本解析API
+          await this.parseVoiceText(res.content);
+        }
+      }
+    });
   }
 });

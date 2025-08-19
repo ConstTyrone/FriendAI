@@ -1,10 +1,12 @@
 # main.py
-from fastapi import FastAPI, Request, HTTPException, Depends, status
+from fastapi import FastAPI, Request, HTTPException, Depends, status, UploadFile, File
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
+import tempfile
+import os
 import xml.etree.ElementTree as ET
 import logging
 import sys
@@ -15,6 +17,7 @@ from datetime import datetime
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
 from ..services.ai_service import AIService
+from ..services.media_processor import MediaProcessor
 
 
 # 配置日志
@@ -856,6 +859,116 @@ async def parse_voice_text(
             success=False,
             message=f"解析失败: {str(e)}"
         )
+
+@app.post("/api/profiles/parse-voice-audio")
+async def parse_voice_audio(
+    audio_file: UploadFile = File(...),
+    merge_mode: bool = False,
+    current_user: str = Depends(verify_user_token)
+):
+    """接收音频文件，进行ASR识别后解析用户画像"""
+    temp_file_path = None
+    try:
+        # 保存上传的音频文件到临时目录
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmp_file:
+            temp_file_path = tmp_file.name
+            content = await audio_file.read()
+            tmp_file.write(content)
+            tmp_file.flush()
+            
+        logger.info(f"音频文件已保存到: {temp_file_path}")
+        
+        # 初始化媒体处理器
+        media_processor = MediaProcessor()
+        
+        # 使用ASR进行语音识别
+        logger.info("开始语音识别...")
+        recognized_text = None
+        
+        # 尝试使用阿里云ASR
+        from ..services.media_processor import AliyunASRProcessor
+        asr_processor = AliyunASRProcessor()
+        recognized_text = asr_processor.recognize_speech(temp_file_path)
+        
+        if not recognized_text:
+            logger.warning("ASR识别失败，尝试使用备用方案")
+            # 如果ASR失败，可以返回错误或使用其他备用方案
+            return ParseVoiceTextResponse(
+                success=False,
+                message="语音识别失败，请重试或使用文字输入"
+            )
+        
+        logger.info(f"语音识别结果: {recognized_text}")
+        
+        # 使用AI服务解析识别出的文本
+        ai_service = AIService()
+        result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
+        
+        if not result or "user_profiles" not in result:
+            return ParseVoiceTextResponse(
+                success=False,
+                message="无法从语音中提取有效信息"
+            )
+        
+        user_profiles = result.get("user_profiles", [])
+        
+        if not user_profiles:
+            return ParseVoiceTextResponse(
+                success=False,
+                message="未能识别出联系人信息"
+            )
+        
+        # 取第一个识别到的用户画像
+        profile = user_profiles[0]
+        
+        # 转换字段名以匹配前端表单
+        parsed_data = {
+            "name": profile.get("name", "") if profile.get("name") != "未知" else "",
+            "gender": profile.get("gender", "") if profile.get("gender") != "未知" else "",
+            "age": profile.get("age", "") if profile.get("age") != "未知" else "",
+            "phone": profile.get("phone", "") if profile.get("phone") != "未知" else "",
+            "wechat_id": "",
+            "email": "",
+            "location": profile.get("location", "") if profile.get("location") != "未知" else "",
+            "address": profile.get("location", "") if profile.get("location") != "未知" else "",
+            "marital_status": profile.get("marital_status", "") if profile.get("marital_status") != "未知" else "",
+            "education": profile.get("education", "") if profile.get("education") != "未知" else "",
+            "company": profile.get("company", "") if profile.get("company") != "未知" else "",
+            "position": profile.get("position", "") if profile.get("position") != "未知" else "",
+            "asset_level": profile.get("asset_level", "") if profile.get("asset_level") != "未知" else "",
+            "personality": profile.get("personality", "") if profile.get("personality") != "未知" else "",
+            "notes": result.get("summary", ""),
+            "recognized_text": recognized_text  # 返回识别的原始文本供参考
+        }
+        
+        # 如果是合并模式，只返回非空字段
+        if merge_mode:
+            parsed_data = {k: v for k, v in parsed_data.items() if v and v != ""}
+        
+        return ParseVoiceTextResponse(
+            success=True,
+            data=parsed_data,
+            message="语音解析成功"
+        )
+        
+    except Exception as e:
+        logger.error(f"解析语音文件失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        return ParseVoiceTextResponse(
+            success=False,
+            message=f"解析失败: {str(e)}"
+        )
+    
+    finally:
+        # 清理临时文件
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+                logger.info(f"临时文件已删除: {temp_file_path}")
+            except Exception as e:
+                logger.warning(f"删除临时文件失败: {e}")
 
 class CreateProfileRequest(BaseModel):
     """创建联系人请求模型"""
