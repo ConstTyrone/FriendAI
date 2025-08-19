@@ -606,6 +606,9 @@ Page({
     // 录音结束事件
     recordManager.onStop = async (res) => {
       console.log('录音停止', res);
+      console.log('录音文件路径:', res.tempFilePath);
+      console.log('录音时长:', res.duration);
+      console.log('文件大小:', res.fileSize);
       
       this.setData({
         isRecording: false
@@ -613,6 +616,15 @@ Page({
       
       // 检查录音文件
       if (res.tempFilePath) {
+        // 检查是否在开发者工具中
+        const systemInfo = wx.getSystemInfoSync();
+        if (systemInfo.platform === 'devtools') {
+          console.warn('开发者工具录音格式不兼容，使用手动输入');
+          // 在开发者工具中直接使用手动输入
+          this.showManualInputDialog();
+          return;
+        }
+        
         wx.showLoading({
           title: '正在识别...',
           mask: true
@@ -826,9 +838,17 @@ Page({
         throw new Error('未登录，请先登录');
       }
       
+      // 获取正确的API地址
+      const baseURL = dataManager.apiClient.baseURL || 'https://weixin.dataelem.com';
+      const uploadUrl = `${baseURL}/api/profiles/parse-voice-audio`;
+      
+      console.log('上传URL:', uploadUrl);
+      console.log('Token:', token ? '已获取' : '未获取');
+      console.log('文件路径:', tempFilePath);
+      
       // 上传音频文件到后端
-      wx.uploadFile({
-        url: `${dataManager.apiClient.baseURL}/api/profiles/parse-voice-audio`,
+      const uploadTask = wx.uploadFile({
+        url: uploadUrl,
         filePath: tempFilePath,
         name: 'audio_file',
         formData: {
@@ -839,7 +859,9 @@ Page({
         },
         success: (res) => {
           wx.hideLoading();
-          console.log('上传成功:', res);
+          console.log('上传响应:', res);
+          console.log('响应状态码:', res.statusCode);
+          console.log('响应数据:', res.data);
           
           if (res.statusCode === 200) {
             const result = JSON.parse(res.data);
@@ -866,15 +888,24 @@ Page({
         fail: (error) => {
           wx.hideLoading();
           console.error('上传失败:', error);
+          console.error('错误详情:', JSON.stringify(error));
           
           // 提示用户手动输入
           this.showManualInputDialog();
         },
         complete: () => {
+          console.log('上传请求完成');
           this.setData({
             isParsing: false
           });
         }
+      });
+      
+      // 监听上传进度
+      uploadTask.onProgressUpdate((res) => {
+        console.log('上传进度:', res.progress + '%');
+        console.log('已上传:', res.totalBytesSent);
+        console.log('总大小:', res.totalBytesExpectedToSend);
       });
       
     } catch (error) {
