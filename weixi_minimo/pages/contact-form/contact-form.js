@@ -1206,31 +1206,42 @@ Page({
       intermediateProgress: intermediateResults.map(() => ({ active: false }))
     });
     
-    // 逐个展示中间结果
+    // 模拟实时ASR效果：渐进式展示
     let currentIndex = 0;
     const showNextResult = () => {
       if (currentIndex < intermediateResults.length) {
         const result = intermediateResults[currentIndex];
+        const previousResult = currentIndex > 0 ? intermediateResults[currentIndex - 1] : '';
         
         // 更新进度点
         const progress = this.data.intermediateProgress;
         if (currentIndex > 0) {
           progress[currentIndex - 1].active = true;
         }
-        
-        // 模拟打字效果
-        this.typewriterEffect(result, () => {
-          currentIndex++;
-          // 延迟300ms后显示下一个结果
-          setTimeout(showNextResult, 300);
-        });
-        
         this.setData({
           intermediateProgress: progress
         });
+        
+        // 判断是渐进式更新还是替换
+        if (result.startsWith(previousResult) && previousResult !== '') {
+          // 渐进式：只显示新增的部分
+          const newPart = result.substring(previousResult.length);
+          this.incrementalTypewriter(previousResult, newPart, () => {
+            currentIndex++;
+            // 模拟实时延迟：根据内容长度动态调整
+            const delay = Math.min(100 + Math.random() * 200, 400);
+            setTimeout(showNextResult, delay);
+          });
+        } else {
+          // 替换式：快速切换到新结果
+          this.quickTransition(result, () => {
+            currentIndex++;
+            const delay = Math.min(150 + Math.random() * 150, 350);
+            setTimeout(showNextResult, delay);
+          });
+        }
       } else {
         // 所有结果展示完成
-        // 激活最后一个进度点
         const progress = this.data.intermediateProgress;
         if (progress.length > 0) {
           progress[progress.length - 1].active = true;
@@ -1241,7 +1252,7 @@ Page({
           intermediateProgress: progress
         });
         
-        // 延迟1秒后关闭展示区域并执行回调
+        // 延迟800ms后关闭展示区域
         setTimeout(() => {
           this.setData({
             showRecognitionDisplay: false,
@@ -1251,35 +1262,56 @@ Page({
           if (callback) {
             callback();
           }
-        }, 1000);
+        }, 800);
       }
     };
     
-    // 开始展示
-    setTimeout(showNextResult, 500);
+    // 开始展示，初始延迟短一些
+    setTimeout(showNextResult, 200);
   },
   
   /**
-   * 打字机效果
-   * @param {string} text - 要显示的文本
+   * 增量式打字机效果（只打新增部分）
+   * @param {string} base - 基础文本
+   * @param {string} addition - 新增文本
    * @param {Function} callback - 完成后的回调
    */
-  typewriterEffect(text, callback) {
+  incrementalTypewriter(base, addition, callback) {
+    let charIndex = 0;
+    const typeInterval = setInterval(() => {
+      if (charIndex <= addition.length) {
+        this.setData({
+          currentRecognitionText: base + addition.substring(0, charIndex)
+        });
+        charIndex++;
+      } else {
+        clearInterval(typeInterval);
+        if (callback) callback();
+      }
+    }, 30); // 更快的打字速度，模拟实时
+  },
+  
+  /**
+   * 快速过渡效果（用于替换）
+   * @param {string} text - 新文本
+   * @param {Function} callback - 完成后的回调
+   */
+  quickTransition(text, callback) {
+    // 直接设置文本，或者用很快的速度显示
     let charIndex = 0;
     const typeInterval = setInterval(() => {
       if (charIndex <= text.length) {
         this.setData({
           currentRecognitionText: text.substring(0, charIndex)
         });
-        charIndex++;
+        charIndex += 2; // 每次显示2个字符，更快
       } else {
         clearInterval(typeInterval);
-        if (callback) {
-          callback();
-        }
+        if (callback) callback();
       }
-    }, 50); // 每50ms显示一个字符
+    }, 20); // 很快的速度
   },
+  
   
   /**
    * 关闭识别展示区域

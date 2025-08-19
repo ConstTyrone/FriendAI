@@ -1,13 +1,5 @@
 <!--联系人表单页面-->
 <view class="form-page">
-  <!-- 语音输入浮动按钮 -->
-  <view 
-    class="voice-float-btn {{isRecording ? 'recording' : ''}}"
-    bindtap="onVoiceInput"
-  >
-    <text class="voice-icon">🎤</text>
-    <text class="voice-tooltip">{{isRecording ? '正在录音...' : '语音填写'}}</text>
-  </view>
   <!-- 加载状态 -->
   <view class="loading-state" wx:if="{{loading}}">
     <view class="loading-spinner"></view>
