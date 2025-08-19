@@ -604,15 +604,25 @@ Page({
    */
   initVoiceRecognition() {
     // 录音结束事件
-    recordManager.onStop = async (res) => {
-      console.log('录音停止', res);
+    recordManager.onStop((res) => {
+      console.log('录音停止事件触发', res);
       console.log('录音文件路径:', res.tempFilePath);
-      console.log('录音时长:', res.duration);
-      console.log('文件大小:', res.fileSize);
+      console.log('录音时长(ms):', res.duration);
+      console.log('文件大小(bytes):', res.fileSize);
       
       this.setData({
         isRecording: false
       });
+      
+      // 检查录音时长
+      if (res.duration < 500) {
+        wx.showToast({
+          title: '录音时间太短',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
       
       // 检查录音文件
       if (res.tempFilePath) {
@@ -626,7 +636,7 @@ Page({
         }
         
         wx.showLoading({
-          title: '正在识别...',
+          title: '正在识别语音...',
           mask: true
         });
         
@@ -635,14 +645,15 @@ Page({
         });
         
         // 上传音频文件到后端进行识别
-        await this.uploadAndParseAudio(res.tempFilePath);
+        this.uploadAndParseAudio(res.tempFilePath);
       } else {
         wx.showToast({
-          title: '录音失败',
-          icon: 'none'
+          title: '录音失败，请重试',
+          icon: 'none',
+          duration: 2000
         });
       }
-    };
+    });
     
     // 录音错误事件
     recordManager.onError = (res) => {
@@ -738,8 +749,16 @@ Page({
    * 停止语音输入
    */
   stopVoiceInput() {
-    console.log('停止语音输入');
+    console.log('停止语音输入...');
     wx.hideToast();
+    
+    // 显示停止录音的反馈
+    wx.showToast({
+      title: '停止录音',
+      icon: 'none',
+      duration: 1000
+    });
+    
     recordManager.stop();
   },
 
@@ -832,6 +851,18 @@ Page({
     try {
       console.log('准备上传音频文件:', tempFilePath);
       
+      // 检查文件是否存在
+      wx.getFileInfo({
+        filePath: tempFilePath,
+        success: (fileInfo) => {
+          console.log('文件信息:', fileInfo);
+          console.log('文件大小:', fileInfo.size, 'bytes');
+        },
+        fail: (err) => {
+          console.error('获取文件信息失败:', err);
+        }
+      });
+      
       // 获取token
       const token = authManager.getToken();
       if (!token) {
@@ -845,44 +876,80 @@ Page({
       console.log('上传URL:', uploadUrl);
       console.log('Token:', token ? '已获取' : '未获取');
       console.log('文件路径:', tempFilePath);
+      console.log('是否编辑模式:', this.data.mode === 'edit');
       
       // 上传音频文件到后端
       const uploadTask = wx.uploadFile({
         url: uploadUrl,
         filePath: tempFilePath,
-        name: 'audio_file',
+        name: 'audio_file',  // 确保这个名字与后端接收的参数名一致
         formData: {
           'merge_mode': this.data.mode === 'edit' ? 'true' : 'false'
         },
         header: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          // 不需要设置Content-Type，wx.uploadFile会自动设置为multipart/form-data
         },
+        timeout: 60000,  // 60秒超时
         success: (res) => {
           wx.hideLoading();
           console.log('上传响应:', res);
           console.log('响应状态码:', res.statusCode);
           console.log('响应数据:', res.data);
           
-          if (res.statusCode === 200) {
-            const result = JSON.parse(res.data);
-            
-            if (result.success && result.data) {
-              // 处理解析结果
-              this.handleParseResult(result.data);
+          try {
+            if (res.statusCode === 200) {
+              const result = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
               
-              // 如果返回了识别的原始文本，显示给用户
-              if (result.data.recognized_text) {
-                wx.showModal({
-                  title: '识别成功',
-                  content: `识别内容：${result.data.recognized_text}`,
-                  showCancel: false
-                });
+              if (result.success && result.data) {
+                // 处理解析结果
+                this.handleParseResult(result.data);
+                
+                // 如果返回了识别的原始文本，显示给用户
+                if (result.data.recognized_text) {
+                  wx.showModal({
+                    title: '识别成功',
+                    content: `识别内容：${result.data.recognized_text}`,
+                    showCancel: false
+                  });
+                } else {
+                  wx.showToast({
+                    title: '信息已更新',
+                    icon: 'success',
+                    duration: 2000
+                  });
+                }
+              } else {
+                throw new Error(result.message || '解析失败');
               }
+            } else if (res.statusCode === 401) {
+              wx.showToast({
+                title: '请先登录',
+                icon: 'none',
+                duration: 2000
+              });
+              // 可以跳转到登录页面
             } else {
-              throw new Error(result.message || '解析失败');
+              let errorMsg = '上传失败';
+              try {
+                const errorData = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+                errorMsg = errorData.detail || errorData.message || errorMsg;
+              } catch (e) {
+                // 忽略解析错误
+              }
+              throw new Error(errorMsg);
             }
-          } else {
-            throw new Error('上传失败');
+          } catch (parseError) {
+            console.error('处理响应时出错:', parseError);
+            wx.showToast({
+              title: parseError.message || '处理失败',
+              icon: 'none',
+              duration: 2000
+            });
+            // 提供手动输入选项
+            setTimeout(() => {
+              this.showManualInputDialog();
+            }, 2000);
           }
         },
         fail: (error) => {
@@ -890,8 +957,17 @@ Page({
           console.error('上传失败:', error);
           console.error('错误详情:', JSON.stringify(error));
           
-          // 提示用户手动输入
-          this.showManualInputDialog();
+          // 显示错误信息
+          wx.showToast({
+            title: '网络错误，请重试',
+            icon: 'none',
+            duration: 2000
+          });
+          
+          // 延迟后提示用户手动输入
+          setTimeout(() => {
+            this.showManualInputDialog();
+          }, 2000);
         },
         complete: () => {
           console.log('上传请求完成');

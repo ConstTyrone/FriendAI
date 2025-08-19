@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI, Request, HTTPException, Depends, status, UploadFile, File
+from fastapi import FastAPI, Request, HTTPException, Depends, status, UploadFile, File, Form
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -863,10 +863,17 @@ async def parse_voice_text(
 @app.post("/api/profiles/parse-voice-audio")
 async def parse_voice_audio(
     audio_file: UploadFile = File(...),
-    merge_mode: bool = False,
+    merge_mode: str = Form("false"),  # 接收字符串形式的布尔值
     current_user: str = Depends(verify_user_token)
 ):
     """接收音频文件，进行ASR识别后解析用户画像"""
+    logger.info(f"收到语音上传请求，用户: {current_user}")
+    logger.info(f"音频文件名: {audio_file.filename}, 大小: {audio_file.size if hasattr(audio_file, 'size') else '未知'}")
+    logger.info(f"合并模式: {merge_mode}")
+    
+    # 将字符串转换为布尔值
+    merge_mode = merge_mode.lower() == "true"
+    
     temp_file_path = None
     try:
         # 保存上传的音频文件到临时目录
@@ -885,13 +892,18 @@ async def parse_voice_audio(
         logger.info("开始语音识别...")
         recognized_text = None
         
-        # 尝试使用阿里云ASR
-        from ..services.media_processor import AliyunASRProcessor
-        asr_processor = AliyunASRProcessor()
-        recognized_text = asr_processor.recognize_speech(temp_file_path)
+        try:
+            # 尝试使用阿里云ASR
+            from ..services.media_processor import AliyunASRProcessor
+            asr_processor = AliyunASRProcessor()
+            recognized_text = asr_processor.recognize_speech(temp_file_path)
+            logger.info(f"ASR识别成功: {recognized_text[:100] if recognized_text else '无内容'}...")
+        except Exception as asr_error:
+            logger.error(f"ASR识别出错: {str(asr_error)}")
+            recognized_text = None
         
         if not recognized_text:
-            logger.warning("ASR识别失败，尝试使用备用方案")
+            logger.warning("ASR识别失败，返回错误提示")
             # 如果ASR失败，可以返回错误或使用其他备用方案
             return ParseVoiceTextResponse(
                 success=False,
@@ -944,6 +956,9 @@ async def parse_voice_audio(
         # 如果是合并模式，只返回非空字段
         if merge_mode:
             parsed_data = {k: v for k, v in parsed_data.items() if v and v != ""}
+        
+        # 添加识别的原始文本到返回数据中
+        parsed_data['recognized_text'] = recognized_text
         
         return ParseVoiceTextResponse(
             success=True,

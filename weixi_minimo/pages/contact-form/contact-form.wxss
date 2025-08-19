@@ -581,16 +581,19 @@
 
 .voice-float-btn.recording {
   background: #FF3B30;
-  animation: pulse 1.5s infinite;
+  animation: recordingPulse 1.5s infinite;
+  transform: scale(1.1);
 }
 
 .voice-float-btn .voice-icon {
   font-size: 48rpx;
   filter: brightness(0) invert(1);
+  transition: all 0.3s ease;
 }
 
 .voice-float-btn.recording .voice-icon {
   filter: brightness(2);
+  animation: iconShake 0.3s infinite;
 }
 
 .voice-float-btn .voice-tooltip {
@@ -608,9 +611,46 @@
 .voice-float-btn.recording .voice-tooltip {
   color: #FF3B30;
   font-weight: 500;
+  animation: fadeInOut 1s infinite;
 }
 
-/* 脉冲动画 */
+/* 录音状态的脉冲动画 */
+@keyframes recordingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 20rpx rgba(255, 59, 48, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
+}
+
+/* 图标抖动动画 */
+@keyframes iconShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2rpx);
+  }
+  75% {
+    transform: translateX(2rpx);
+  }
+}
+
+/* 文字闪烁动画 */
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 普通脉冲动画 - 用于其他地方 */
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7);
