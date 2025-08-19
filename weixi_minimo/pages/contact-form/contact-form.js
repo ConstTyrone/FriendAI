@@ -929,22 +929,20 @@ Page({
               const result = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
               
               if (result.success && result.data) {
-                // 处理解析结果
-                this.handleParseResult(result.data);
-                
-                // 如果返回了识别的原始文本，显示给用户
+                // 先显示识别内容
                 if (result.data.recognized_text) {
                   wx.showModal({
                     title: '识别成功',
                     content: `识别内容：${result.data.recognized_text}`,
-                    showCancel: false
+                    showCancel: false,
+                    success: () => {
+                      // 处理解析结果
+                      this.handleParseResult(result.data);
+                    }
                   });
                 } else {
-                  wx.showToast({
-                    title: '信息已更新',
-                    icon: 'success',
-                    duration: 2000
-                  });
+                  // 直接处理解析结果
+                  this.handleParseResult(result.data);
                 }
               } else {
                 throw new Error(result.message || '解析失败');
@@ -1033,13 +1031,27 @@ Page({
    * 处理解析结果
    */
   handleParseResult(parsedData) {
-    // 字段映射：后端返回的location映射到前端的address
+    // 字段映射：后端字段映射到前端表单字段
+    const fieldMapping = {
+      'name': 'name',           // 姓名
+      'gender': 'gender',       // 性别
+      'age': 'age',            // 年龄
+      'phone': 'phone',        // 电话
+      'location': 'address',   // 地址（后端的location映射到前端的address）
+      'marital_status': 'marital_status',  // 婚姻状况
+      'education': 'education',            // 学历
+      'company': 'company',                // 公司
+      'position': 'position',              // 职位
+      'asset_level': 'asset_level',        // 资产水平
+      'personality': 'personality',        // 性格
+      'notes': 'notes'                     // 备注
+    };
+    
     const mappedData = {};
     Object.keys(parsedData).forEach(key => {
-      if (key === 'location') {
-        mappedData['address'] = parsedData[key];
-      } else if (key !== 'recognized_text') { // 排除recognized_text字段
-        mappedData[key] = parsedData[key];
+      if (key !== 'recognized_text' && fieldMapping[key]) { // 排除recognized_text字段
+        const targetField = fieldMapping[key];
+        mappedData[targetField] = parsedData[key];
       }
     });
     
@@ -1093,11 +1105,38 @@ Page({
         newFormData.tags = this.data.formData.tags;
       }
       
+      // 更新选择器索引
+      const updateData = {
+        formData: newFormData
+      };
+      
+      // 更新性别选择器
+      if (newFormData.gender) {
+        const genderIndex = this.data.genderOptions.indexOf(newFormData.gender);
+        if (genderIndex >= 0) {
+          updateData.genderIndex = genderIndex;
+        }
+      }
+      
+      // 更新婚姻状况选择器
+      if (newFormData.marital_status) {
+        const maritalIndex = this.data.maritalOptions.indexOf(newFormData.marital_status);
+        if (maritalIndex >= 0) {
+          updateData.maritalIndex = maritalIndex;
+        }
+      }
+      
+      // 更新资产水平选择器
+      if (newFormData.asset_level) {
+        const assetIndex = this.data.assetOptions.indexOf(newFormData.asset_level);
+        if (assetIndex >= 0) {
+          updateData.assetIndex = assetIndex;
+        }
+      }
+      
       console.log('音频解析更新后的表单数据:', newFormData);
       
-      this.setData({
-        formData: newFormData
-      });
+      this.setData(updateData);
       
       wx.showToast({
         title: '信息已填充',
