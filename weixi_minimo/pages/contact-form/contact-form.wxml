@@ -14,15 +14,24 @@
       
       <view class="form-group">
         <!-- 姓名 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label required">姓名</text>
-          <input
-            class="form-input {{formErrors.name ? 'error' : ''}}"
-            value="{{formData.name}}"
-            placeholder="请输入联系人姓名"
-            bindinput="onFieldChange"
-            data-field="name"
-          />
+          <view class="input-container">
+            <input
+              class="form-input {{formErrors.name ? 'error' : ''}}"
+              value="{{formData.name}}"
+              placeholder="请输入联系人姓名"
+              bindinput="onFieldChange"
+              data-field="name"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'name' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="name"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
         <text class="error-message" wx:if="{{formErrors.name}}">{{formErrors.name}}</text>
         
@@ -111,15 +120,24 @@
         </view>
         
         <!-- 学历 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label">学历</text>
-          <input
-            class="form-input"
-            value="{{formData.education}}"
-            placeholder="请输入学历（如：本科-北京大学）"
-            bindinput="onFieldChange"
-            data-field="education"
-          />
+          <view class="input-container">
+            <input
+              class="form-input"
+              value="{{formData.education}}"
+              placeholder="请输入学历（如：本科-北京大学）"
+              bindinput="onFieldChange"
+              data-field="education"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'education' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="education"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
         
         <!-- 资产水平 -->
@@ -134,15 +152,24 @@
         </view>
         
         <!-- 性格特征 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label">性格特征</text>
-          <input
-            class="form-input"
-            value="{{formData.personality}}"
-            placeholder="请输入性格特征（如：外向开朗）"
-            bindinput="onFieldChange"
-            data-field="personality"
-          />
+          <view class="input-container">
+            <input
+              class="form-input"
+              value="{{formData.personality}}"
+              placeholder="请输入性格特征（如：外向开朗）"
+              bindinput="onFieldChange"
+              data-field="personality"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'personality' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="personality"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -153,27 +180,45 @@
       
       <view class="form-group">
         <!-- 公司 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label">公司</text>
-          <input
-            class="form-input"
-            value="{{formData.company}}"
-            placeholder="请输入所在公司"
-            bindinput="onFieldChange"
-            data-field="company"
-          />
+          <view class="input-container">
+            <input
+              class="form-input"
+              value="{{formData.company}}"
+              placeholder="请输入所在公司"
+              bindinput="onFieldChange"
+              data-field="company"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'company' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="company"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
         
         <!-- 职位 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label">职位</text>
-          <input
-            class="form-input"
-            value="{{formData.position}}"
-            placeholder="请输入职位"
-            bindinput="onFieldChange"
-            data-field="position"
-          />
+          <view class="input-container">
+            <input
+              class="form-input"
+              value="{{formData.position}}"
+              placeholder="请输入职位"
+              bindinput="onFieldChange"
+              data-field="position"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'position' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="position"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -184,15 +229,24 @@
       
       <view class="form-group">
         <!-- 地址 -->
-        <view class="form-item">
+        <view class="form-item with-voice">
           <text class="form-label">地址</text>
-          <input
-            class="form-input"
-            value="{{formData.address}}"
-            placeholder="请输入地址"
-            bindinput="onFieldChange"
-            data-field="address"
-          />
+          <view class="input-container">
+            <input
+              class="form-input"
+              value="{{formData.address}}"
+              placeholder="请输入地址"
+              bindinput="onFieldChange"
+              data-field="address"
+            />
+            <view 
+              class="voice-btn {{recordingField === 'address' ? 'recording' : ''}}"
+              bindtap="onVoiceInput"
+              data-field="address"
+            >
+              <text class="voice-icon">🎤</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -250,7 +304,17 @@
 
     <!-- 备注信息 -->
     <view class="form-section">
-      <text class="section-title">备注</text>
+      <view class="section-header">
+        <text class="section-title">备注</text>
+        <view 
+          class="voice-btn-large {{recordingField === 'notes' ? 'recording' : ''}}"
+          bindtap="onVoiceInput"
+          data-field="notes"
+        >
+          <text class="voice-icon">🎤</text>
+          <text class="voice-text">{{recordingField === 'notes' ? '录音中...' : '语音输入'}}</text>
+        </view>
+      </view>
       
       <view class="textarea-container">
         <textarea

@@ -3,6 +3,10 @@ import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, 
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 
+// 引入语音识别插件
+const WechatSI = requirePlugin('WechatSI');
+const recordManager = WechatSI.getRecordRecognitionManager();
+
 Page({
   data: {
     // 表单模式：'add' 新增，'edit' 编辑
@@ -53,7 +57,11 @@ Page({
     maritalOptions: ['未婚', '已婚已育', '已婚未育', '离异', '未知'],
     maritalIndex: -1,
     assetOptions: ['高', '中', '低', '未知'],
-    assetIndex: -1
+    assetIndex: -1,
+    
+    // 语音输入相关
+    recordingField: '', // 当前正在录音的字段
+    isRecording: false // 是否正在录音
   },
 
   onLoad(options) {
@@ -72,6 +80,9 @@ Page({
     wx.setNavigationBarTitle({
       title: mode === 'edit' ? '编辑联系人' : '新增联系人'
     });
+    
+    // 初始化语音识别事件监听
+    this.initVoiceRecognition();
     
     // 初始化页面数据
     this.initPageData();
@@ -587,5 +598,147 @@ Page({
    */
   onStopPropagation() {
     // 阻止事件冒泡
+  },
+
+  /**
+   * 初始化语音识别
+   */
+  initVoiceRecognition() {
+    // 识别结束事件
+    recordManager.onStop = (res) => {
+      console.log('录音停止', res);
+      
+      if (res.result) {
+        // 将识别结果填充到对应的字段
+        const field = this.data.recordingField;
+        if (field) {
+          // 如果是备注字段，追加内容；其他字段直接替换
+          if (field === 'notes') {
+            const currentValue = this.data.formData[field] || '';
+            const newValue = currentValue ? currentValue + '\n' + res.result : res.result;
+            this.setData({
+              [`formData.${field}`]: newValue,
+              recordingField: '',
+              isRecording: false
+            });
+          } else {
+            this.setData({
+              [`formData.${field}`]: res.result,
+              recordingField: '',
+              isRecording: false
+            });
+          }
+          
+          wx.showToast({
+            title: '识别成功',
+            icon: 'success'
+          });
+        }
+      } else {
+        wx.showToast({
+          title: '未识别到内容',
+          icon: 'none'
+        });
+        
+        this.setData({
+          recordingField: '',
+          isRecording: false
+        });
+      }
+    };
+    
+    // 识别错误事件
+    recordManager.onError = (res) => {
+      console.error('语音识别错误', res);
+      
+      wx.showToast({
+        title: res.msg || '识别失败',
+        icon: 'none'
+      });
+      
+      this.setData({
+        recordingField: '',
+        isRecording: false
+      });
+    };
+    
+    // 开始录音事件
+    recordManager.onStart = () => {
+      console.log('开始录音');
+      wx.showToast({
+        title: '请说话...',
+        icon: 'none',
+        duration: 60000 // 持续显示
+      });
+    };
+  },
+
+  /**
+   * 语音输入
+   */
+  onVoiceInput(event) {
+    const { field } = event.currentTarget.dataset;
+    
+    // 如果正在录音
+    if (this.data.isRecording) {
+      // 如果是同一个字段，停止录音
+      if (this.data.recordingField === field) {
+        this.stopVoiceInput();
+      } else {
+        // 切换到新字段
+        this.stopVoiceInput();
+        setTimeout(() => {
+          this.startVoiceInput(field);
+        }, 300);
+      }
+    } else {
+      // 开始录音
+      this.startVoiceInput(field);
+    }
+  },
+
+  /**
+   * 开始语音输入
+   */
+  startVoiceInput(field) {
+    // 请求麦克风权限
+    wx.authorize({
+      scope: 'scope.record',
+      success: () => {
+        console.log('开始语音输入：', field);
+        
+        this.setData({
+          recordingField: field,
+          isRecording: true
+        });
+        
+        // 开始录音识别
+        recordManager.start({
+          lang: 'zh_CN',
+          duration: 60000 // 最长录音时间60秒
+        });
+      },
+      fail: () => {
+        wx.showModal({
+          title: '需要授权',
+          content: '请在设置中授权使用麦克风',
+          confirmText: '去设置',
+          success: (res) => {
+            if (res.confirm) {
+              wx.openSetting();
+            }
+          }
+        });
+      }
+    });
+  },
+
+  /**
+   * 停止语音输入
+   */
+  stopVoiceInput() {
+    console.log('停止语音输入');
+    wx.hideToast();
+    recordManager.stop();
   }
 });
