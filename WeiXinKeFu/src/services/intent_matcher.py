@@ -239,23 +239,24 @@ class IntentMatcher:
                         explanation = await self._generate_explanation(intent, profile, matched_conditions)
                         
                         # 保存匹配记录
-                        match_id = self._save_match_record(
+                        match_id, should_push = self._save_match_record(
                             cursor, intent_id, profile['id'], user_id,
                             score, matched_conditions, explanation, match_type
                         )
                         
-                        match_result = {
-                            'match_id': match_id,
-                            'intent_id': intent_id,
-                            'intent_name': intent.get('name', ''),
-                            'profile_id': profile['id'],
-                            'profile_name': profile.get('profile_name', profile.get('name', '未知')),
-                            'score': score,
-                            'match_type': match_type,
-                            'matched_conditions': matched_conditions,
-                            'explanation': explanation
-                        }
-                        matches.append(match_result)
+                        if match_id and should_push:  # 只有新记录或显著改善时才添加到推送列表
+                            match_result = {
+                                'match_id': match_id,
+                                'intent_id': intent_id,
+                                'intent_name': intent.get('name', ''),
+                                'profile_id': profile['id'],
+                                'profile_name': profile.get('profile_name', profile.get('name', '未知')),
+                                'score': score,
+                                'match_type': match_type,
+                                'matched_conditions': matched_conditions,
+                                'explanation': explanation
+                            }
+                            matches.append(match_result)
                     
                     # 尝试推送通知（暂时禁用，避免异步冲突）
                     # TODO: 修复异步推送服务
@@ -359,24 +360,25 @@ class IntentMatcher:
                             if score >= intent_threshold:
                                 # 保存匹配记录
                                 try:
-                                    match_id = self._save_match_record(
+                                    match_id, should_push = self._save_match_record(
                                         cursor, intent['id'], profile_id, user_id,
                                         score, matched_conditions, explanation, match_type
                                     )
-                                    logger.info(f"💾 匹配记录保存成功: match_id={match_id}")
-                                    
-                                    matches.append({
-                                        'match_id': match_id,
-                                        'intent_id': intent['id'],
-                                        'intent_name': intent['name'],
-                                        'profile_id': profile_id,  # 添加profile_id
-                                        'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
-                                        'score': score,
-                                        'matched_conditions': matched_conditions,
-                                        'explanation': explanation,
-                                        'match_type': match_type,
-                                        'confidence': confidence
-                                    })
+                                    if match_id and should_push:
+                                        logger.info(f"💾 新匹配记录保存成功: match_id={match_id}")
+                                        
+                                        matches.append({
+                                            'match_id': match_id,
+                                            'intent_id': intent['id'],
+                                            'intent_name': intent['name'],
+                                            'profile_id': profile_id,  # 添加profile_id
+                                            'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
+                                            'score': score,
+                                            'matched_conditions': matched_conditions,
+                                            'explanation': explanation,
+                                            'match_type': match_type,
+                                            'confidence': confidence
+                                        })
                                     logger.info(f"✅ 混合匹配成功: {intent['name']} -> {profile.get('profile_name', 'Unknown')} (分数: {score:.2%})")
                                 except Exception as save_error:
                                     logger.error(f"❌ 保存匹配记录失败: {save_error}")
@@ -403,22 +405,23 @@ class IntentMatcher:
                         explanation = await self._generate_explanation(intent, profile, matched_conditions)
                         
                         # 保存匹配记录
-                        match_id = self._save_match_record(
+                        match_id, should_push = self._save_match_record(
                             cursor, intent['id'], profile_id, user_id,
                             score, matched_conditions, explanation, 'traditional'
                         )
                         
-                        matches.append({
-                            'match_id': match_id,
-                            'intent_id': intent['id'],
-                            'intent_name': intent['name'],
-                            'profile_id': profile_id,  # 添加profile_id
-                            'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
-                            'score': score,
-                            'matched_conditions': matched_conditions,
-                            'explanation': explanation,
-                            'match_type': 'traditional'
-                        })
+                        if match_id and should_push:
+                            matches.append({
+                                'match_id': match_id,
+                                'intent_id': intent['id'],
+                                'intent_name': intent['name'],
+                                'profile_id': profile_id,  # 添加profile_id
+                                'profile_name': profile.get('profile_name', '未知'),  # 添加profile_name
+                                'score': score,
+                                'matched_conditions': matched_conditions,
+                                'explanation': explanation,
+                                'match_type': 'traditional'
+                            })
             
             conn.commit()
             conn.close()
@@ -719,31 +722,49 @@ class IntentMatcher:
     def _save_match_record(self, cursor, intent_id: int, profile_id: int, 
                           user_id: str, score: float, 
                           matched_conditions: List[str], 
-                          explanation: str, match_type: str = 'rule') -> int:
+                          explanation: str, match_type: str = 'rule') -> tuple:
         """保存匹配记录"""
         try:
             # 检查是否已存在
             cursor.execute("""
-                SELECT id FROM intent_matches 
+                SELECT id, match_score, is_read FROM intent_matches 
                 WHERE intent_id = ? AND profile_id = ?
             """, (intent_id, profile_id))
             
             existing = cursor.fetchone()
             if existing:
-                # 更新现有记录
-                cursor.execute("""
-                    UPDATE intent_matches 
-                    SET match_score = ?, matched_conditions = ?, 
-                        explanation = ?, match_type = ?, created_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """, (
-                    score,
-                    json.dumps(matched_conditions, ensure_ascii=False),
-                    explanation,
-                    match_type,
-                    existing[0]
-                ))
-                return existing[0]
+                existing_id, existing_score, is_read = existing
+                
+                # 只有分数有显著变化时才更新（避免频繁更新）
+                score_changed = abs(score - (existing_score or 0)) > 0.05
+                
+                if score_changed:
+                    # 更新现有记录，但保留原始created_at和is_read状态
+                    cursor.execute("""
+                        UPDATE intent_matches 
+                        SET match_score = ?, matched_conditions = ?, 
+                            explanation = ?, match_type = ?, 
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (
+                        score,
+                        json.dumps(matched_conditions, ensure_ascii=False),
+                        explanation,
+                        match_type,
+                        existing_id
+                    ))
+                    
+                    # 如果分数显著提升且之前已读，可以重置为未读以便通知用户
+                    if score - (existing_score or 0) > 0.1 and is_read == 1:
+                        cursor.execute("""
+                            UPDATE intent_matches 
+                            SET is_read = 0
+                            WHERE id = ?
+                        """, (existing_id,))
+                        logger.info(f"匹配分数显著提升，重置为未读状态: intent_id={intent_id}, profile_id={profile_id}")
+                        return (existing_id, True)  # 返回ID和需要推送标志
+                
+                return (existing_id, False)  # 已存在且无需推送
             else:
                 # 插入新记录
                 cursor.execute("""
@@ -757,11 +778,11 @@ class IntentMatcher:
                     explanation,
                     match_type
                 ))
-                return cursor.lastrowid
+                return (cursor.lastrowid, True)  # 新记录需要推送
                 
         except Exception as e:
             logger.error(f"保存匹配记录失败: {e}")
-            return 0
+            return (0, False)
     
     def _save_hybrid_match_record(self, cursor, intent_id: int, profile_id: int, 
                                  user_id: str, result: Dict) -> int:
@@ -795,28 +816,44 @@ class IntentMatcher:
             
             # 检查是否已存在
             cursor.execute("""
-                SELECT id FROM intent_matches 
+                SELECT id, match_score, is_read FROM intent_matches 
                 WHERE intent_id = ? AND profile_id = ?
             """, (intent_id, profile_id))
             
             existing = cursor.fetchone()
             if existing:
-                # 更新现有记录
-                cursor.execute("""
-                    UPDATE intent_matches 
-                    SET match_score = ?, matched_conditions = ?, 
-                        explanation = ?, match_type = ?, 
-                        extended_info = ?, created_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """, (
-                    score,
-                    json.dumps(matched_conditions, ensure_ascii=False),
-                    explanation,
-                    match_type,
-                    json.dumps(extended_info, ensure_ascii=False),
-                    existing[0]
-                ))
-                return existing[0]
+                existing_id, existing_score, is_read = existing
+                
+                # 只有分数有显著变化时才更新
+                score_changed = abs(score - (existing_score or 0)) > 0.05
+                
+                if score_changed:
+                    # 更新现有记录，但保留原始created_at和is_read状态
+                    cursor.execute("""
+                        UPDATE intent_matches 
+                        SET match_score = ?, matched_conditions = ?, 
+                            explanation = ?, match_type = ?, 
+                            extended_info = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                    """, (
+                        score,
+                        json.dumps(matched_conditions, ensure_ascii=False),
+                        explanation,
+                        match_type,
+                        json.dumps(extended_info, ensure_ascii=False),
+                        existing_id
+                    ))
+                    
+                    # 如果分数显著提升且之前已读，可以重置为未读
+                    if score - (existing_score or 0) > 0.1 and is_read == 1:
+                        cursor.execute("""
+                            UPDATE intent_matches 
+                            SET is_read = 0
+                            WHERE id = ?
+                        """, (existing_id,))
+                        logger.info(f"混合匹配分数显著提升，重置为未读: intent_id={intent_id}, profile_id={profile_id}")
+                
+                return existing_id
             else:
                 # 插入新记录
                 cursor.execute("""
@@ -839,13 +876,14 @@ class IntentMatcher:
             # 如果extended_info字段不存在，尝试使用传统方法
             if "no column named extended_info" in str(e).lower():
                 logger.info("数据库缺少extended_info字段，使用传统保存方法")
-                return self._save_match_record(
+                match_id, _ = self._save_match_record(
                     cursor, intent_id, profile_id, user_id,
                     result.get('score', 0.0),
                     result.get('matched_conditions', []),
                     result.get('explanation', ''),
                     result.get('match_type', 'hybrid')
                 )
+                return match_id
             return 0
     
     def _get_user_table_name(self, user_id: str) -> str:

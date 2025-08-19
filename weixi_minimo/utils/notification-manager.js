@@ -96,7 +96,27 @@ class NotificationManager {
       if (result.success) {
         const unreadCount = result.unread_count || 0;
         
-        // 如果有新的未读通知
+        // 首次检查时，只记录数量，不显示通知
+        // 避免登录时显示历史通知
+        if (this.lastNotificationCount === 0 && unreadCount > 0) {
+          console.log(`初始化通知数量: ${unreadCount} 个未读匹配`);
+          this.lastNotificationCount = unreadCount;
+          
+          // 更新tabBar的badge，但不播放声音和显示通知
+          this.updateTabBarBadge(unreadCount);
+          
+          // 更新全局状态
+          const app = getApp();
+          if (app && app.globalData) {
+            app.globalData.hasNewMatches = true;
+            app.globalData.unreadMatchCount = unreadCount;
+            app.globalData.latestMatches = result.matches;
+          }
+          
+          return; // 首次检查不显示通知
+        }
+        
+        // 如果有新的未读通知（比上次多）
         if (unreadCount > this.lastNotificationCount) {
           const newCount = unreadCount - this.lastNotificationCount;
           console.log(`发现 ${newCount} 个新匹配！`);
