@@ -4,7 +4,7 @@
 .detail-page {
   min-height: 100vh;
   background: #FAFAFA;
-  padding-bottom: 120rpx;
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); /* 为底部按钮留出空间 */
 }
 
 /* 加载状态 */
@@ -300,13 +300,13 @@
 /* 底部操作栏 */
 .bottom-bar {
   position: fixed;
-  bottom: 120rpx; /* 给底部tabbar留出空间 */
+  bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   background: #FFFFFF;
   border-top: 1rpx solid #E5E5E5;
-  z-index: 100;
+  z-index: 1001; /* 确保在TabBar(1000)上方 */
   /* 适配iPhone底部安全区域 */
   padding-bottom: env(safe-area-inset-bottom);
 }
