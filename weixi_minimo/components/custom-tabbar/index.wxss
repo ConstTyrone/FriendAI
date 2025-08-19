@@ -13,11 +13,10 @@
 .tabbar-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16rpx 60rpx 32rpx;
-  max-width: 600rpx;
+  justify-content: space-around;
+  padding: 16rpx 40rpx 32rpx;
   margin: 0 auto;
-  gap: 40rpx;
+  gap: 20rpx;
 }
 
 .tab-item {
@@ -106,6 +105,68 @@
   color: #1890ff;
   font-weight: 600;
   transform: scale(1.05);
+}
+
+/* 突出显示的tab项 */
+.tab-item.highlight {
+  position: relative;
+}
+
+.tab-item.highlight .tab-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tab-text.highlight-text {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.tab-item.active .tab-text.highlight-text {
+  color: #1890ff;
+}
+
+/* 徽章样式 */
+.tab-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  border-radius: 16rpx;
+  padding: 2rpx 8rpx;
+  z-index: 10;
+  animation: badge-bounce 0.5s ease-out;
+}
+
+.badge-text {
+  color: #ffffff;
+  font-size: 18rpx;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5rpx;
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* 响应式设计 */

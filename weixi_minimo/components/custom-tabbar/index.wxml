@@ -1,17 +1,21 @@
 <view class="custom-tabbar">
   <view class="tabbar-container">
     <view 
-      class="tab-item {{item.key === current ? 'active' : ''}}"
+      class="tab-item {{item.key === current ? 'active' : ''}} {{item.highlight ? 'highlight' : ''}}"
       wx:for="{{tabs}}"
       wx:key="key"
       data-key="{{item.key}}"
       data-path="{{item.path}}"
       bindtap="onTabTap"
     >
-      <view class="tab-icon">
-        <t-icon name="{{item.icon}}" size="42rpx" color="{{item.key === current ? '#1890ff' : '#999999'}}" />
+      <!-- 为意图功能添加小红点提示 -->
+      <view class="tab-badge" wx:if="{{item.key === 'intent-manager' && item.highlight}}">
+        <text class="badge-text">Hot</text>
       </view>
-      <view class="tab-text">{{item.text}}</view>
+      <view class="tab-icon">
+        <t-icon name="{{item.icon}}" size="42rpx" color="{{item.key === current ? '#1890ff' : (item.highlight ? '#ff6b6b' : '#999999')}}" />
+      </view>
+      <view class="tab-text {{item.highlight ? 'highlight-text' : ''}}">{{item.text}}</view>
     </view>
   </view>
 </view>

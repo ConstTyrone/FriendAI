@@ -15,9 +15,16 @@ Component({
         path: '/pages/contact-list/contact-list'
       },
       {
+        key: 'intent-manager',
+        text: '意图',
+        icon: 'filter',  // 使用筛选图标表示意图匹配
+        path: '/pages/intent-manager/intent-manager',
+        highlight: true  // 突出显示这个重要功能
+      },
+      {
         key: 'ai-search', 
-        text: 'AI搜索',
-        icon: 'view-module',
+        text: '搜索',
+        icon: 'search',  // 改为搜索图标更直观
         path: '/pages/ai-search/ai-search'
       },
       {
@@ -48,6 +55,7 @@ Component({
       // 如果是主要页面之间的跳转，使用redirectTo避免页面栈积累
       const mainPages = [
         'pages/contact-list/contact-list',
+        'pages/intent-manager/intent-manager',
         'pages/ai-search/ai-search', 
         'pages/settings/settings'
       ];

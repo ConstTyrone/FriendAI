@@ -4,7 +4,7 @@
 .intent-page {
   min-height: 100vh;
   background: #FAFAFA;
-  padding-bottom: 40rpx;
+  padding-bottom: calc(140rpx + env(safe-area-inset-bottom)); /* 为TabBar留出空间 */
 }
 
 /* 顶部操作栏 */

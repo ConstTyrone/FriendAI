@@ -190,4 +190,7 @@
       </view>
     </view>
   </view>
+  
+  <!-- 底部TabBar -->
+  <custom-tabbar current="intent-manager" />
 </view>
