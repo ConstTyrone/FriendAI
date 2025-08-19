@@ -61,7 +61,11 @@ Page({
     
     // 语音输入相关
     isRecording: false, // 是否正在录音
-    isParsing: false // 是否正在解析
+    isParsing: false, // 是否正在解析
+    showRecognitionDisplay: false, // 是否显示识别结果
+    currentRecognitionText: '', // 当前识别的文本
+    isRecognizing: false, // 是否正在识别
+    intermediateProgress: [] // 中间结果进度
   },
 
   onLoad(options) {
@@ -931,8 +935,19 @@ Page({
               if (result.success && result.data) {
                 console.log('语音解析成功，返回数据:', result.data);
                 
-                // 直接处理解析结果，不需要先显示弹窗
-                this.handleParseResult(result.data);
+                // 如果有中间结果，先展示中间结果动画
+                if (result.data.intermediate_results && result.data.intermediate_results.length > 0) {
+                  // 关闭加载提示
+                  wx.hideLoading();
+                  // 展示中间结果
+                  this.showIntermediateResults(result.data.intermediate_results, () => {
+                    // 动画结束后处理解析结果
+                    this.handleParseResult(result.data);
+                  });
+                } else {
+                  // 没有中间结果，直接处理
+                  this.handleParseResult(result.data);
+                }
                 
                 // 如果有识别文本，可以在toast中简短提示
                 if (result.data.recognized_text) {
@@ -1175,6 +1190,109 @@ Page({
     }
   },
 
+  /**
+   * 展示中间识别结果
+   * @param {Array} intermediateResults - 中间结果数组
+   * @param {Function} callback - 完成后的回调函数
+   */
+  showIntermediateResults(intermediateResults, callback) {
+    console.log('展示中间结果:', intermediateResults);
+    
+    // 显示识别展示区域
+    this.setData({
+      showRecognitionDisplay: true,
+      currentRecognitionText: '',
+      isRecognizing: true,
+      intermediateProgress: intermediateResults.map(() => ({ active: false }))
+    });
+    
+    // 逐个展示中间结果
+    let currentIndex = 0;
+    const showNextResult = () => {
+      if (currentIndex < intermediateResults.length) {
+        const result = intermediateResults[currentIndex];
+        
+        // 更新进度点
+        const progress = this.data.intermediateProgress;
+        if (currentIndex > 0) {
+          progress[currentIndex - 1].active = true;
+        }
+        
+        // 模拟打字效果
+        this.typewriterEffect(result, () => {
+          currentIndex++;
+          // 延迟300ms后显示下一个结果
+          setTimeout(showNextResult, 300);
+        });
+        
+        this.setData({
+          intermediateProgress: progress
+        });
+      } else {
+        // 所有结果展示完成
+        // 激活最后一个进度点
+        const progress = this.data.intermediateProgress;
+        if (progress.length > 0) {
+          progress[progress.length - 1].active = true;
+        }
+        
+        this.setData({
+          isRecognizing: false,
+          intermediateProgress: progress
+        });
+        
+        // 延迟1秒后关闭展示区域并执行回调
+        setTimeout(() => {
+          this.setData({
+            showRecognitionDisplay: false,
+            currentRecognitionText: '',
+            intermediateProgress: []
+          });
+          if (callback) {
+            callback();
+          }
+        }, 1000);
+      }
+    };
+    
+    // 开始展示
+    setTimeout(showNextResult, 500);
+  },
+  
+  /**
+   * 打字机效果
+   * @param {string} text - 要显示的文本
+   * @param {Function} callback - 完成后的回调
+   */
+  typewriterEffect(text, callback) {
+    let charIndex = 0;
+    const typeInterval = setInterval(() => {
+      if (charIndex <= text.length) {
+        this.setData({
+          currentRecognitionText: text.substring(0, charIndex)
+        });
+        charIndex++;
+      } else {
+        clearInterval(typeInterval);
+        if (callback) {
+          callback();
+        }
+      }
+    }, 50); // 每50ms显示一个字符
+  },
+  
+  /**
+   * 关闭识别展示区域
+   */
+  onCloseRecognitionDisplay() {
+    this.setData({
+      showRecognitionDisplay: false,
+      currentRecognitionText: '',
+      isRecognizing: false,
+      intermediateProgress: []
+    });
+  },
+  
   /**
    * 显示手动输入对话框
    * @param {string} prefilledText - 预填充的文本（例如从语音识别得到的文本）

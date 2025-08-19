@@ -5,7 +5,7 @@ import base64
 import logging
 import time
 import json
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from ..config.config import config
 
 logger = logging.getLogger(__name__)
@@ -324,6 +324,7 @@ class AliyunASRProcessor:
         self._recognition_complete = False
         self._recognition_error = None
         self._connection_active = False
+        self._intermediate_results = []  # 存储所有中间结果
     
     def _reset_state(self):
         """重置识别状态"""
@@ -331,6 +332,7 @@ class AliyunASRProcessor:
         self._recognition_complete = False
         self._recognition_error = None
         self._connection_active = False
+        self._intermediate_results = []  # 清空中间结果
         # 清除启动确认标志
         if hasattr(self, '_start_confirmed'):
             delattr(self, '_start_confirmed')
@@ -352,6 +354,9 @@ class AliyunASRProcessor:
                 text = result.get('payload', {}).get('result', '')
                 if text:
                     self._recognition_result = text
+                    # 收集中间结果到数组
+                    if text not in self._intermediate_results:
+                        self._intermediate_results.append(text)
                     logger.info(f"📝 中间识别结果: {text}")
             else:
                 logger.warning(f"ASR中间结果状态异常: {result.get('header', {})}")
@@ -393,15 +398,17 @@ class AliyunASRProcessor:
         self._connection_active = False  # 标记连接断开
         self._recognition_complete = True
         
-    def recognize_speech(self, audio_file_path: str) -> Optional[str]:
+    def recognize_speech(self, audio_file_path: str, return_intermediate: bool = False) -> Optional[Union[str, Dict]]:
         """
         识别语音文件
         
         Args:
             audio_file_path: 音频文件路径
+            return_intermediate: 是否返回中间结果
             
         Returns:
-            str: 识别的文本内容，失败返回None
+            str或dict: 如果return_intermediate=False，返回识别的文本内容；
+                      如果return_intermediate=True，返回包含最终结果和中间结果的字典
         """
         try:
             # 检查nls模块是否可用
@@ -535,16 +542,36 @@ class AliyunASRProcessor:
             # 返回结果
             if self._recognition_error:
                 logger.error(f"语音识别出错: {self._recognition_error}")
+                if return_intermediate:
+                    return {
+                        'final_text': f"[语音识别失败: {self._recognition_error}]",
+                        'intermediate_results': self._intermediate_results
+                    }
                 return f"[语音识别失败: {self._recognition_error}]"
             elif self._recognition_result:
                 logger.info(f"✅ 语音识别成功: {self._recognition_result}")
+                if return_intermediate:
+                    return {
+                        'final_text': self._recognition_result,
+                        'intermediate_results': self._intermediate_results
+                    }
                 return self._recognition_result
             else:
                 logger.warning("语音识别未返回结果")
+                if return_intermediate:
+                    return {
+                        'final_text': "[语音识别失败: 未识别到内容]",
+                        'intermediate_results': self._intermediate_results
+                    }
                 return "[语音识别失败: 未识别到内容]"
                 
         except Exception as e:
             logger.error(f"语音识别异常: {e}")
+            if return_intermediate:
+                return {
+                    'final_text': f"[语音识别异常: {str(e)}]",
+                    'intermediate_results': getattr(self, '_intermediate_results', [])
+                }
             return f"[语音识别异常: {str(e)}]"
     
     def _convert_mp3_to_pcm(self, mp3_path: str) -> Optional[bytes]:

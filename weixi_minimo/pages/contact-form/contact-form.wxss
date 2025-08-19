@@ -662,3 +662,188 @@
     box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
   }
 }
+
+/* 浮动语音按钮 */
+.voice-fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 140rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 30rpx rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.voice-fab.recording {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  animation: recordingPulse 1.5s infinite;
+  transform: scale(1.1);
+}
+
+.voice-fab.parsing {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  animation: rotate 2s linear infinite;
+}
+
+.fab-icon {
+  font-size: 48rpx;
+  color: white;
+}
+
+.icon-mic {
+  font-size: 48rpx;
+}
+
+.fab-ripple {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  animation: ripple 1s ease-out infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.fab-hint {
+  position: absolute;
+  bottom: -30rpx;
+  font-size: 24rpx;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* 语音识别中间结果展示 */
+.voice-recognition-display {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600rpx;
+  background: white;
+  border-radius: 20rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.voice-recognition-display.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.recognition-container {
+  padding: 40rpx;
+}
+
+.recognition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.recognition-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.recognition-close {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: #999;
+  cursor: pointer;
+}
+
+.recognition-content {
+  min-height: 100rpx;
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.recognition-text {
+  font-size: 32rpx;
+  color: #333;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.recognition-cursor {
+  width: 3rpx;
+  height: 30rpx;
+  background: #667eea;
+  margin-left: 4rpx;
+}
+
+.recognition-cursor.blinking {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.recognition-progress {
+  margin-top: 20rpx;
+}
+
+.progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 10rpx;
+}
+
+.progress-dots .dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.progress-dots .dot.active {
+  background: #667eea;
+  transform: scale(1.3);
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

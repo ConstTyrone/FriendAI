@@ -900,13 +900,24 @@ async def parse_voice_audio(
         # 使用ASR进行语音识别
         logger.info("开始语音识别...")
         recognized_text = None
+        intermediate_results = []
         
         try:
             # 尝试使用阿里云ASR
             from ..services.media_processor import AliyunASRProcessor
             asr_processor = AliyunASRProcessor()
-            recognized_text = asr_processor.recognize_speech(temp_file_path)
-            logger.info(f"ASR识别成功: {recognized_text[:100] if recognized_text else '无内容'}...")
+            # 请求返回中间结果
+            asr_result = asr_processor.recognize_speech(temp_file_path, return_intermediate=True)
+            
+            if isinstance(asr_result, dict):
+                recognized_text = asr_result.get('final_text')
+                intermediate_results = asr_result.get('intermediate_results', [])
+                logger.info(f"ASR识别成功: {recognized_text[:100] if recognized_text else '无内容'}...")
+                logger.info(f"中间结果数量: {len(intermediate_results)}")
+            else:
+                # 兼容旧版本返回格式
+                recognized_text = asr_result
+                logger.info(f"ASR识别成功: {recognized_text[:100] if recognized_text else '无内容'}...")
         except Exception as asr_error:
             logger.error(f"ASR识别出错: {str(asr_error)}")
             recognized_text = None
@@ -983,8 +994,9 @@ async def parse_voice_audio(
         if merge_mode:
             parsed_data = {k: v for k, v in parsed_data.items() if v and v != ""}
         
-        # 添加识别的原始文本到返回数据中
+        # 添加识别的原始文本和中间结果到返回数据中
         parsed_data['recognized_text'] = recognized_text
+        parsed_data['intermediate_results'] = intermediate_results  # 添加中间结果数组
         
         return ParseVoiceTextResponse(
             success=True,
