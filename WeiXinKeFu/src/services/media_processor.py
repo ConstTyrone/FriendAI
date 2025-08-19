@@ -345,27 +345,41 @@ class AliyunASRProcessor:
         
     def _on_result_changed(self, message, *args):
         """中间结果回调"""
-        # logger.info(f"🔄 ASR中间结果: {message}")
+        logger.info(f"🔄 ASR中间结果: {message}")
         try:
             result = json.loads(message)
             if result.get('header', {}).get('status') == 20000000:
-                self._recognition_result = result.get('payload', {}).get('result', '')
-        except:
-            pass
+                text = result.get('payload', {}).get('result', '')
+                if text:
+                    self._recognition_result = text
+                    logger.info(f"📝 中间识别结果: {text}")
+            else:
+                logger.warning(f"ASR中间结果状态异常: {result.get('header', {})}")
+        except Exception as e:
+            logger.error(f"解析中间结果失败: {e}")
             
     def _on_completed(self, message, *args):
         """识别完成回调"""
-        logger.info("✅ ASR识别完成")
+        logger.info(f"✅ ASR识别完成，消息: {message}")
         try:
             result = json.loads(message)
-            if result.get('header', {}).get('status') == 20000000:
-                self._recognition_result = result.get('payload', {}).get('result', '')
-                if self._recognition_result:
-                    logger.info(f"📝 识别结果: {self._recognition_result}")
+            header = result.get('header', {})
+            status = header.get('status', 0)
+            
+            if status == 20000000:
+                text = result.get('payload', {}).get('result', '')
+                if text:
+                    self._recognition_result = text
+                    logger.info(f"📝 最终识别结果: {self._recognition_result}")
+                else:
+                    logger.warning("ASR完成但没有返回文本")
                 self._recognition_complete = True
             else:
-                self._recognition_error = f"ASR错误: {result.get('header', {}).get('status_text', '未知错误')}"
+                error_msg = header.get('status_text', '未知错误')
+                logger.error(f"ASR状态异常: {status}, {error_msg}")
+                self._recognition_error = f"ASR错误: {error_msg} (状态码: {status})"
         except Exception as e:
+            logger.error(f"解析ASR结果失败: {str(e)}")
             self._recognition_error = f"解析ASR结果失败: {str(e)}"
             
     def _on_error(self, message, *args):
@@ -399,9 +413,19 @@ class AliyunASRProcessor:
             
             logger.info(f"🎤 开始语音识别: {audio_file_path}")
             
-            # 读取音频文件
-            with open(audio_file_path, 'rb') as f:
-                audio_data = f.read()
+            # 如果是MP3文件，需要先转换为PCM
+            pcm_data = None
+            if audio_file_path.lower().endswith('.mp3'):
+                logger.info("检测到MP3文件，尝试转换为PCM格式...")
+                pcm_data = self._convert_mp3_to_pcm(audio_file_path)
+                if not pcm_data:
+                    logger.error("MP3转PCM失败")
+                    return "[语音识别失败: 音频格式转换失败]"
+                audio_data = pcm_data
+            else:
+                # 读取音频文件
+                with open(audio_file_path, 'rb') as f:
+                    audio_data = f.read()
             
             # 重置识别状态
             self._reset_state()
@@ -427,10 +451,10 @@ class AliyunASRProcessor:
             start_result = sr.start(aformat="pcm", 
                                   sample_rate=16000,
                                   ch=1,
-                                  enable_intermediate_result=False,  # 先关闭中间结果
+                                  enable_intermediate_result=True,  # 启用中间结果
                                   enable_punctuation_prediction=True,
                                   enable_inverse_text_normalization=True,
-                                  timeout=10)
+                                  timeout=20)  # 增加超时时间
             
             if start_result is False:  # 只有明确返回False才是失败
                 logger.error("调用start()失败")
@@ -492,13 +516,16 @@ class AliyunASRProcessor:
             
             # 停止识别
             logger.info("🛑 等待识别结果...")
-            stop_result = sr.stop(timeout=10)
+            stop_result = sr.stop(timeout=20)  # 增加停止超时时间
             
             # 等待识别完成（最多等待30秒）
             wait_time = 0
             while not self._recognition_complete and not self._recognition_error and wait_time < 30:
                 time.sleep(0.1)
                 wait_time += 0.1
+                # 每秒输出一次等待状态
+                if int(wait_time * 10) % 10 == 0:
+                    logger.info(f"等待识别结果... {wait_time:.0f}秒")
                 
             logger.info(f"🔍 识别等待结束 ({wait_time:.1f}秒)")
             
@@ -519,6 +546,85 @@ class AliyunASRProcessor:
         except Exception as e:
             logger.error(f"语音识别异常: {e}")
             return f"[语音识别异常: {str(e)}]"
+    
+    def _convert_mp3_to_pcm(self, mp3_path: str) -> Optional[bytes]:
+        """
+        将MP3文件转换为PCM格式
+        
+        Args:
+            mp3_path: MP3文件路径
+            
+        Returns:
+            bytes: PCM音频数据，失败返回None
+        """
+        try:
+            import subprocess
+            import tempfile
+            
+            # 创建临时PCM文件
+            with tempfile.NamedTemporaryFile(suffix='.pcm', delete=False) as tmp_pcm:
+                pcm_path = tmp_pcm.name
+            
+            # 使用ffmpeg转换（如果安装了）
+            try:
+                cmd = [
+                    'ffmpeg', '-i', mp3_path,
+                    '-acodec', 'pcm_s16le',
+                    '-ar', '16000',
+                    '-ac', '1',
+                    '-f', 's16le',
+                    pcm_path,
+                    '-y'
+                ]
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                
+                if result.returncode == 0:
+                    logger.info("✅ FFmpeg转换成功")
+                    with open(pcm_path, 'rb') as f:
+                        pcm_data = f.read()
+                    
+                    # 删除临时文件
+                    try:
+                        os.remove(pcm_path)
+                    except:
+                        pass
+                    
+                    return pcm_data
+                else:
+                    logger.error(f"FFmpeg转换失败: {result.stderr}")
+            except FileNotFoundError:
+                logger.warning("FFmpeg未安装，尝试使用pydub")
+            except Exception as e:
+                logger.error(f"FFmpeg转换异常: {e}")
+            
+            # 尝试使用pydub（如果安装了）
+            try:
+                from pydub import AudioSegment
+                
+                # 加载MP3文件
+                audio = AudioSegment.from_mp3(mp3_path)
+                
+                # 转换为16kHz单声道
+                audio = audio.set_frame_rate(16000)
+                audio = audio.set_channels(1)
+                
+                # 导出为PCM
+                pcm_data = audio.raw_data
+                
+                logger.info("✅ pydub转换成功")
+                return pcm_data
+                
+            except ImportError:
+                logger.error("pydub未安装，无法转换音频格式")
+            except Exception as e:
+                logger.error(f"pydub转换异常: {e}")
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"音频转换失败: {e}")
+            return None
 
 # 全局ASR处理器实例
 asr_processor = AliyunASRProcessor()
