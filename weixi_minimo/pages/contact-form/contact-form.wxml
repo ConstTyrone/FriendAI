@@ -301,15 +301,14 @@
 
   <!-- 浮动语音按钮 -->
   <view class="voice-fab {{isRecording ? 'recording' : ''}} {{isParsing ? 'parsing' : ''}}" 
-        bindtouchstart="startVoiceInput" 
-        bindtouchend="stopVoiceInput"
+        bindtap="onVoiceInput"
         wx:if="{{!loading && mode === 'add'}}">
     <view class="fab-icon">
       <text class="icon-mic">🎤</text>
     </view>
     <view class="fab-ripple" wx:if="{{isRecording}}"></view>
-    <text class="fab-hint" wx:if="{{!isRecording && !isParsing}}">按住说话</text>
-    <text class="fab-hint" wx:if="{{isRecording}}">松开结束</text>
+    <text class="fab-hint" wx:if="{{!isRecording && !isParsing}}">点击说话</text>
+    <text class="fab-hint" wx:if="{{isRecording}}">点击结束</text>
     <text class="fab-hint" wx:if="{{isParsing}}">正在解析...</text>
   </view>
 

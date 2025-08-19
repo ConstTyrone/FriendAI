@@ -608,6 +608,11 @@ Page({
    * 初始化语音识别
    */
   initVoiceRecognition() {
+    // 先移除所有旧的监听器，避免重复绑定
+    recordManager.onStop(() => {});
+    recordManager.onError(() => {});
+    recordManager.onStart(() => {});
+    
     // 录音结束事件
     recordManager.onStop((res) => {
       console.log('录音停止事件触发', res);
@@ -752,15 +757,28 @@ Page({
    */
   stopVoiceInput() {
     console.log('停止语音输入...');
+    
+    // 先检查是否在录音状态
+    if (!this.data.isRecording) {
+      console.log('未在录音状态，忽略停止请求');
+      return;
+    }
+    
+    // 立即更新状态，防止重复调用
+    this.setData({
+      isRecording: false
+    });
+    
     wx.hideToast();
     
     // 显示停止录音的反馈
     wx.showToast({
-      title: '停止录音',
+      title: '正在识别...',
       icon: 'none',
       duration: 1000
     });
     
+    // 停止录音
     recordManager.stop();
   },
 
