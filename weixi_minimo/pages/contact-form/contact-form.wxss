@@ -556,91 +556,58 @@
   }
 }
 
-/* 语音输入相关样式 */
-.form-item.with-voice {
+/* 语音输入浮动按钮 */
+.voice-float-btn {
+  position: fixed;
+  bottom: 200rpx;
+  right: 40rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background: #000000;
+  border-radius: 60rpx;
   display: flex;
-  align-items: center;
-  gap: 20rpx;
-}
-
-.input-container {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.input-container .form-input {
-  flex: 1;
-  padding-right: 80rpx;
-}
-
-/* 语音按钮 - 小尺寸 */
-.voice-btn {
-  position: absolute;
-  right: 10rpx;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #F5F5F5;
-  border-radius: 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  z-index: 999;
 }
 
-.voice-btn:active {
-  background: #E0E0E0;
+.voice-float-btn:active {
   transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
 }
 
-.voice-btn.recording {
+.voice-float-btn.recording {
   background: #FF3B30;
   animation: pulse 1.5s infinite;
 }
 
-.voice-btn .voice-icon {
-  font-size: 28rpx;
-  filter: grayscale(0);
+.voice-float-btn .voice-icon {
+  font-size: 48rpx;
+  filter: brightness(0) invert(1);
 }
 
-.voice-btn.recording .voice-icon {
+.voice-float-btn.recording .voice-icon {
   filter: brightness(2);
 }
 
-/* 语音按钮 - 大尺寸（用于备注） */
-.voice-btn-large {
-  display: inline-flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: 12rpx 24rpx;
-  background: #F5F5F5;
-  border-radius: 20rpx;
-  transition: all 0.3s ease;
-}
-
-.voice-btn-large:active {
-  background: #E0E0E0;
-  transform: scale(0.95);
-}
-
-.voice-btn-large.recording {
-  background: #FF3B30;
-  animation: pulse 1.5s infinite;
-}
-
-.voice-btn-large .voice-icon {
-  font-size: 28rpx;
-}
-
-.voice-btn-large .voice-text {
-  font-size: 24rpx;
+.voice-float-btn .voice-tooltip {
+  position: absolute;
+  bottom: -30rpx;
+  font-size: 20rpx;
   color: #666666;
-  font-weight: 500;
+  white-space: nowrap;
+  background: #FFFFFF;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
-.voice-btn-large.recording .voice-text {
-  color: #FFFFFF;
+.voice-float-btn.recording .voice-tooltip {
+  color: #FF3B30;
+  font-weight: 500;
 }
 
 /* 脉冲动画 */

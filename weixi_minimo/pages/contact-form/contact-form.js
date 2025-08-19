@@ -60,8 +60,8 @@ Page({
     assetIndex: -1,
     
     // 语音输入相关
-    recordingField: '', // 当前正在录音的字段
-    isRecording: false // 是否正在录音
+    isRecording: false, // 是否正在录音
+    isParsing: false // 是否正在解析
   },
 
   onLoad(options) {
@@ -605,35 +605,24 @@ Page({
    */
   initVoiceRecognition() {
     // 识别结束事件
-    recordManager.onStop = (res) => {
+    recordManager.onStop = async (res) => {
       console.log('录音停止', res);
       
       if (res.result) {
-        // 将识别结果填充到对应的字段
-        const field = this.data.recordingField;
-        if (field) {
-          // 如果是备注字段，追加内容；其他字段直接替换
-          if (field === 'notes') {
-            const currentValue = this.data.formData[field] || '';
-            const newValue = currentValue ? currentValue + '\n' + res.result : res.result;
-            this.setData({
-              [`formData.${field}`]: newValue,
-              recordingField: '',
-              isRecording: false
-            });
-          } else {
-            this.setData({
-              [`formData.${field}`]: res.result,
-              recordingField: '',
-              isRecording: false
-            });
-          }
-          
-          wx.showToast({
-            title: '识别成功',
-            icon: 'success'
-          });
-        }
+        // 显示识别结果
+        wx.showToast({
+          title: '识别成功，正在解析...',
+          icon: 'loading',
+          duration: 10000
+        });
+        
+        this.setData({
+          isRecording: false,
+          isParsing: true
+        });
+        
+        // 调用后端API解析文本
+        await this.parseVoiceText(res.result);
       } else {
         wx.showToast({
           title: '未识别到内容',
@@ -641,7 +630,6 @@ Page({
         });
         
         this.setData({
-          recordingField: '',
           isRecording: false
         });
       }
@@ -657,7 +645,6 @@ Page({
       });
       
       this.setData({
-        recordingField: '',
         isRecording: false
       });
     };
@@ -676,46 +663,48 @@ Page({
   /**
    * 语音输入
    */
-  onVoiceInput(event) {
-    const { field } = event.currentTarget.dataset;
+  onVoiceInput() {
+    // 如果正在解析，不响应
+    if (this.data.isParsing) {
+      return;
+    }
     
-    // 如果正在录音
+    // 如果正在录音，停止录音
     if (this.data.isRecording) {
-      // 如果是同一个字段，停止录音
-      if (this.data.recordingField === field) {
-        this.stopVoiceInput();
-      } else {
-        // 切换到新字段
-        this.stopVoiceInput();
-        setTimeout(() => {
-          this.startVoiceInput(field);
-        }, 300);
-      }
+      this.stopVoiceInput();
     } else {
       // 开始录音
-      this.startVoiceInput(field);
+      this.startVoiceInput();
     }
   },
 
   /**
    * 开始语音输入
    */
-  startVoiceInput(field) {
+  startVoiceInput() {
     // 请求麦克风权限
     wx.authorize({
       scope: 'scope.record',
       success: () => {
-        console.log('开始语音输入：', field);
+        console.log('开始语音输入');
         
-        this.setData({
-          recordingField: field,
-          isRecording: true
-        });
-        
-        // 开始录音识别
-        recordManager.start({
-          lang: 'zh_CN',
-          duration: 60000 // 最长录音时间60秒
+        // 提示用户如何使用
+        wx.showModal({
+          title: '语音输入',
+          content: '请说出联系人信息，例如：“张三，男，35岁，在腾讯工作，是产品经理，住在深圳”',
+          showCancel: false,
+          confirmText: '开始录音',
+          success: () => {
+            this.setData({
+              isRecording: true
+            });
+            
+            // 开始录音识别
+            recordManager.start({
+              lang: 'zh_CN',
+              duration: 60000 // 最长录音时间60秒
+            });
+          }
         });
       },
       fail: () => {
@@ -740,5 +729,87 @@ Page({
     console.log('停止语音输入');
     wx.hideToast();
     recordManager.stop();
+  },
+
+  /**
+   * 解析语音文本
+   */
+  async parseVoiceText(text) {
+    try {
+      console.log('解析语音文本:', text);
+      
+      // 调用后端API
+      const result = await dataManager.parseVoiceText(text, this.data.mode === 'edit');
+      
+      if (!result || !result.success) {
+        throw new Error(result?.message || '解析失败');
+      }
+      
+      const parsedData = result.data;
+      if (!parsedData) {
+        throw new Error('未能识别出有效信息');
+      }
+      
+      // 如果是编辑模式，合并数据
+      if (this.data.mode === 'edit') {
+        const mergedData = { ...this.data.formData };
+        
+        // 只更新非空字段
+        Object.keys(parsedData).forEach(key => {
+          if (parsedData[key] && parsedData[key] !== '') {
+            // 如果是备注字段，追加内容
+            if (key === 'notes' && mergedData.notes) {
+              mergedData[key] = mergedData.notes + '\n' + parsedData[key];
+            } else {
+              mergedData[key] = parsedData[key];
+            }
+          }
+        });
+        
+        this.setData({
+          formData: mergedData,
+          isParsing: false
+        });
+        
+        wx.showToast({
+          title: '信息已更新',
+          icon: 'success'
+        });
+      } else {
+        // 新增模式，直接替换
+        const newFormData = {
+          ...this.data.formData,
+          ...parsedData
+        };
+        
+        // 保留原有的标签
+        if (this.data.formData.tags && this.data.formData.tags.length > 0) {
+          newFormData.tags = this.data.formData.tags;
+        }
+        
+        this.setData({
+          formData: newFormData,
+          isParsing: false
+        });
+        
+        wx.showToast({
+          title: '信息已填充',
+          icon: 'success'
+        });
+      }
+      
+    } catch (error) {
+      console.error('解析语音文本失败:', error);
+      
+      this.setData({
+        isParsing: false
+      });
+      
+      wx.showToast({
+        title: error.message || '解析失败',
+        icon: 'none',
+        duration: 2000
+      });
+    }
   }
 });

@@ -930,6 +930,31 @@ class DataManager {
   }
   
   /**
+   * 解析语音文本，提取用户画像
+   * @param {string} text - 语音识别后的文本
+   * @param {boolean} mergeMode - 是否为合并模式（编辑现有联系人）
+   * @returns {Promise<Object>} 解析结果
+   */
+  async parseVoiceText(text, mergeMode = false) {
+    try {
+      console.log('解析语音文本:', text, '合并模式:', mergeMode);
+      
+      // 调用后端API
+      const response = await apiClient.post('/api/profiles/parse-voice', {
+        text: text,
+        merge_mode: mergeMode
+      });
+      
+      console.log('语音文本解析结果:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('解析语音文本失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
    * 手动触发垃圾回收
    */
   forceGarbageCollection() {

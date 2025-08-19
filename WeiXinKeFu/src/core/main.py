@@ -14,6 +14,7 @@ import sqlite3
 from datetime import datetime
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
+from ..services.ai_service import AIService
 
 
 # 配置日志
@@ -775,6 +776,86 @@ async def mark_match_as_read(
         )
 
 # ======================== 联系人管理API ========================
+
+class ParseVoiceTextRequest(BaseModel):
+    """解析语音文本请求模型"""
+    text: str  # 语音识别后的文本内容
+    merge_mode: bool = False  # 是否为合并模式（用于编辑现有联系人）
+
+class ParseVoiceTextResponse(BaseModel):
+    """解析语音文本响应模型"""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    message: Optional[str] = None
+
+@app.post("/api/profiles/parse-voice")
+async def parse_voice_text(
+    request: ParseVoiceTextRequest,
+    current_user: str = Depends(verify_user_token)
+):
+    """解析语音文本，提取用户画像信息"""
+    try:
+        # 初始化AI服务
+        ai_service = AIService()
+        
+        # 使用AI服务解析文本
+        result = ai_service.extract_user_profile(request.text, is_chat_record=False)
+        
+        if not result or "user_profiles" not in result:
+            return ParseVoiceTextResponse(
+                success=False,
+                message="无法从文本中提取有效信息"
+            )
+        
+        user_profiles = result.get("user_profiles", [])
+        
+        if not user_profiles:
+            return ParseVoiceTextResponse(
+                success=False,
+                message="未能识别出联系人信息"
+            )
+        
+        # 取第一个识别到的用户画像
+        profile = user_profiles[0]
+        
+        # 转换字段名以匹配前端表单
+        parsed_data = {
+            "name": profile.get("name", "") if profile.get("name") != "未知" else "",
+            "gender": profile.get("gender", "") if profile.get("gender") != "未知" else "",
+            "age": profile.get("age", "") if profile.get("age") != "未知" else "",
+            "phone": profile.get("phone", "") if profile.get("phone") != "未知" else "",
+            "wechat_id": "",  # AI通常不能识别微信号
+            "email": "",  # AI通常不能识别邮箱
+            "location": profile.get("location", "") if profile.get("location") != "未知" else "",
+            "address": profile.get("location", "") if profile.get("location") != "未知" else "",
+            "marital_status": profile.get("marital_status", "") if profile.get("marital_status") != "未知" else "",
+            "education": profile.get("education", "") if profile.get("education") != "未知" else "",
+            "company": profile.get("company", "") if profile.get("company") != "未知" else "",
+            "position": profile.get("position", "") if profile.get("position") != "未知" else "",
+            "asset_level": profile.get("asset_level", "") if profile.get("asset_level") != "未知" else "",
+            "personality": profile.get("personality", "") if profile.get("personality") != "未知" else "",
+            "notes": result.get("summary", "")  # 使用AI的总结作为备注
+        }
+        
+        # 如果是合并模式，只返回非空字段
+        if request.merge_mode:
+            parsed_data = {k: v for k, v in parsed_data.items() if v and v != ""}
+        
+        return ParseVoiceTextResponse(
+            success=True,
+            data=parsed_data,
+            message="解析成功"
+        )
+        
+    except Exception as e:
+        logger.error(f"解析语音文本失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        
+        return ParseVoiceTextResponse(
+            success=False,
+            message=f"解析失败: {str(e)}"
+        )
 
 class CreateProfileRequest(BaseModel):
     """创建联系人请求模型"""
