@@ -924,7 +924,8 @@ Page({
     this.setData({
       touchStartX: clientX,
       touchStartY: clientY,
-      touchStartTime: Date.now()
+      touchStartTime: Date.now(),
+      isMoving: false
     });
     
     console.log('触摸开始:', { index, x: clientX, y: clientY });
@@ -934,50 +935,8 @@ Page({
    * 手势操作 - 触摸移动
    */
   onTouchMove(e) {
-    const { clientX, clientY } = e.touches[0];
-    const index = parseInt(e.currentTarget.dataset.index);
-    const { touchStartX, touchStartY } = this.data;
-    
-    if (isNaN(index)) return;
-    
-    const deltaX = clientX - touchStartX;
-    const deltaY = clientY - touchStartY;
-    
-    // 只在明确的水平滑动时才触发操作，避免误触
-    if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 50) {
-      // 左滑显示操作菜单
-      if (deltaX < -60 && !this.data.swipeStates[index]) {
-        const newSwipeStates = { ...this.data.swipeStates };
-        
-        // 关闭其他已打开的项
-        Object.keys(newSwipeStates).forEach(key => {
-          if (parseInt(key) !== index) {
-            newSwipeStates[key] = false;
-          }
-        });
-        
-        newSwipeStates[index] = true;
-        
-        this.setData({
-          swipeStates: newSwipeStates,
-          currentSwipeIndex: index
-        });
-        
-        console.log('左滑打开操作菜单:', index);
-      }
-      // 右滑关闭操作菜单
-      else if (deltaX > 40 && this.data.swipeStates[index]) {
-        const newSwipeStates = { ...this.data.swipeStates };
-        newSwipeStates[index] = false;
-        
-        this.setData({
-          swipeStates: newSwipeStates,
-          currentSwipeIndex: -1
-        });
-        
-        console.log('右滑关闭操作菜单:', index);
-      }
-    }
+    // 只记录移动状态，不进行任何滑动判断
+    this.setData({ isMoving: true });
   },
 
   /**
@@ -986,7 +945,10 @@ Page({
   onTouchEnd(e) {
     const { clientX, clientY } = e.changedTouches[0];
     const index = parseInt(e.currentTarget.dataset.index);
-    const { touchStartX, touchStartY, touchStartTime } = this.data;
+    const { touchStartX, touchStartY, touchStartTime, isMoving } = this.data;
+    
+    // 重置移动状态
+    this.setData({ isMoving: false });
     
     if (isNaN(index)) return;
     
@@ -999,21 +961,24 @@ Page({
       deltaX, 
       deltaY, 
       deltaTime,
-      isSwipe: Math.abs(deltaX) > 20,
+      isMoving,
       currentState: this.data.swipeStates[index]
     });
     
-    // 如果是快速左滑且距离足够，确保菜单打开
-    if (deltaX < -60 && deltaTime < 400 && !this.data.swipeStates[index]) {
+    // 严格的滑动检测条件
+    const isValidSwipe = 
+      isMoving && // 确实有移动
+      deltaTime < 500 && // 滑动时间不超过500ms
+      deltaX < -100 && // 左滑距离至少100rpx
+      Math.abs(deltaY) < 50 && // 垂直偏移不超过50rpx
+      Math.abs(deltaX) > Math.abs(deltaY) * 2; // 水平距离是垂直距离的2倍以上
+    
+    if (isValidSwipe && !this.data.swipeStates[index]) {
+      // 关闭其他所有菜单
+      this.closeAllSwipeMenus();
+      
+      // 打开当前菜单
       const newSwipeStates = { ...this.data.swipeStates };
-      
-      // 关闭其他菜单
-      Object.keys(newSwipeStates).forEach(key => {
-        if (parseInt(key) !== index) {
-          newSwipeStates[key] = false;
-        }
-      });
-      
       newSwipeStates[index] = true;
       
       this.setData({
@@ -1021,7 +986,18 @@ Page({
         currentSwipeIndex: index
       });
       
-      console.log('快速左滑，强制打开菜单:', index);
+      console.log('有效左滑，打开菜单:', index);
+    } else if (this.data.swipeStates[index] && deltaX > 40) {
+      // 右滑关闭菜单
+      const newSwipeStates = { ...this.data.swipeStates };
+      newSwipeStates[index] = false;
+      
+      this.setData({
+        swipeStates: newSwipeStates,
+        currentSwipeIndex: -1
+      });
+      
+      console.log('右滑关闭菜单:', index);
     }
   },
 

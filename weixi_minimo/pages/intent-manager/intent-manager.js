@@ -2,6 +2,7 @@
 import { UI_CONFIG, PAGE_ROUTES } from '../../utils/constants';
 import authManager from '../../utils/auth-manager';
 import apiClient from '../../utils/api-client';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -102,6 +103,9 @@ Page({
 
   onLoad() {
     console.log('意图管理页面加载');
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     // 检查登录状态
     if (!authManager.isLoggedIn()) {

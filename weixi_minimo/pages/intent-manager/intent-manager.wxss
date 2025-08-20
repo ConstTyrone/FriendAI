@@ -572,3 +572,247 @@
   color: #FFFFFF;
   line-height: 1.5;
 }
+
+/* ===== 深色模式适配 ===== */
+
+/* 页面容器 */
+.intent-page.theme-dark {
+  background: #1a1a1a;
+}
+
+/* 顶部操作栏 */
+.theme-dark .top-bar {
+  background: #2d2d2d;
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .page-title {
+  color: #ffffff;
+}
+
+.theme-dark .create-btn {
+  background: #06ae56;
+}
+
+/* 统计卡片 */
+.theme-dark .stats-card {
+  background: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .stat-value {
+  color: #ffffff;
+}
+
+.theme-dark .stat-label {
+  color: #999999;
+}
+
+/* 加载状态 */
+.theme-dark .loading-text {
+  color: #999999;
+}
+
+/* 意图卡片 */
+.theme-dark .intent-card {
+  background: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .intent-name {
+  color: #ffffff;
+}
+
+.theme-dark .intent-type {
+  background: #4a4a4a;
+  color: #cccccc;
+}
+
+.theme-dark .intent-desc {
+  color: #cccccc;
+}
+
+.theme-dark .keyword-tag {
+  background: #3a3a3a;
+  color: #cccccc;
+}
+
+.theme-dark .meta-item {
+  color: #999999;
+}
+
+.theme-dark .intent-footer {
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .match-info {
+  color: #999999;
+}
+
+.theme-dark .action-link {
+  color: #ffffff;
+}
+
+.theme-dark .action-link.danger {
+  color: #dc0a1a;
+}
+
+/* 空状态 */
+.theme-dark .empty-title {
+  color: #ffffff;
+}
+
+.theme-dark .empty-desc {
+  color: #999999;
+}
+
+.theme-dark .empty-action {
+  background: #06ae56;
+}
+
+/* 对话框 */
+.theme-dark .dialog-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.theme-dark .dialog-content {
+  background: #2d2d2d;
+}
+
+.theme-dark .dialog-title {
+  color: #ffffff;
+  border-bottom-color: #3a3a3a;
+}
+
+/* 切换模式标签 */
+.theme-dark .create-mode-tabs {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .tab {
+  color: #999999;
+}
+
+.theme-dark .tab.active {
+  color: #ffffff;
+}
+
+.theme-dark .tab.active::after {
+  background: #06ae56;
+}
+
+/* 自然语言模式 */
+.theme-dark .intent-name-input,
+.theme-dark .intent-desc-input {
+  background: #252525;
+  color: #ffffff;
+  border: 1rpx solid #3a3a3a;
+}
+
+.theme-dark .intent-name-input::placeholder,
+.theme-dark .intent-desc-input::placeholder {
+  color: #666666;
+}
+
+.theme-dark .ai-tips {
+  background: #2a2519;
+  border: 1rpx solid #4a4a2a;
+}
+
+.theme-dark .tips-text {
+  color: #cccccc;
+}
+
+/* 模板模式 */
+.theme-dark .template-item {
+  background: #252525;
+  border: 1rpx solid #3a3a3a;
+}
+
+.theme-dark .template-item:active {
+  background: #3a3a3a;
+}
+
+.theme-dark .template-name {
+  color: #ffffff;
+}
+
+.theme-dark .template-desc {
+  color: #cccccc;
+}
+
+.theme-dark .template-example {
+  color: #999999;
+}
+
+/* 配置项 */
+.theme-dark .config-section {
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .config-label {
+  color: #ffffff;
+}
+
+.theme-dark .config-value {
+  color: #ffffff;
+}
+
+.theme-dark .picker-value {
+  background: #252525;
+  color: #ffffff;
+  border: 1rpx solid #3a3a3a;
+}
+
+.theme-dark .picker-arrow {
+  color: #999999;
+}
+
+.theme-dark .config-input {
+  background: #252525;
+  color: #ffffff;
+  border: 1rpx solid #3a3a3a;
+}
+
+/* 对话框按钮 */
+.theme-dark .dialog-actions {
+  border-top-color: #3a3a3a;
+  background: #2d2d2d;
+}
+
+.theme-dark .cancel-btn {
+  color: #999999;
+  border-right-color: #3a3a3a;
+}
+
+.theme-dark .cancel-btn:active {
+  background: #3a3a3a;
+}
+
+.theme-dark .confirm-btn {
+  color: #06ae56;
+}
+
+.theme-dark .confirm-btn:active {
+  background: #3a3a3a;
+}
+
+/* 滑块组件深色模式 */
+.theme-dark slider {
+  /* 微信小程序slider组件深色模式适配 */
+}
+
+.theme-dark .config-control slider {
+  background-color: #3a3a3a;
+}
+
+/* 开关组件深色模式 */
+.theme-dark switch[checked] .wx-switch-input {
+  background-color: #06ae56 !important;
+  border-color: #06ae56 !important;
+}
+
+.theme-dark switch .wx-switch-input {
+  background-color: #4a4a4a !important;
+  border-color: #4a4a4a !important;
+}

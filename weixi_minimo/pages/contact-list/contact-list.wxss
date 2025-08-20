@@ -315,24 +315,24 @@
   padding: 0;
 }
 
-/* 滑动操作容器 */
-.contact-item-wrapper {
+/* 滑动容器 */
+.swipe-container {
   position: relative;
+  margin: 0 16rpx 16rpx;
   overflow: hidden;
   background: #FFFFFF;
-  margin: 0 16rpx 16rpx;
   border-radius: 12rpx;
   border: 1rpx solid #E5E5E5;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.contact-item-wrapper:hover {
+.swipe-container:hover {
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
   transform: translateY(-2rpx);
 }
 
-.contact-item-wrapper.high-match {
+.swipe-container.high-match {
   background: linear-gradient(135deg, rgba(7, 193, 96, 0.03), rgba(6, 174, 86, 0.03));
   border-left: 4rpx solid #07c160;
 }
@@ -341,11 +341,12 @@
 .swipe-actions {
   position: absolute;
   top: 0;
-  right: 0;
-  bottom: 0;
-  width: 160rpx;
+  right: -200rpx;
+  height: 100%;
+  width: 200rpx;
   display: flex;
   z-index: 1;
+  transition: right 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .action-btn {
@@ -357,11 +358,12 @@
   color: #ffffff;
   font-size: 22rpx;
   font-weight: 500;
-  min-height: 100%;
-  padding: 20rpx 8rpx;
+  height: 100%;
+  padding: 16rpx 4rpx;
   transition: all 0.2s ease;
   border: none;
   outline: none;
+  box-sizing: border-box;
 }
 
 .action-btn:active {
@@ -403,7 +405,7 @@
   align-items: center;
   padding: 24rpx;
   position: relative;
-  background: #FFFFFF;
+  background: transparent;
   z-index: 2;
   transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   width: 100%;
@@ -411,8 +413,13 @@
 }
 
 .contact-item.swiped {
-  transform: translateX(-160rpx);
+  transform: translateX(-200rpx);
 }
+
+.contact-item.swiped + .swipe-actions {
+  right: 0;
+}
+
 
 .contact-item:active {
   background: rgba(0, 0, 0, 0.02);
@@ -735,18 +742,18 @@
   background-color: #06ae56;
 }
 
-.theme-dark .contact-item-wrapper {
+.theme-dark .swipe-container {
   background-color: #2d2d2d;
   border-color: #3a3a3a;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.2);
 }
 
-.theme-dark .contact-item-wrapper:hover {
+.theme-dark .swipe-container:hover {
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.3);
   transform: translateY(-2rpx);
 }
 
-.theme-dark .contact-item-wrapper.high-match {
+.theme-dark .swipe-container.high-match {
   background: linear-gradient(135deg, rgba(6, 174, 86, 0.1), rgba(7, 193, 96, 0.1));
   border-left-color: #06ae56;
 }

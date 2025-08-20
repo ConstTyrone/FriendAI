@@ -1,5 +1,5 @@
 <!--意图管理页面-->
-<view class="intent-page">
+<view class="intent-page {{themeClass}}">
   <!-- 顶部操作栏 -->
   <view class="top-bar">
     <text class="page-title">我的意图</text>
@@ -143,8 +143,8 @@
               <slider min="50" max="95" value="{{formData.threshold}}" 
                       bindchange="onThresholdChange"
                       block-size="20"
-                      block-color="#000000"
-                      activeColor="#000000"/>
+                      block-color="{{theme === 'dark' ? '#06ae56' : '#000000'}}"
+                      activeColor="{{theme === 'dark' ? '#06ae56' : '#000000'}}"/>
               <text class="config-value">{{formData.threshold}}%</text>
             </view>
           </view>

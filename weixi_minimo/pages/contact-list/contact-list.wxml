@@ -118,8 +118,7 @@
         <view 
           wx:for="{{contacts}}"
           wx:key="id"
-          class="contact-item-wrapper {{item.isHighMatch ? 'high-match' : ''}}"
-          data-contact="{{item}}"
+          class="swipe-container {{item.isHighMatch ? 'high-match' : ''}}" 
           data-index="{{index}}"
         >
           <!-- 联系人主体内容 -->
