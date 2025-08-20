@@ -198,8 +198,13 @@ class SemanticSearchEngine {
     });
 
     // 7. 通用关键词提取
-    const words = query.split(/[，,。.！!？?\s]+/).filter(word => word.length > 1);
+    const words = query.split(/[，,。.！!？?\s]+/).filter(word => word.length > 0);
     conditions.keywords = [...new Set([...conditions.keywords, ...words])];
+
+    // 8. 确保至少有查询关键词（兜底逻辑）
+    if (conditions.keywords.length === 0 && query.trim()) {
+      conditions.keywords.push(query.trim());
+    }
 
     return conditions;
   }
@@ -269,40 +274,78 @@ class SemanticSearchEngine {
    */
   calculateMatchScore(contact, conditions) {
     let score = 0;
-    let maxScore = 0;
+    let totalWeight = 0;
 
-    // 1. 姓名匹配（权重1.0）
+    // 1. 直接文本匹配（最重要）- 对原始查询进行全字段匹配
+    const originalQuery = conditions.original.toLowerCase();
+    let directMatch = 0;
+    
+    // 姓名直接匹配（权重最高）
+    if (contact.profile_name && contact.profile_name.toLowerCase().includes(originalQuery)) {
+      directMatch = Math.max(directMatch, 1.0);
+    }
+    
+    // 公司匹配
+    if (contact.company && contact.company.toLowerCase().includes(originalQuery)) {
+      directMatch = Math.max(directMatch, 0.8);
+    }
+    
+    // 职位匹配
+    if (contact.position && contact.position.toLowerCase().includes(originalQuery)) {
+      directMatch = Math.max(directMatch, 0.7);
+    }
+    
+    // 地域匹配
+    if (contact.location && contact.location.toLowerCase().includes(originalQuery)) {
+      directMatch = Math.max(directMatch, 0.6);
+    }
+    
+    // 其他字段匹配
+    const otherFields = [contact.education, contact.personality, contact.ai_summary];
+    otherFields.forEach(field => {
+      if (field && field.toLowerCase().includes(originalQuery)) {
+        directMatch = Math.max(directMatch, 0.4);
+      }
+    });
+
+    // 如果有直接匹配，给它很高的权重
+    if (directMatch > 0) {
+      score += directMatch * 10; // 直接匹配权重10
+      totalWeight += 10;
+    }
+
+    // 2. 关键词匹配（权重1.0）
     if (conditions.keywords.length > 0) {
-      maxScore += 1.0;
+      totalWeight += 1.0;
       const nameMatch = this.matchKeywords(contact.profile_name || '', conditions.keywords);
       score += nameMatch * 1.0;
     }
 
-    // 2. 年龄匹配（权重0.8）
+    // 3. 年龄匹配（权重0.8）
     if (conditions.age) {
-      maxScore += 0.8;
+      totalWeight += 0.8;
       const ageMatch = this.matchAge(contact.age, conditions.age);
       score += ageMatch * 0.8;
     }
 
-    // 3. 性别匹配（权重0.6）
+    // 4. 性别匹配（权重0.6）
     if (conditions.gender) {
-      maxScore += 0.6;
+      totalWeight += 0.6;
       if (contact.gender === conditions.gender) {
         score += 0.6;
       }
     }
 
-    // 4. 地域匹配（权重0.7）
+    // 5. 地域匹配（权重0.7）
     if (conditions.location.length > 0) {
-      maxScore += 0.7;
+      totalWeight += 0.7;
       const locationMatch = this.matchKeywords(contact.location || '', conditions.location);
       score += locationMatch * 0.7;
     }
 
-    // 5. 职业匹配（权重0.9）
+    // 6. 职业匹配（权重0.9）
     if (conditions.profession.length > 0) {
-      maxScore += 0.9;
+      totalWeight += 0.9;
       const professionMatch = Math.max(
         this.matchKeywords(contact.company || '', conditions.profession),
         this.matchKeywords(contact.position || '', conditions.profession)
@@ -310,25 +353,25 @@ class SemanticSearchEngine {
       score += professionMatch * 0.9;
     }
 
-    // 6. 学历匹配（权重0.5）
+    // 7. 学历匹配（权重0.5）
     if (conditions.education.length > 0) {
-      maxScore += 0.5;
+      totalWeight += 0.5;
       const educationMatch = this.matchKeywords(contact.education || '', conditions.education);
       score += educationMatch * 0.5;
     }
 
-    // 7. 性格匹配（权重0.4）
+    // 8. 性格匹配（权重0.4）
     if (conditions.personality.length > 0) {
-      maxScore += 0.4;
+      totalWeight += 0.4;
       const personalityMatch = this.matchKeywords(contact.personality || '', conditions.personality);
       score += personalityMatch * 0.4;
     }
 
     // 如果没有任何匹配条件，返回0
-    if (maxScore === 0) return 0;
+    if (totalWeight === 0) return 0;
 
     // 返回标准化分数
-    return Math.min(score / maxScore, 1.0);
+    return Math.min(score / totalWeight, 1.0);
   }
 
   /**
@@ -434,13 +477,33 @@ class SemanticSearchEngine {
     // 1. 解析查询
     const conditions = this.parseQuery(query);
     
+    // 调试输出
+    console.log('搜索调试信息:', {
+      query: query,
+      conditions: conditions,
+      contactsCount: contacts.length
+    });
+    
     // 2. 计算匹配度
-    const results = contacts.map(contact => ({
-      ...contact,
-      matchScore: this.calculateMatchScore(contact, conditions),
-      searchConditions: conditions
-    })).filter(contact => contact.matchScore > 0.1) // 过滤低匹配度结果
-      .sort((a, b) => b.matchScore - a.matchScore); // 按匹配度排序
+    const results = contacts.map(contact => {
+      const matchScore = this.calculateMatchScore(contact, conditions);
+      return {
+        ...contact,
+        matchScore,
+        searchConditions: conditions
+      };
+    }).filter(contact => contact.matchScore > 0.01); // 降低过滤阈值，保留更多可能的匹配
+
+    // 调试输出前5个匹配结果
+    console.log('匹配结果调试:', results.slice(0, 5).map(r => ({
+      name: r.profile_name,
+      score: r.matchScore,
+      company: r.company,
+      position: r.position
+    })));
+
+    // 按匹配度排序
+    results.sort((a, b) => b.matchScore - a.matchScore);
 
     // 3. 生成分析
     const analysis = this.generateAnalysis(results, conditions);
