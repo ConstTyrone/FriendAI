@@ -140,6 +140,39 @@
   background: #E5E5E5;
 }
 
+/* 快捷操作按钮 */
+.quick-actions {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8rpx;
+  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.2);
+  transition: all 0.3s ease;
+}
+
+.quick-action-btn:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(102, 126, 234, 0.3);
+}
+
+.quick-action-btn .action-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.quick-action-btn .action-text {
+  font-size: 24rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+}
+
 /* 列表容器 */
 .list-container {
   padding: 0;
@@ -719,6 +752,11 @@
 
 .theme-dark .stat-divider {
   background-color: #3a3a3a;
+}
+
+.theme-dark .quick-action-btn {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
 }
 
 .theme-dark .loading-spinner {

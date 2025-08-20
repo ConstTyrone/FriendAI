@@ -130,8 +130,17 @@ Page({
         return;
       }
       
+      // 检查是否为导入模式
+      const app = getApp();
+      if (this.data.mode === 'import' && app.globalData.importContactData) {
+        console.log('导入模式：预填充通讯录数据');
+        this.loadImportData(app.globalData.importContactData);
+        // 清除全局数据
+        app.globalData.importContactData = null;
+        app.globalData.isImportMode = false;
+      }
       // 如果是编辑模式，加载联系人数据
-      if (this.data.mode === 'edit' && this.data.contactId) {
+      else if (this.data.mode === 'edit' && this.data.contactId) {
         await this.loadContactData();
       }
       
@@ -205,6 +214,51 @@ Page({
       
       throw error;
     }
+  },
+
+  /**
+   * 加载导入的联系人数据
+   */
+  loadImportData(importData) {
+    console.log('加载导入数据:', importData);
+    
+    // 预填充导入的数据
+    const formData = {
+      name: importData.profile_name || '',
+      phone: importData.phone || '',
+      wechat_id: '',
+      email: '',
+      company: importData.company || '',
+      position: importData.position || '',
+      address: importData.location || '',
+      notes: importData.notes || '从通讯录导入',
+      tags: Array.isArray(importData.tags) ? importData.tags : [],
+      gender: importData.gender || '',
+      age: importData.age || '',
+      marital_status: importData.marital_status || '',
+      education: importData.education || '',
+      asset_level: importData.asset_level || '',
+      personality: importData.personality || ''
+    };
+
+    // 设置选择器索引
+    const genderIndex = this.data.genderOptions.indexOf(formData.gender);
+    const maritalIndex = this.data.maritalOptions.indexOf(formData.marital_status);
+    const assetIndex = this.data.assetOptions.indexOf(formData.asset_level);
+
+    this.setData({
+      formData,
+      genderIndex: genderIndex >= 0 ? genderIndex : -1,
+      maritalIndex: maritalIndex >= 0 ? maritalIndex : -1,
+      assetIndex: assetIndex >= 0 ? assetIndex : -1
+    });
+
+    // 显示导入提示
+    wx.showToast({
+      title: '已预填充通讯录信息',
+      icon: 'success',
+      duration: 2000
+    });
   },
 
   /**

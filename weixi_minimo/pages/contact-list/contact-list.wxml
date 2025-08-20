@@ -89,6 +89,14 @@
         <text class="stat-label">今日新增</text>
       </view>
     </view>
+    
+    <!-- 快捷操作按钮 -->
+    <view class="quick-actions">
+      <view class="quick-action-btn" bind:tap="onImportFromPhoneBook">
+        <text class="action-icon">📱</text>
+        <text class="action-text">从通讯录导入</text>
+      </view>
+    </view>
   </view>
 
   <!-- 列表内容 -->

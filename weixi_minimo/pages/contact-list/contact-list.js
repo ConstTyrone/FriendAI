@@ -5,6 +5,7 @@ import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import themeManager from '../../utils/theme-manager';
 import semanticSearchEngine from '../../utils/semantic-search';
+import contactImporter from '../../utils/contact-importer';
 
 Page({
   data: {
@@ -1029,5 +1030,39 @@ Page({
     
     // 关闭所有滑动菜单
     this.closeAllSwipeMenus();
+  },
+
+  /**
+   * 从通讯录导入联系人
+   */
+  async onImportFromPhoneBook() {
+    try {
+      // 检查是否正在导入
+      if (contactImporter.isCurrentlyImporting()) {
+        wx.showToast({
+          title: '正在导入中...',
+          icon: 'none',
+          duration: 1500
+        });
+        return;
+      }
+
+      console.log('开始从通讯录导入联系人');
+      
+      // 开始导入流程
+      await contactImporter.importFromPhoneBook();
+      
+      // 导入完成后刷新列表
+      await this.refreshData();
+      
+    } catch (error) {
+      console.error('通讯录导入失败:', error);
+      
+      wx.showToast({
+        title: '导入失败: ' + (error.message || '未知错误'),
+        icon: 'none',
+        duration: 3000
+      });
+    }
   }
 });
