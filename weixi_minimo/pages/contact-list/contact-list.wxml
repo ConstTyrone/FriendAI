@@ -2,12 +2,6 @@
 <view class="contact-list-page {{themeClass}}" bind:tap="onPageTap">
   <!-- AI智能搜索栏 -->
   <view class="ai-search-header">
-    <!-- AI搜索标识 -->
-    <view class="ai-search-badge">
-      <text class="ai-icon">🤖</text>
-      <text class="ai-label">AI智能搜索</text>
-    </view>
-    
     <view class="search-box-container">
       <view class="search-input-wrapper">
         <!-- AI搜索图标 -->

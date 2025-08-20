@@ -895,41 +895,11 @@
   position: relative;
 }
 
-/* AI搜索标识 */
-.ai-search-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16rpx;
-  padding: 8rpx 16rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
-  align-self: flex-start;
-  max-width: 200rpx;
-}
-
-.ai-icon {
-  font-size: 24rpx;
-  margin-right: 8rpx;
-}
-
-.ai-label {
-  font-size: 24rpx;
-  color: #FFFFFF;
-  font-weight: 500;
-  letter-spacing: 0.5rpx;
-}
 
 /* 深色模式下的AI搜索 */
 .theme-dark .ai-search-header {
   background-color: #2d2d2d;
   border-bottom-color: #3a3a3a;
-}
-
-.theme-dark .ai-search-badge {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  box-shadow: 0 2rpx 8rpx rgba(79, 172, 254, 0.3);
 }
 
 .search-box-container {
