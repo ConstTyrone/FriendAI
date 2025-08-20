@@ -250,7 +250,11 @@ class SQLiteDatabase:
         wechat_user_id: str,
         limit: int = 20,
         offset: int = 0,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        age_min: Optional[int] = None,
+        age_max: Optional[int] = None,
+        gender: Optional[str] = None,
+        location: Optional[str] = None
     ) -> Tuple[List[Dict[str, Any]], int]:
         """获取用户的画像列表"""
         try:
@@ -260,19 +264,48 @@ class SQLiteDatabase:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # 构建查询
+                # 构建动态查询条件
+                where_conditions = []
+                params = []
+                
+                # 1. 文本搜索条件
                 if search:
-                    where_clause = '''
-                        WHERE profile_name LIKE ? 
-                        OR company LIKE ? 
-                        OR position LIKE ?
-                        OR personality LIKE ?
-                    '''
+                    text_conditions = [
+                        'profile_name LIKE ?',
+                        'company LIKE ?', 
+                        'position LIKE ?',
+                        'personality LIKE ?',
+                        'location LIKE ?',
+                        'education LIKE ?'
+                    ]
                     search_param = f'%{search}%'
-                    params = [search_param] * 4
+                    where_conditions.append(f'({" OR ".join(text_conditions)})')
+                    params.extend([search_param] * 6)
+                
+                # 2. 年龄范围条件
+                if age_min is not None:
+                    where_conditions.append('CAST(age AS INTEGER) >= ?')
+                    params.append(age_min)
+                
+                if age_max is not None:
+                    where_conditions.append('CAST(age AS INTEGER) <= ?')
+                    params.append(age_max)
+                
+                # 3. 性别精确匹配
+                if gender:
+                    where_conditions.append('gender = ?')
+                    params.append(gender)
+                
+                # 4. 地域匹配
+                if location:
+                    where_conditions.append('location LIKE ?')
+                    params.append(f'%{location}%')
+                
+                # 构建最终的WHERE子句
+                if where_conditions:
+                    where_clause = 'WHERE ' + ' AND '.join(where_conditions)
                 else:
                     where_clause = ''
-                    params = []
                 
                 # 获取总数
                 cursor.execute(f'SELECT COUNT(*) as total FROM {table_name} {where_clause}', params)

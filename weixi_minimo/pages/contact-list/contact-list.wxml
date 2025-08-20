@@ -5,22 +5,15 @@
     <view class="search-box-container">
       <view class="search-input-wrapper">
         <input 
-          class="search-input {{searchMode === 'intelligent' ? 'intelligent-mode' : ''}}"
+          class="search-input intelligent-mode"
           value="{{searchQuery}}"
-          placeholder="{{searchMode === 'intelligent' ? '智能搜索：姓名、公司、职位、特征...' : '搜索联系人姓名、公司、职位...'}}"
+          placeholder="智能搜索：30岁的程序员、在北京做金融的..."
           placeholder-class="search-placeholder"
           bindinput="onSearchChange"
           bindconfirm="onSearchSubmit"
           bindfocus="onSearchFocus"
           bindblur="onSearchBlur"
         />
-        
-        <!-- 搜索模式切换按钮 -->
-        <view class="search-mode-toggle" bind:tap="onToggleSearchMode">
-          <view class="mode-indicator {{searchMode}}">
-            <text class="mode-text">{{searchMode === 'intelligent' ? '智能' : '简单'}}</text>
-          </view>
-        </view>
         
         <!-- 搜索建议按钮 -->
         <view class="search-suggestions-btn" wx:if="{{!searchQuery}}" bind:tap="onToggleSearchPanel">
@@ -69,14 +62,14 @@
     </view>
   </view>
 
-  <!-- AI分析结果 -->
-  <view class="ai-analysis-section" wx:if="{{isIntelligentSearch && aiAnalysis}}">
+  <!-- 搜索分析结果 -->
+  <view class="ai-analysis-section" wx:if="{{searchQuery && searchAnalysis}}">
     <view class="analysis-card">
       <view class="analysis-header">
         <text class="analysis-icon">🧠</text>
-        <text class="analysis-title">AI分析</text>
+        <text class="analysis-title">智能分析</text>
       </view>
-      <text class="analysis-text">{{aiAnalysis}}</text>
+      <text class="analysis-text">{{searchAnalysis}}</text>
     </view>
   </view>
 
@@ -131,9 +124,9 @@
           data-contact="{{item}}"
         >
           <!-- 匹配度标识 -->
-          <view class="match-indicator" wx:if="{{isIntelligentSearch && item.matchScore}}">
+          <view class="match-indicator" wx:if="{{searchQuery && item.matchScore}}">
             <view class="match-badge {{item.isHighMatch ? 'high' : 'normal'}}">
-              <text class="match-text">{{(item.matchScore * 100).toFixed(0)}}%</text>
+              <text class="match-text">{{item.matchPercentage}}%</text>
             </view>
           </view>
           
@@ -144,7 +137,7 @@
           <view class="item-content">
             <view class="item-header">
               <text class="item-name">{{item.profile_name || item.name || '未知'}}</text>
-              <view class="match-star" wx:if="{{isIntelligentSearch && item.isHighMatch}}">⭐</view>
+              <view class="match-star" wx:if="{{searchQuery && item.isHighMatch}}">⭐</view>
             </view>
             <text class="item-detail" wx:if="{{item.company || item.position}}">
               {{item.company}}{{item.company && item.position ? ' · ' : ''}}{{item.position}}

@@ -1,9 +1,10 @@
-import { UI_CONFIG, PAGE_ROUTES, EVENT_TYPES, SEARCH_SUGGESTIONS } from '../../utils/constants';
+import { UI_CONFIG, PAGE_ROUTES, EVENT_TYPES } from '../../utils/constants';
 import { formatContactDisplayName, getNameInitial, getAvatarColor } from '../../utils/format-utils';
 import { isValidSearchQuery } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import themeManager from '../../utils/theme-manager';
+import semanticSearchEngine from '../../utils/semantic-search';
 
 Page({
   data: {
@@ -28,12 +29,21 @@ Page({
     searchTimer: null,
     
     // 智能搜索相关
-    searchMode: 'simple', // 'simple' | 'intelligent'
     showSearchPanel: false,
-    searchSuggestions: SEARCH_SUGGESTIONS,
+    searchSuggestions: [
+      '30岁的程序员',
+      '在北京做金融的',
+      '年轻的设计师',
+      '有经验的销售',
+      '做医生的朋友',
+      '互联网行业',
+      '从事教育工作',
+      '上海的律师'
+    ],
     searchHistory: [],
-    aiAnalysis: '',
-    isIntelligentSearch: false,
+    searchAnalysis: '',
+    allContacts: [], // 缓存所有联系人用于本地搜索
+    isSearching: false,
     searchFocused: false
   },
 
@@ -159,13 +169,18 @@ Page({
       this.setData({ loading: true });
       
       // 并行加载联系人数据和统计信息
-      const [contactsResult] = await Promise.allSettled([
+      const [contactsResult, statsResult] = await Promise.allSettled([
         this.loadContacts(1, false, forceRefresh),
         this.loadStats()
       ]);
       
       if (contactsResult.status === 'fulfilled') {
         console.log('初始数据加载完成');
+        
+        // 在后台预加载所有联系人数据用于智能搜索
+        this.ensureAllContactsLoaded().catch(error => {
+          console.error('预加载搜索数据失败:', error);
+        });
       } else {
         console.error('加载联系人数据失败:', contactsResult.reason);
         wx.showToast({
@@ -377,74 +392,52 @@ Page({
   },
 
   /**
-   * 执行搜索
+   * 执行智能搜索
    */
   async performSearch(query) {
     try {
       this.setData({ 
-        loading: true,
-        currentPage: 1,
-        hasMore: true,
+        isSearching: true,
         showSearchPanel: false
       });
-      
-      // 判断是否使用智能搜索
-      if (query.trim() && this.data.searchMode === 'intelligent') {
-        await this.performIntelligentSearch(query.trim());
-      } else {
-        // 普通搜索，使用现有逻辑
-        await this.loadContacts(1, false, true);
-        this.setData({ 
-          isIntelligentSearch: false,
-          aiAnalysis: ''
-        });
-      }
-      
-      // 保存搜索历史
-      if (query.trim()) {
-        dataManager.addSearchHistory(query.trim());
-        this.loadSearchHistory();
-      }
-      
-    } catch (error) {
-      console.error('搜索失败:', error);
-      wx.showToast({
-        title: '搜索失败',
-        icon: 'error'
-      });
-    }
-  },
 
-  /**
-   * 智能搜索执行
-   */
-  async performIntelligentSearch(query) {
-    try {
-      // 验证搜索关键词
-      if (!isValidSearchQuery(query)) {
-        wx.showToast({
-          title: '搜索内容格式不正确',
-          icon: 'none'
+      if (!query.trim()) {
+        // 空查询，显示所有联系人
+        this.setData({
+          contacts: this.data.allContacts,
+          searchAnalysis: '',
+          isSearching: false
         });
         return;
       }
 
-      // 调用语义搜索API
-      const result = await dataManager.searchContacts(query);
+      // 确保有完整的联系人数据用于本地搜索
+      await this.ensureAllContactsLoaded();
+
+      // 使用语义搜索引擎进行本地搜索
+      const searchResult = semanticSearchEngine.search(this.data.allContacts, query.trim());
       
-      // 智能匹配度计算和结果处理
-      const processedResults = this.processSearchResults(result.profiles || [], query);
-      
-      // 生成AI分析
-      const analysis = this.generateAIAnalysis(processedResults, query);
-      
+      // 处理搜索结果，添加显示所需的字段
+      const processedResults = searchResult.results.map(contact => ({
+        ...contact,
+        displayName: formatContactDisplayName(contact),
+        initial: getNameInitial(contact.profile_name || contact.name),
+        avatarColor: getAvatarColor(contact.profile_name || contact.name),
+        matchPercentage: Math.round(contact.matchScore * 100),
+        isHighMatch: contact.matchScore > 0.7,
+        formattedTags: this.formatContactTags(contact)
+      }));
+
       this.setData({
         contacts: processedResults,
-        aiAnalysis: analysis,
-        isIntelligentSearch: true,
-        loading: false,
+        searchAnalysis: searchResult.analysis,
+        isSearching: false,
         hasMore: false // 搜索结果不分页
       });
+
+      // 保存搜索历史
+      dataManager.addSearchHistory(query.trim());
+      this.loadSearchHistory();
 
       // 显示搜索完成提示
       wx.showToast({
@@ -457,9 +450,9 @@ Page({
       console.error('智能搜索失败:', error);
       
       this.setData({
-        loading: false,
+        isSearching: false,
         contacts: [],
-        aiAnalysis: ''
+        searchAnalysis: ''
       });
       
       wx.showToast({
@@ -470,113 +463,36 @@ Page({
   },
 
   /**
-   * 处理搜索结果（从AI搜索页面移植）
+   * 确保所有联系人都已加载到本地缓存
    */
-  processSearchResults(results, query) {
-    return results.map(contact => {
-      // 计算匹配度
-      const matchScore = this.calculateMatchScore(contact, query);
+  async ensureAllContactsLoaded() {
+    if (this.data.allContacts.length > 0) {
+      return; // 已有缓存数据
+    }
+
+    try {
+      // 获取所有联系人数据（不分页）
+      const result = await dataManager.getContacts({
+        page: 1,
+        pageSize: 1000, // 获取足够大的数量
+        search: '', // 空搜索获取所有数据
+        forceRefresh: false
+      });
+
+      const processedContacts = this.processContacts(result.profiles || []);
       
-      return {
-        ...contact,
-        displayName: formatContactDisplayName(contact),
-        initial: getNameInitial(contact.profile_name || contact.name),
-        avatarColor: getAvatarColor(contact.profile_name || contact.name),
-        matchScore,
-        isHighMatch: matchScore > 0.8,
-        formattedTags: this.formatContactTags(contact)
-      };
-    }).sort((a, b) => b.matchScore - a.matchScore); // 按匹配度排序
+      this.setData({
+        allContacts: processedContacts
+      });
+
+      console.log(`已缓存 ${processedContacts.length} 个联系人用于本地搜索`);
+      
+    } catch (error) {
+      console.error('加载所有联系人失败:', error);
+      throw error;
+    }
   },
 
-  /**
-   * 计算匹配度（从AI搜索页面移植）
-   */
-  calculateMatchScore(contact, query) {
-    const lowerQuery = query.toLowerCase();
-    let score = 0;
-    
-    // 姓名匹配（权重最高）
-    if (contact.profile_name && contact.profile_name.toLowerCase().includes(lowerQuery)) {
-      score += 1.0;
-    }
-    
-    // 公司匹配
-    if (contact.company && contact.company.toLowerCase().includes(lowerQuery)) {
-      score += 0.7;
-    }
-    
-    // 职位匹配
-    if (contact.position && contact.position.toLowerCase().includes(lowerQuery)) {
-      score += 0.6;
-    }
-    
-    // 地区匹配
-    if (contact.location && contact.location.toLowerCase().includes(lowerQuery)) {
-      score += 0.5;
-    }
-    
-    // AI摘要匹配
-    if (contact.ai_summary && contact.ai_summary.toLowerCase().includes(lowerQuery)) {
-      score += 0.4;
-    }
-    
-    // 其他字段匹配
-    const otherFields = [contact.education, contact.marital_status, contact.personality];
-    otherFields.forEach(field => {
-      if (field && field.toLowerCase().includes(lowerQuery)) {
-        score += 0.2;
-      }
-    });
-    
-    return Math.min(score, 1.0); // 最大值为1.0
-  },
-
-  /**
-   * 格式化联系人标签（从AI搜索页面移植）
-   */
-  formatContactTags(contact) {
-    const tags = [];
-    
-    if (contact.age) tags.push(`${contact.age}岁`);
-    if (contact.gender) tags.push(contact.gender);
-    if (contact.location) tags.push(contact.location);
-    if (contact.asset_level) tags.push(`${contact.asset_level}资产`);
-    if (contact.marital_status) tags.push(contact.marital_status);
-    
-    return tags.slice(0, 4); // 最多显示4个标签
-  },
-
-  /**
-   * 生成AI分析（从AI搜索页面移植）
-   */
-  generateAIAnalysis(results, query) {
-    if (results.length === 0) {
-      return `抱歉，没有找到与"${query}"相关的联系人。建议尝试其他关键词或使用更具体的描述。`;
-    }
-    
-    const highMatchCount = results.filter(r => r.isHighMatch).length;
-    const locations = [...new Set(results.map(r => r.location).filter(Boolean))];
-    const companies = [...new Set(results.map(r => r.company).filter(Boolean))];
-    
-    let analysis = `找到 ${results.length} 个相关联系人`;
-    
-    if (highMatchCount > 0) {
-      analysis += `，其中 ${highMatchCount} 个高度匹配`;
-    }
-    
-    if (locations.length > 0) {
-      analysis += `。主要分布在：${locations.slice(0, 3).join('、')}`;
-    }
-    
-    if (companies.length > 0) {
-      analysis += `。主要来自：${companies.slice(0, 3).join('、')}等公司`;
-    }
-    
-    analysis += '。';
-    
-    return analysis;
-  },
 
   /**
    * 加载搜索历史
@@ -594,24 +510,6 @@ Page({
     }
   },
 
-  /**
-   * 搜索模式切换
-   */
-  onToggleSearchMode() {
-    const newMode = this.data.searchMode === 'simple' ? 'intelligent' : 'simple';
-    this.setData({ searchMode: newMode });
-    
-    // 如果当前有搜索词，重新执行搜索
-    if (this.data.searchQuery.trim()) {
-      this.performSearch(this.data.searchQuery);
-    }
-    
-    wx.showToast({
-      title: newMode === 'intelligent' ? '已切换到智能搜索' : '已切换到简单搜索',
-      icon: 'success',
-      duration: 1500
-    });
-  },
 
   /**
    * 搜索面板切换
@@ -651,8 +549,7 @@ Page({
   onSuggestionTap(event) {
     const suggestion = event.currentTarget.dataset.text;
     this.setData({ 
-      searchQuery: suggestion,
-      searchMode: 'intelligent' // 自动切换到智能搜索
+      searchQuery: suggestion
     });
     this.performSearch(suggestion);
   },
@@ -663,8 +560,7 @@ Page({
   onHistoryTap(event) {
     const history = event.currentTarget.dataset.text;
     this.setData({ 
-      searchQuery: history,
-      searchMode: 'intelligent' // 自动切换到智能搜索
+      searchQuery: history
     });
     this.performSearch(history);
   },

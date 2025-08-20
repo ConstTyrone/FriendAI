@@ -523,9 +523,13 @@ async def get_user_stats(current_user: str = Depends(verify_user_token)):
 async def search_profiles(
     q: str,
     limit: int = 20,
+    age_min: Optional[int] = None,
+    age_max: Optional[int] = None,
+    gender: Optional[str] = None,
+    location: Optional[str] = None,
     current_user: str = Depends(verify_user_token)
 ):
-    """搜索用户画像"""
+    """智能搜索用户画像 - 支持多维度条件"""
     try:
         if not q or len(q.strip()) < 1:
             raise HTTPException(
@@ -538,20 +542,30 @@ async def search_profiles(
             wechat_user_id=query_user_id,
             search=q.strip(),
             limit=limit,
-            offset=0
+            offset=0,
+            age_min=age_min,
+            age_max=age_max,
+            gender=gender,
+            location=location
         )
         
         return {
             "success": True,
             "total": total,
             "profiles": profiles,
-            "query": q.strip()
+            "query": q.strip(),
+            "filters": {
+                "age_min": age_min,
+                "age_max": age_max,
+                "gender": gender,
+                "location": location
+            }
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"搜索画像失败: {e}")
+        logger.error(f"智能搜索失败: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="搜索失败"

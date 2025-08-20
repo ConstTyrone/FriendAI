@@ -663,42 +663,17 @@
   border: 1px solid #3a3a3a;
 }
 
+/* 智能搜索标识 */
 .search-input.intelligent-mode {
   font-weight: 600;
   color: #07c160;
+  border-left: 4rpx solid #07c160;
+  padding-left: 16rpx;
 }
 
 .theme-dark .search-input.intelligent-mode {
   color: #06ae56;
-}
-
-/* 搜索模式切换 */
-.search-mode-toggle {
-  margin-left: 10rpx;
-}
-
-.mode-indicator {
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.mode-indicator.simple {
-  background-color: #F0F0F0;
-  color: #666666;
-}
-
-.theme-dark .mode-indicator.simple {
-  background-color: #3a3a3a;
-  color: #cccccc;
-}
-
-.mode-indicator.intelligent {
-  background: linear-gradient(45deg, #07c160, #06ae56);
-  color: white;
-  box-shadow: 0 2rpx 8rpx rgba(7, 193, 96, 0.3);
+  border-left-color: #06ae56;
 }
 
 .search-suggestions-btn {
