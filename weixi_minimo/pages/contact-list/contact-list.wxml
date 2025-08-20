@@ -1,19 +1,82 @@
 <!--联系人列表页面-->
 <view class="contact-list-page {{themeClass}}">
-  <!-- 搜索栏 -->
-  <view class="search-header">
-    <view class="search-box">
-      <input 
-        class="search-input"
-        value="{{searchQuery}}"
-        placeholder="搜索联系人姓名、公司、职位..."
-        placeholder-class="search-placeholder"
-        bindinput="onSearchChange"
-        bindconfirm="onSearchSubmit"
-      />
+  <!-- 增强搜索栏 -->
+  <view class="enhanced-search-header">
+    <view class="search-box-container">
+      <view class="search-input-wrapper">
+        <input 
+          class="search-input {{searchMode === 'intelligent' ? 'intelligent-mode' : ''}}"
+          value="{{searchQuery}}"
+          placeholder="{{searchMode === 'intelligent' ? '智能搜索：姓名、公司、职位、特征...' : '搜索联系人姓名、公司、职位...'}}"
+          placeholder-class="search-placeholder"
+          bindinput="onSearchChange"
+          bindconfirm="onSearchSubmit"
+          bindfocus="onSearchFocus"
+          bindblur="onSearchBlur"
+        />
+        
+        <!-- 搜索模式切换按钮 -->
+        <view class="search-mode-toggle" bind:tap="onToggleSearchMode">
+          <view class="mode-indicator {{searchMode}}">
+            <text class="mode-text">{{searchMode === 'intelligent' ? '智能' : '简单'}}</text>
+          </view>
+        </view>
+        
+        <!-- 搜索建议按钮 -->
+        <view class="search-suggestions-btn" wx:if="{{!searchQuery}}" bind:tap="onToggleSearchPanel">
+          <text class="suggestion-icon">▼</text>
+        </view>
+      </view>
+      
+      <!-- 清除按钮 -->
       <view class="search-clear" wx:if="{{searchQuery}}" bind:tap="onSearchClear">
         <text class="clear-text">清除</text>
       </view>
+    </view>
+
+    <!-- 搜索建议面板 -->
+    <view class="search-panel {{showSearchPanel ? 'show' : ''}}">
+      <!-- 搜索历史 -->
+      <view class="search-section" wx:if="{{searchHistory.length > 0}}">
+        <view class="section-header">
+          <text class="section-title">最近搜索</text>
+          <text class="clear-history" bind:tap="onClearHistory">清除</text>
+        </view>
+        <view class="search-tags">
+          <text 
+            class="search-tag history-tag" 
+            wx:for="{{searchHistory}}" 
+            wx:key="*this"
+            bind:tap="onHistoryTap"
+            data-text="{{item}}"
+          >{{item}}</text>
+        </view>
+      </view>
+      
+      <!-- 智能建议 -->
+      <view class="search-section">
+        <view class="section-title">智能建议</view>
+        <view class="search-tags">
+          <text 
+            class="search-tag suggestion-tag" 
+            wx:for="{{searchSuggestions}}" 
+            wx:key="*this"
+            bind:tap="onSuggestionTap"
+            data-text="{{item}}"
+          >{{item}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- AI分析结果 -->
+  <view class="ai-analysis-section" wx:if="{{isIntelligentSearch && aiAnalysis}}">
+    <view class="analysis-card">
+      <view class="analysis-header">
+        <text class="analysis-icon">🧠</text>
+        <text class="analysis-title">AI分析</text>
+      </view>
+      <text class="analysis-text">{{aiAnalysis}}</text>
     </view>
   </view>
 
@@ -62,17 +125,27 @@
         <view 
           wx:for="{{contacts}}"
           wx:key="id"
-          class="contact-item"
+          class="contact-item {{item.isHighMatch ? 'high-match' : ''}}"
           bind:tap="onContactTap"
           bind:longpress="onContactLongPress"
           data-contact="{{item}}"
         >
-          <view class="item-avatar">
+          <!-- 匹配度标识 -->
+          <view class="match-indicator" wx:if="{{isIntelligentSearch && item.matchScore}}">
+            <view class="match-badge {{item.isHighMatch ? 'high' : 'normal'}}">
+              <text class="match-text">{{(item.matchScore * 100).toFixed(0)}}%</text>
+            </view>
+          </view>
+          
+          <view class="item-avatar" style="background-color: {{item.avatarColor}}">
             <text class="avatar-text">{{item.initial}}</text>
           </view>
           
           <view class="item-content">
-            <text class="item-name">{{item.profile_name || item.name || '未知'}}</text>
+            <view class="item-header">
+              <text class="item-name">{{item.profile_name || item.name || '未知'}}</text>
+              <view class="match-star" wx:if="{{isIntelligentSearch && item.isHighMatch}}">⭐</view>
+            </view>
             <text class="item-detail" wx:if="{{item.company || item.position}}">
               {{item.company}}{{item.company && item.position ? ' · ' : ''}}{{item.position}}
             </text>

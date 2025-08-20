@@ -24,12 +24,6 @@ Component({
         highlight: true  // 突出显示这个重要功能
       },
       {
-        key: 'ai-search', 
-        text: '搜索',
-        icon: 'search',  // 改为搜索图标更直观
-        path: '/pages/ai-search/ai-search'
-      },
-      {
         key: 'settings',
         text: '设置',
         icon: 'tools',
@@ -65,7 +59,6 @@ Component({
       const mainPages = [
         'pages/contact-list/contact-list',
         'pages/intent-manager/intent-manager',
-        'pages/ai-search/ai-search', 
         'pages/settings/settings'
       ];
 

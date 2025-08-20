@@ -222,18 +222,4 @@
   background: rgba(24, 144, 255, 0.04);
 }
 
-/* 暗黑模式支持 */
-@media (prefers-color-scheme: dark) {
-  .custom-tabbar {
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 20%, rgba(0, 0, 0, 1) 100%);
-    border-top-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .tab-text {
-    color: #cccccc;
-  }
-  
-  .tab-item.active {
-    background: rgba(24, 144, 255, 0.15);
-  }
-}
+/* 移除重复的媒体查询，统一使用 .theme-dark 类名 */

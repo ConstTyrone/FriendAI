@@ -1,5 +1,6 @@
-import { UI_CONFIG, PAGE_ROUTES, EVENT_TYPES } from '../../utils/constants';
+import { UI_CONFIG, PAGE_ROUTES, EVENT_TYPES, SEARCH_SUGGESTIONS } from '../../utils/constants';
 import { formatContactDisplayName, getNameInitial, getAvatarColor } from '../../utils/format-utils';
+import { isValidSearchQuery } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import themeManager from '../../utils/theme-manager';
@@ -24,7 +25,16 @@ Page({
     selectedContact: null,
     
     // 搜索防抖定时器
-    searchTimer: null
+    searchTimer: null,
+    
+    // 智能搜索相关
+    searchMode: 'simple', // 'simple' | 'intelligent'
+    showSearchPanel: false,
+    searchSuggestions: SEARCH_SUGGESTIONS,
+    searchHistory: [],
+    aiAnalysis: '',
+    isIntelligentSearch: false,
+    searchFocused: false
   },
 
   onLoad(options) {
@@ -61,6 +71,9 @@ Page({
     
     // 每次显示时刷新数据
     this.refreshData();
+    
+    // 加载搜索历史
+    this.loadSearchHistory();
     
     // 设置页面标题
     wx.setNavigationBarTitle({
@@ -371,15 +384,26 @@ Page({
       this.setData({ 
         loading: true,
         currentPage: 1,
-        hasMore: true 
+        hasMore: true,
+        showSearchPanel: false
       });
       
-      // 搜索时强制刷新，确保获取最新数据
-      await this.loadContacts(1, false, true);
+      // 判断是否使用智能搜索
+      if (query.trim() && this.data.searchMode === 'intelligent') {
+        await this.performIntelligentSearch(query.trim());
+      } else {
+        // 普通搜索，使用现有逻辑
+        await this.loadContacts(1, false, true);
+        this.setData({ 
+          isIntelligentSearch: false,
+          aiAnalysis: ''
+        });
+      }
       
       // 保存搜索历史
       if (query.trim()) {
         dataManager.addSearchHistory(query.trim());
+        this.loadSearchHistory();
       }
       
     } catch (error) {
@@ -389,6 +413,281 @@ Page({
         icon: 'error'
       });
     }
+  },
+
+  /**
+   * 智能搜索执行
+   */
+  async performIntelligentSearch(query) {
+    try {
+      // 验证搜索关键词
+      if (!isValidSearchQuery(query)) {
+        wx.showToast({
+          title: '搜索内容格式不正确',
+          icon: 'none'
+        });
+        return;
+      }
+
+      // 调用语义搜索API
+      const result = await dataManager.searchContacts(query);
+      
+      // 智能匹配度计算和结果处理
+      const processedResults = this.processSearchResults(result.profiles || [], query);
+      
+      // 生成AI分析
+      const analysis = this.generateAIAnalysis(processedResults, query);
+      
+      this.setData({
+        contacts: processedResults,
+        aiAnalysis: analysis,
+        isIntelligentSearch: true,
+        loading: false,
+        hasMore: false // 搜索结果不分页
+      });
+
+      // 显示搜索完成提示
+      wx.showToast({
+        title: `找到${processedResults.length}个结果`,
+        icon: 'success',
+        duration: 1500
+      });
+      
+    } catch (error) {
+      console.error('智能搜索失败:', error);
+      
+      this.setData({
+        loading: false,
+        contacts: [],
+        aiAnalysis: ''
+      });
+      
+      wx.showToast({
+        title: '搜索失败，请重试',
+        icon: 'error'
+      });
+    }
+  },
+
+  /**
+   * 处理搜索结果（从AI搜索页面移植）
+   */
+  processSearchResults(results, query) {
+    return results.map(contact => {
+      // 计算匹配度
+      const matchScore = this.calculateMatchScore(contact, query);
+      
+      return {
+        ...contact,
+        displayName: formatContactDisplayName(contact),
+        initial: getNameInitial(contact.profile_name || contact.name),
+        avatarColor: getAvatarColor(contact.profile_name || contact.name),
+        matchScore,
+        isHighMatch: matchScore > 0.8,
+        formattedTags: this.formatContactTags(contact)
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore); // 按匹配度排序
+  },
+
+  /**
+   * 计算匹配度（从AI搜索页面移植）
+   */
+  calculateMatchScore(contact, query) {
+    const lowerQuery = query.toLowerCase();
+    let score = 0;
+    
+    // 姓名匹配（权重最高）
+    if (contact.profile_name && contact.profile_name.toLowerCase().includes(lowerQuery)) {
+      score += 1.0;
+    }
+    
+    // 公司匹配
+    if (contact.company && contact.company.toLowerCase().includes(lowerQuery)) {
+      score += 0.7;
+    }
+    
+    // 职位匹配
+    if (contact.position && contact.position.toLowerCase().includes(lowerQuery)) {
+      score += 0.6;
+    }
+    
+    // 地区匹配
+    if (contact.location && contact.location.toLowerCase().includes(lowerQuery)) {
+      score += 0.5;
+    }
+    
+    // AI摘要匹配
+    if (contact.ai_summary && contact.ai_summary.toLowerCase().includes(lowerQuery)) {
+      score += 0.4;
+    }
+    
+    // 其他字段匹配
+    const otherFields = [contact.education, contact.marital_status, contact.personality];
+    otherFields.forEach(field => {
+      if (field && field.toLowerCase().includes(lowerQuery)) {
+        score += 0.2;
+      }
+    });
+    
+    return Math.min(score, 1.0); // 最大值为1.0
+  },
+
+  /**
+   * 格式化联系人标签（从AI搜索页面移植）
+   */
+  formatContactTags(contact) {
+    const tags = [];
+    
+    if (contact.age) tags.push(`${contact.age}岁`);
+    if (contact.gender) tags.push(contact.gender);
+    if (contact.location) tags.push(contact.location);
+    if (contact.asset_level) tags.push(`${contact.asset_level}资产`);
+    if (contact.marital_status) tags.push(contact.marital_status);
+    
+    return tags.slice(0, 4); // 最多显示4个标签
+  },
+
+  /**
+   * 生成AI分析（从AI搜索页面移植）
+   */
+  generateAIAnalysis(results, query) {
+    if (results.length === 0) {
+      return `抱歉，没有找到与"${query}"相关的联系人。建议尝试其他关键词或使用更具体的描述。`;
+    }
+    
+    const highMatchCount = results.filter(r => r.isHighMatch).length;
+    const locations = [...new Set(results.map(r => r.location).filter(Boolean))];
+    const companies = [...new Set(results.map(r => r.company).filter(Boolean))];
+    
+    let analysis = `找到 ${results.length} 个相关联系人`;
+    
+    if (highMatchCount > 0) {
+      analysis += `，其中 ${highMatchCount} 个高度匹配`;
+    }
+    
+    if (locations.length > 0) {
+      analysis += `。主要分布在：${locations.slice(0, 3).join('、')}`;
+    }
+    
+    if (companies.length > 0) {
+      analysis += `。主要来自：${companies.slice(0, 3).join('、')}等公司`;
+    }
+    
+    analysis += '。';
+    
+    return analysis;
+  },
+
+  /**
+   * 加载搜索历史
+   */
+  loadSearchHistory() {
+    try {
+      const history = dataManager.getSearchHistory();
+      this.setData({
+        searchHistory: history.slice(0, 10) // 最多显示10条历史
+      });
+      
+      console.log('搜索历史加载完成:', history.length);
+    } catch (error) {
+      console.error('加载搜索历史失败:', error);
+    }
+  },
+
+  /**
+   * 搜索模式切换
+   */
+  onToggleSearchMode() {
+    const newMode = this.data.searchMode === 'simple' ? 'intelligent' : 'simple';
+    this.setData({ searchMode: newMode });
+    
+    // 如果当前有搜索词，重新执行搜索
+    if (this.data.searchQuery.trim()) {
+      this.performSearch(this.data.searchQuery);
+    }
+    
+    wx.showToast({
+      title: newMode === 'intelligent' ? '已切换到智能搜索' : '已切换到简单搜索',
+      icon: 'success',
+      duration: 1500
+    });
+  },
+
+  /**
+   * 搜索面板切换
+   */
+  onToggleSearchPanel() {
+    this.setData({ 
+      showSearchPanel: !this.data.showSearchPanel 
+    });
+  },
+
+  /**
+   * 搜索框聚焦
+   */
+  onSearchFocus() {
+    this.setData({ 
+      searchFocused: true,
+      showSearchPanel: true 
+    });
+  },
+
+  /**
+   * 搜索框失焦
+   */
+  onSearchBlur() {
+    // 延迟设置，避免点击建议时立即失焦
+    setTimeout(() => {
+      this.setData({ 
+        searchFocused: false,
+        showSearchPanel: false 
+      });
+    }, 200);
+  },
+
+  /**
+   * 搜索建议点击
+   */
+  onSuggestionTap(event) {
+    const suggestion = event.currentTarget.dataset.text;
+    this.setData({ 
+      searchQuery: suggestion,
+      searchMode: 'intelligent' // 自动切换到智能搜索
+    });
+    this.performSearch(suggestion);
+  },
+
+  /**
+   * 搜索历史点击
+   */
+  onHistoryTap(event) {
+    const history = event.currentTarget.dataset.text;
+    this.setData({ 
+      searchQuery: history,
+      searchMode: 'intelligent' // 自动切换到智能搜索
+    });
+    this.performSearch(history);
+  },
+
+  /**
+   * 清除搜索历史
+   */
+  onClearHistory() {
+    wx.showModal({
+      title: '确认清除',
+      content: '确定要清除所有搜索历史吗？',
+      success: (res) => {
+        if (res.confirm) {
+          dataManager.clearSearchHistory();
+          this.setData({ searchHistory: [] });
+          
+          wx.showToast({
+            title: '已清除历史',
+            icon: 'success'
+          });
+        }
+      }
+    });
   },
 
   /**

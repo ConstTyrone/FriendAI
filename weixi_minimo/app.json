@@ -3,7 +3,6 @@
   "pages": [
     "pages/settings/settings",
     "pages/contact-list/contact-list",
-    "pages/ai-search/ai-search",
     "pages/contact-detail/contact-detail",
     "pages/contact-form/contact-form",
     "pages/bind-account/bind-account",

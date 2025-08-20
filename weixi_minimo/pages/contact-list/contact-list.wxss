@@ -7,11 +7,22 @@
   padding-bottom: 200rpx;
 }
 
+/* 深色模式适配 */
+.contact-list-page.theme-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
 /* 搜索栏 */
 .search-header {
   background: #FFFFFF;
   padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #E5E5E5;
+}
+
+.theme-dark .search-header {
+  background-color: #2d2d2d;
+  border-bottom-color: #3a3a3a;
 }
 
 .search-box {
@@ -23,12 +34,25 @@
   height: 64rpx;
 }
 
+.theme-dark .search-box {
+  background-color: #252525;
+  border: 1px solid #3a3a3a;
+}
+
 .search-input {
   flex: 1;
   height: 64rpx;
   font-size: 28rpx;
   color: #000000;
   background: transparent;
+}
+
+.theme-dark .search-input {
+  color: #ffffff;
+}
+
+.theme-dark .search-input::placeholder {
+  color: #666666;
 }
 
 .search-placeholder {
@@ -43,6 +67,10 @@
 .clear-text {
   font-size: 26rpx;
   color: #666666;
+}
+
+.theme-dark .clear-text {
+  color: #999999;
 }
 
 /* 统计信息 */
@@ -445,6 +473,145 @@
   display: block;
 }
 
+/* 深色模式完整适配 */
+.theme-dark .stats-card {
+  background-color: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .stat-value {
+  color: #ffffff;
+}
+
+.theme-dark .stat-label {
+  color: #999999;
+}
+
+.theme-dark .stat-divider {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .loading-spinner {
+  border-color: #3a3a3a;
+  border-top-color: #06ae56;
+}
+
+.theme-dark .loading-text {
+  color: #999999;
+}
+
+.theme-dark .empty-title {
+  color: #ffffff;
+}
+
+.theme-dark .empty-desc {
+  color: #999999;
+}
+
+.theme-dark .empty-button {
+  background-color: #06ae56;
+}
+
+.theme-dark .contact-group {
+  background-color: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .contact-item {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .contact-item:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .item-avatar {
+  background-color: #4a4a4a;
+}
+
+.theme-dark .avatar-text {
+  color: #ffffff;
+}
+
+.theme-dark .item-name {
+  color: #ffffff;
+}
+
+.theme-dark .item-detail {
+  color: #999999;
+}
+
+.theme-dark .tag-wrapper {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+.theme-dark .tag-text {
+  color: #cccccc;
+}
+
+.theme-dark .item-arrow {
+  color: #666666;
+}
+
+.theme-dark .load-more-button {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .load-more-button .button-text {
+  color: #ffffff;
+}
+
+.theme-dark .end-text {
+  color: #666666;
+}
+
+.theme-dark .add-button {
+  background-color: #06ae56;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .action-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.theme-dark .action-sheet {
+  background-color: #2d2d2d;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .sheet-header {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .sheet-avatar {
+  background-color: #4a4a4a;
+}
+
+.theme-dark .sheet-name {
+  color: #ffffff;
+}
+
+.theme-dark .sheet-company {
+  color: #999999;
+}
+
+.theme-dark .sheet-button {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .sheet-button:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .sheet-button .button-text {
+  color: #ffffff;
+}
+
+.theme-dark .sheet-button.delete .button-text {
+  color: #dc0a1a;
+}
+
 /* 响应式调整 */
 @media (max-width: 375px) {
   .search-header {
@@ -465,4 +632,303 @@
     width: 88rpx;
     height: 88rpx;
   }
+}
+
+/* 智能搜索增强样式 */
+
+/* 增强搜索区域 */
+.enhanced-search-header {
+  position: relative;
+}
+
+.search-box-container {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #F8F8F8;
+  border-radius: 6rpx;
+  padding: 0 20rpx;
+  height: 64rpx;
+  position: relative;
+}
+
+.theme-dark .search-input-wrapper {
+  background-color: #252525;
+  border: 1px solid #3a3a3a;
+}
+
+.search-input.intelligent-mode {
+  font-weight: 600;
+  color: #07c160;
+}
+
+.theme-dark .search-input.intelligent-mode {
+  color: #06ae56;
+}
+
+/* 搜索模式切换 */
+.search-mode-toggle {
+  margin-left: 10rpx;
+}
+
+.mode-indicator {
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.mode-indicator.simple {
+  background-color: #F0F0F0;
+  color: #666666;
+}
+
+.theme-dark .mode-indicator.simple {
+  background-color: #3a3a3a;
+  color: #cccccc;
+}
+
+.mode-indicator.intelligent {
+  background: linear-gradient(45deg, #07c160, #06ae56);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(7, 193, 96, 0.3);
+}
+
+.search-suggestions-btn {
+  margin-left: 10rpx;
+  padding: 10rpx;
+  border-radius: 50%;
+  background-color: #F0F0F0;
+  color: #666666;
+  font-size: 20rpx;
+  transition: all 0.3s ease;
+}
+
+.theme-dark .search-suggestions-btn {
+  background-color: #3a3a3a;
+  color: #cccccc;
+}
+
+.search-suggestions-btn:active {
+  background-color: #07c160;
+  color: white;
+}
+
+/* 搜索建议面板 */
+.search-panel {
+  position: absolute;
+  top: 100%;
+  left: 24rpx;
+  right: 24rpx;
+  background-color: #FFFFFF;
+  border-radius: 12rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-20rpx);
+  transition: all 0.3s ease;
+  pointer-events: none;
+  margin-top: 10rpx;
+}
+
+.theme-dark .search-panel {
+  background-color: #2d2d2d;
+  border: 1px solid #3a3a3a;
+}
+
+.search-panel.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.search-section {
+  padding: 30rpx;
+}
+
+.search-section + .search-section {
+  border-top: 1rpx solid #E5E5E5;
+}
+
+.theme-dark .search-section + .search-section {
+  border-top-color: #3a3a3a;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #000000;
+}
+
+.theme-dark .section-title {
+  color: #ffffff;
+}
+
+.clear-history {
+  font-size: 26rpx;
+  color: #07c160;
+  padding: 5rpx 10rpx;
+}
+
+.search-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15rpx;
+}
+
+.search-tag {
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  background-color: #F8F8F8;
+  color: #666666;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  transition: all 0.3s ease;
+}
+
+.theme-dark .search-tag {
+  background-color: #252525;
+  color: #cccccc;
+}
+
+.search-tag.history-tag {
+  border: 1rpx solid #E5E5E5;
+}
+
+.theme-dark .search-tag.history-tag {
+  border-color: #3a3a3a;
+}
+
+.search-tag.suggestion-tag {
+  background: linear-gradient(45deg, rgba(7, 193, 96, 0.1), rgba(6, 174, 86, 0.1));
+  color: #07c160;
+  border: 1rpx solid rgba(7, 193, 96, 0.3);
+}
+
+.search-tag:active {
+  background-color: #07c160;
+  color: white;
+}
+
+/* AI分析区域 */
+.ai-analysis-section {
+  margin: 0 24rpx 20rpx 24rpx;
+}
+
+.analysis-card {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.05), rgba(6, 174, 86, 0.05));
+  border: 1rpx solid rgba(7, 193, 96, 0.2);
+  border-radius: 12rpx;
+  padding: 30rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-dark .analysis-card {
+  background: linear-gradient(135deg, rgba(6, 174, 86, 0.1), rgba(7, 193, 96, 0.1));
+  border-color: rgba(6, 174, 86, 0.3);
+}
+
+.analysis-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4rpx;
+  background: linear-gradient(90deg, #07c160, #06ae56);
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15rpx;
+}
+
+.analysis-icon {
+  font-size: 32rpx;
+  margin-right: 15rpx;
+}
+
+.analysis-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #07c160;
+}
+
+.analysis-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: #000000;
+}
+
+.theme-dark .analysis-text {
+  color: #ffffff;
+}
+
+/* 匹配度相关样式 */
+.contact-item {
+  position: relative;
+}
+
+.contact-item.high-match {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.03), rgba(6, 174, 86, 0.03));
+  border-left: 4rpx solid #07c160;
+}
+
+.match-indicator {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+  z-index: 10;
+}
+
+.match-badge {
+  padding: 6rpx 12rpx;
+  border-radius: 20rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.match-badge.high {
+  background: linear-gradient(45deg, #07c160, #06ae56);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(7, 193, 96, 0.3);
+}
+
+.match-badge.normal {
+  background-color: #F0F0F0;
+  color: #666666;
+}
+
+.theme-dark .match-badge.normal {
+  background-color: #3a3a3a;
+  color: #cccccc;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.match-star {
+  color: #FFD700;
+  font-size: 24rpx;
+  margin-left: 10rpx;
 }

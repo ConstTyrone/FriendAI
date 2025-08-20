@@ -178,40 +178,50 @@
 }
 
 /* 深色模式支持 */
-@media (prefers-color-scheme: dark) {
-  .suggestion-chip {
-    background: linear-gradient(135deg, #2d2519 0%, #3d3119 100%);
-    border-color: #4d4129;
-  }
-  
-  .suggestion-chip:hover {
-    background: linear-gradient(135deg, #3d3119 0%, #4d4129 100%);
-    border-color: #5d5139;
-  }
-  
-  .history-chip {
-    background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
-    border-color: #4a4a4a;
-  }
-  
-  .history-chip:hover {
-    background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
-    border-color: #5a5a5a;
-  }
-  
-  .suggestion-content .chip-text {
-    color: #ffa726;
-  }
-  
-  .history-content .chip-text {
-    color: #cccccc;
-  }
-  
-  .delete-btn {
-    background: rgba(255, 255, 255, 0.1);
-  }
-  
-  .delete-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
+.theme-dark .suggestion-chip {
+  background: linear-gradient(135deg, #2d2519 0%, #3d3119 100%);
+  border-color: #4d4129;
+}
+
+.theme-dark .suggestion-chip:hover {
+  background: linear-gradient(135deg, #3d3119 0%, #4d4129 100%);
+  border-color: #5d5139;
+}
+
+.theme-dark .suggestion-chip:active {
+  background: linear-gradient(135deg, #4d4129 0%, #5d5139 100%);
+}
+
+.theme-dark .history-chip {
+  background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+  border-color: #4a4a4a;
+}
+
+.theme-dark .history-chip:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+  border-color: #5a5a5a;
+}
+
+.theme-dark .history-chip:active {
+  background: linear-gradient(135deg, #4a4a4a 0%, #5a5a5a 100%);
+}
+
+.theme-dark .suggestion-content .chip-text {
+  color: #ffa726;
+}
+
+.theme-dark .history-content .chip-text {
+  color: #cccccc;
+}
+
+.theme-dark .delete-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .delete-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme-dark .delete-btn:active {
+  background: rgba(255, 255, 255, 0.3);
 }

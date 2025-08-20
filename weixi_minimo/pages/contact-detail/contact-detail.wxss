@@ -7,6 +7,12 @@
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); /* 为底部按钮留出空间 */
 }
 
+/* 深色模式适配 */
+.detail-page.theme-dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
 /* 加载状态 */
 .loading-state {
   display: flex;
@@ -434,6 +440,157 @@ t-cell-group {
 t-tag {
   margin-right: 16rpx;
   margin-bottom: 16rpx;
+}
+
+/* 深色模式完整适配 */
+.theme-dark .loading-spinner {
+  border-color: #3a3a3a;
+  border-top-color: #06ae56;
+}
+
+.theme-dark .loading-text {
+  color: #999999;
+}
+
+.theme-dark .error-message {
+  color: #999999;
+}
+
+.theme-dark .error-action {
+  background-color: #06ae56;
+}
+
+.theme-dark .header-section {
+  background-color: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .header-avatar {
+  background-color: #4a4a4a;
+}
+
+.theme-dark .avatar-text {
+  color: #ffffff;
+}
+
+.theme-dark .header-name {
+  color: #ffffff;
+}
+
+.theme-dark .header-company {
+  color: #999999;
+}
+
+.theme-dark .header-position {
+  color: #666666;
+}
+
+.theme-dark .action-button {
+  background-color: #06ae56;
+}
+
+.theme-dark .info-section {
+  background-color: #2d2d2d;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .section-title {
+  color: #999999;
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .info-item {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .info-item:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .info-label {
+  color: #666666;
+}
+
+.theme-dark .info-value {
+  color: #ffffff;
+}
+
+.theme-dark .info-arrow {
+  color: #666666;
+}
+
+.theme-dark .ai-label {
+  color: #999999;
+}
+
+.theme-dark .ai-text {
+  color: #ffffff;
+}
+
+.theme-dark .notes-text {
+  color: #ffffff;
+}
+
+.theme-dark .tag-wrapper {
+  background-color: #3a3a3a;
+  border-color: #4a4a4a;
+}
+
+.theme-dark .tag-text {
+  color: #cccccc;
+}
+
+.theme-dark .time-text {
+  color: #666666;
+}
+
+.theme-dark .bottom-bar {
+  background-color: #2d2d2d;
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .bar-button {
+  border-right-color: #3a3a3a;
+}
+
+.theme-dark .bar-button:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .bar-text {
+  color: #ffffff;
+}
+
+.theme-dark .bar-button.delete .bar-text {
+  color: #dc0a1a;
+}
+
+.theme-dark .confirm-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.theme-dark .confirm-dialog {
+  background-color: #2d2d2d;
+}
+
+.theme-dark .confirm-title {
+  color: #ffffff;
+}
+
+.theme-dark .confirm-message {
+  color: #cccccc;
+}
+
+.theme-dark .confirm-button.cancel {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .confirm-button.cancel .button-text {
+  color: #ffffff;
+}
+
+.theme-dark .confirm-button.delete {
+  background-color: #dc0a1a;
 }
 
 /* 响应式调整 */
