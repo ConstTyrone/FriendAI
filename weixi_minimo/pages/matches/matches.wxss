@@ -3,13 +3,14 @@
 .matches-page {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-top: env(safe-area-inset-top);
 }
 
 /* 页面头部 */
 .page-header {
   display: flex;
   align-items: center;
-  padding: 24rpx 32rpx;
+  padding: 32rpx 32rpx 24rpx;
   background: #fff;
   border-bottom: 1rpx solid #e5e5e5;
 }

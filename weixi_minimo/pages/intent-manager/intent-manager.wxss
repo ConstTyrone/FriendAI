@@ -4,6 +4,7 @@
 .intent-page {
   min-height: 100vh;
   background: #FAFAFA;
+  padding-top: env(safe-area-inset-top);
   padding-bottom: calc(140rpx + env(safe-area-inset-bottom)); /* 为TabBar留出空间 */
 }
 
