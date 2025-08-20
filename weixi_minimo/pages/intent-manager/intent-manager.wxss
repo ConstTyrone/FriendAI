@@ -4,7 +4,6 @@
 .intent-page {
   min-height: 100vh;
   background: #FAFAFA;
-  padding-top: env(safe-area-inset-top);
   padding-bottom: calc(140rpx + env(safe-area-inset-bottom)); /* 为TabBar留出空间 */
 }
 
@@ -13,7 +12,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 32rpx;
+  padding: calc(32rpx + env(safe-area-inset-top)) 32rpx 32rpx;
   background: #FFFFFF;
   border-bottom: 1rpx solid #E5E5E5;
 }

@@ -1,32 +1,34 @@
 /* 匹配结果页面样式 */
 
 .matches-page {
-  min-height: 100vh;
+  height: 100vh;
   background: #f5f5f5;
-  padding-top: env(safe-area-inset-top);
 }
 
 /* 页面头部 */
 .page-header {
   display: flex;
   align-items: center;
-  padding: 32rpx 32rpx 24rpx;
+  justify-content: center;
+  padding: calc(72rpx + env(safe-area-inset-top)) 32rpx 48rpx;
   background: #fff;
   border-bottom: 1rpx solid #e5e5e5;
+  position: relative;
 }
 
 .back-button {
+  position: absolute;
+  left: 32rpx;
   font-size: 36rpx;
   color: #000;
-  margin-right: 24rpx;
   padding: 8rpx;
 }
 
 .page-title {
-  font-size: 32rpx;
-  font-weight: 500;
+  font-size: 34rpx;
+  font-weight: 600;
   color: #000;
-  flex: 1;
+  text-align: center;
 }
 
 /* AI状态指示器 */
@@ -43,20 +45,27 @@
   font-weight: 500;
 }
 
-/* 操作栏 */
-.action-bar {
-  padding: 16rpx 24rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #e5e5e5;
-  display: flex;
-  justify-content: flex-end;
+/* 底部触发按钮（滑动到底部显示） */
+.bottom-trigger {
+  padding: 32rpx;
+  margin: 64rpx 0 32rpx;
+  text-align: center;
+  min-height: 200rpx;
 }
 
 .trigger-match-btn {
+  width: 60%;
   background: #1890ff;
   color: #fff;
-  font-size: 24rpx;
-  padding: 12rpx 24rpx;
+  font-size: 28rpx;
+  padding: 20rpx;
+  border-radius: 8rpx;
+  border: none;
+  font-weight: 500;
+}
+
+.trigger-match-btn:active {
+  opacity: 0.8;
 }
 
 /* 匹配列表 */
@@ -309,4 +318,141 @@
 .loading-text {
   font-size: 28rpx;
   color: #999;
+}
+
+/* ===== 深色模式适配 ===== */
+
+/* 页面容器 */
+.matches-page.theme-dark {
+  background: #1a1a1a;
+}
+
+/* 页面头部 */
+.theme-dark .page-header {
+  background: #2d2d2d;
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .back-button {
+  color: #ffffff;
+}
+
+.theme-dark .page-title {
+  color: #ffffff;
+}
+
+/* 底部触发按钮深色模式 */
+.theme-dark .bottom-trigger {
+  /* 深色模式下底部按钮区域无需特殊背景 */
+}
+
+.theme-dark .trigger-match-btn {
+  background: #06ae56;
+  color: #ffffff;
+}
+
+/* 匹配列表深色模式 */
+.theme-dark .match-card {
+  background: #2d2d2d;
+  border: 1rpx solid #3a3a3a;
+}
+
+.theme-dark .match-card.highlighted {
+  background: linear-gradient(to right, rgba(6, 174, 86, 0.1) 0%, #2d2d2d 100%);
+  border-color: #06ae56;
+  box-shadow: 0 4rpx 16rpx rgba(6, 174, 86, 0.2);
+}
+
+.theme-dark .match-header {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .intent-name {
+  color: #cccccc;
+}
+
+.theme-dark .match-score {
+  color: #06ae56;
+}
+
+.theme-dark .vector-score {
+  color: #9254de;
+  background: #2b1b3a;
+}
+
+.theme-dark .profile-avatar {
+  background: #3a3a3a;
+}
+
+.theme-dark .avatar-text {
+  color: #ffffff;
+}
+
+.theme-dark .profile-name {
+  color: #ffffff;
+}
+
+.theme-dark .profile-title {
+  color: #cccccc;
+}
+
+.theme-dark .profile-location {
+  color: #999999;
+}
+
+.theme-dark .view-arrow {
+  color: #666666;
+}
+
+.theme-dark .match-explanation {
+  background: #252525;
+}
+
+.theme-dark .explanation-label {
+  color: #999999;
+}
+
+.theme-dark .explanation-text {
+  color: #cccccc;
+}
+
+.theme-dark .highlight-tag {
+  background: #1e3a32;
+  border-color: #06ae56;
+}
+
+.theme-dark .tag-icon {
+  color: #06ae56;
+}
+
+.theme-dark .tag-text {
+  color: #06ae56;
+}
+
+.theme-dark .match-footer {
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .match-time {
+  color: #999999;
+}
+
+.theme-dark .match-type-wrapper {
+  background: #3a3a3a;
+}
+
+.theme-dark .match-type-text {
+  color: #cccccc;
+}
+
+.theme-dark .empty-title {
+  color: #ffffff;
+}
+
+.theme-dark .empty-desc {
+  color: #999999;
+}
+
+.theme-dark .loading-text {
+  color: #999999;
 }

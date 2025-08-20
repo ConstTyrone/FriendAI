@@ -1,6 +1,7 @@
 // 匹配结果页面
 import apiClient from '../../utils/api-client';
 import authManager from '../../utils/auth-manager';
+import themeManager from '../../utils/theme-manager';
 
 Page({
   data: {
@@ -13,7 +14,9 @@ Page({
       status: 'pending'
     },
     aiEnabled: false,
-    vectorStatus: null
+    vectorStatus: null,
+    themeClass: '',
+    showBottomTrigger: false
   },
 
   onLoad(options) {
@@ -50,6 +53,9 @@ Page({
       });
       return;
     }
+    
+    // 应用主题
+    themeManager.applyToPage(this);
     
     // 加载AI状态
     this.loadAIStatus();
@@ -117,6 +123,11 @@ Page({
       });
     } finally {
       this.setData({ loading: false });
+      
+      // 延迟检查是否需要显示底部按钮
+      setTimeout(() => {
+        this.checkScrollPosition();
+      }, 500);
     }
   },
 
@@ -264,6 +275,56 @@ Page({
       showCancel: false,
       confirmText: '知道了'
     });
+  },
+
+  /**
+   * 检查滚动位置
+   */
+  checkScrollPosition() {
+    const query = wx.createSelectorQuery().in(this);
+    query.select('.matches-page').scrollOffset();
+    query.exec((res) => {
+      if (res && res[0]) {
+        const { scrollTop, scrollHeight } = res[0];
+        const systemInfo = wx.getSystemInfoSync();
+        const screenHeight = systemInfo.windowHeight;
+        
+        const isNearBottom = scrollTop + screenHeight >= scrollHeight - 150;
+        console.log('Check position:', { scrollTop, scrollHeight, screenHeight, isNearBottom });
+        
+        this.setData({
+          showBottomTrigger: isNearBottom
+        });
+      }
+    });
+  },
+
+  /**
+   * 页面滚动监听
+   */
+  onPageScroll(e) {
+    try {
+      const { scrollTop, scrollHeight } = e.detail;
+      
+      // 获取屏幕高度
+      const systemInfo = wx.getSystemInfoSync();
+      const screenHeight = systemInfo.windowHeight;
+      
+      // 计算是否滑动到底部附近（距离底部150px以内）
+      const isNearBottom = scrollTop + screenHeight >= scrollHeight - 150;
+      
+      // 调试日志
+      console.log('Scroll:', { scrollTop, scrollHeight, screenHeight, isNearBottom });
+      
+      // 只有当状态改变时才更新
+      if (isNearBottom !== this.data.showBottomTrigger) {
+        this.setData({
+          showBottomTrigger: isNearBottom
+        });
+      }
+    } catch (error) {
+      console.error('滚动监听错误:', error);
+    }
   },
 
   /**
