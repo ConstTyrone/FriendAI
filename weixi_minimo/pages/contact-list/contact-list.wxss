@@ -343,7 +343,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 240rpx;
+  width: 160rpx;
   display: flex;
   z-index: 1;
 }
@@ -367,10 +367,6 @@
 .action-btn:active {
   opacity: 0.8;
   transform: scale(0.95);
-}
-
-.action-call {
-  background: linear-gradient(135deg, #07c160 0%, #06ae56 100%);
 }
 
 .action-edit {
@@ -415,7 +411,7 @@
 }
 
 .contact-item.swiped {
-  transform: translateX(-240rpx);
+  transform: translateX(-160rpx);
 }
 
 .contact-item:active {
@@ -760,10 +756,6 @@
 }
 
 /* 深色模式滑动操作按钮 */
-.theme-dark .action-call {
-  background: linear-gradient(135deg, #06ae56 0%, #05994d 100%);
-}
-
 .theme-dark .action-edit {
   background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
 }

@@ -943,10 +943,10 @@ Page({
     const deltaX = clientX - touchStartX;
     const deltaY = clientY - touchStartY;
     
-    // 判断是否为水平滑动（降低阈值，更容易触发）
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
-      // 左滑显示操作菜单（降低阈值到-30）
-      if (deltaX < -30 && !this.data.swipeStates[index]) {
+    // 只在明确的水平滑动时才触发操作，避免误触
+    if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 50) {
+      // 左滑显示操作菜单
+      if (deltaX < -60 && !this.data.swipeStates[index]) {
         const newSwipeStates = { ...this.data.swipeStates };
         
         // 关闭其他已打开的项
@@ -965,8 +965,8 @@ Page({
         
         console.log('左滑打开操作菜单:', index);
       }
-      // 右滑关闭操作菜单（降低阈值到20）
-      else if (deltaX > 20 && this.data.swipeStates[index]) {
+      // 右滑关闭操作菜单
+      else if (deltaX > 40 && this.data.swipeStates[index]) {
         const newSwipeStates = { ...this.data.swipeStates };
         newSwipeStates[index] = false;
         
@@ -1040,52 +1040,6 @@ Page({
     }
   },
 
-  /**
-   * 拨打电话
-   */
-  onCallContact(e) {
-    e.stopPropagation(); // 阻止事件冒泡
-    
-    const contact = e.currentTarget.dataset.contact;
-    const index = e.currentTarget.dataset.index;
-    
-    console.log('点击拨打电话:', { contact, index });
-    
-    if (!contact || !contact.phone) {
-      wx.showToast({
-        title: '该联系人没有电话号码',
-        icon: 'none',
-        duration: 2000
-      });
-      return;
-    }
-    
-    wx.showModal({
-      title: '拨打电话',
-      content: `确定要拨打 ${contact.phone} 吗？`,
-      success: (res) => {
-        if (res.confirm) {
-          wx.makePhoneCall({
-            phoneNumber: contact.phone,
-            success: () => {
-              console.log('拨打电话成功:', contact.phone);
-              this.closeAllSwipeMenus();
-            },
-            fail: (error) => {
-              console.error('拨打电话失败:', error);
-              wx.showToast({
-                title: '拨打失败',
-                icon: 'none'
-              });
-            }
-          });
-        } else {
-          // 取消后也关闭菜单
-          this.closeAllSwipeMenus();
-        }
-      }
-    });
-  },
 
   /**
    * 页面点击事件 - 关闭滑动菜单

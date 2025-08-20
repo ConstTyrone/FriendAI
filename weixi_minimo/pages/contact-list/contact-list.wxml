@@ -171,10 +171,6 @@
           
           <!-- 滑动操作区域 -->
           <view class="swipe-actions">
-            <view class="action-btn action-call" bind:tap="onCallContact" data-contact="{{item}}" data-index="{{index}}">
-              <text class="action-icon">📞</text>
-              <text class="action-text">拨打</text>
-            </view>
             <view class="action-btn action-edit" bind:tap="onEditContact" data-contact="{{item}}" data-index="{{index}}">
               <text class="action-icon">✏️</text>
               <text class="action-text">编辑</text>
