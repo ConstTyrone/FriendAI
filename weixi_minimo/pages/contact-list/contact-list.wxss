@@ -341,7 +341,7 @@
 .swipe-actions {
   position: absolute;
   top: 0;
-  right: -240rpx;
+  right: 0;
   bottom: 0;
   width: 240rpx;
   display: flex;
@@ -355,9 +355,13 @@
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-size: 24rpx;
-  min-height: 100rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+  min-height: 100%;
+  padding: 20rpx 8rpx;
   transition: all 0.2s ease;
+  border: none;
+  outline: none;
 }
 
 .action-btn:active {
@@ -401,11 +405,12 @@
 .contact-item {
   display: flex;
   align-items: center;
-  padding: 20rpx 24rpx;
+  padding: 24rpx;
   position: relative;
-  background: transparent;
+  background: #FFFFFF;
   z-index: 2;
   transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  width: 100%;
   will-change: transform;
 }
 

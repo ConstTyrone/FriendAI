@@ -122,22 +122,6 @@
           data-contact="{{item}}"
           data-index="{{index}}"
         >
-          <!-- 滑动操作区域 -->
-          <view class="swipe-actions">
-            <view class="action-btn action-call" bind:tap="onCallContact" data-contact="{{item}}">
-              <text class="action-icon">📞</text>
-              <text class="action-text">拨打</text>
-            </view>
-            <view class="action-btn action-edit" bind:tap="onEditContact" data-contact="{{item}}">
-              <text class="action-icon">✏️</text>
-              <text class="action-text">编辑</text>
-            </view>
-            <view class="action-btn action-delete" bind:tap="onDeleteContact" data-contact="{{item}}">
-              <text class="action-icon">🗑️</text>
-              <text class="action-text">删除</text>
-            </view>
-          </view>
-          
           <!-- 联系人主体内容 -->
           <view 
             class="contact-item {{swipeStates[index] ? 'swiped' : ''}}"
@@ -183,6 +167,22 @@
           </view>
           
           <text class="item-arrow">›</text>
+          </view>
+          
+          <!-- 滑动操作区域 -->
+          <view class="swipe-actions">
+            <view class="action-btn action-call" bind:tap="onCallContact" data-contact="{{item}}" data-index="{{index}}">
+              <text class="action-icon">📞</text>
+              <text class="action-text">拨打</text>
+            </view>
+            <view class="action-btn action-edit" bind:tap="onEditContact" data-contact="{{item}}" data-index="{{index}}">
+              <text class="action-icon">✏️</text>
+              <text class="action-text">编辑</text>
+            </view>
+            <view class="action-btn action-delete" bind:tap="onDeleteContact" data-contact="{{item}}" data-index="{{index}}">
+              <text class="action-icon">🗑️</text>
+              <text class="action-text">删除</text>
+            </view>
           </view>
         </view>
       </view>

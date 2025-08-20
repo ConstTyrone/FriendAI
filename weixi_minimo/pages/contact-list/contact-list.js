@@ -684,13 +684,32 @@ Page({
   /**
    * 编辑联系人
    */
-  onEditContact() {
-    const contact = this.data.selectedContact;
-    this.closeActionMenu();
+  onEditContact(e) {
+    e && e.stopPropagation && e.stopPropagation(); // 阻止事件冒泡
     
-    if (contact) {
+    let contact;
+    
+    // 如果有事件对象，说明是从滑动菜单点击
+    if (e && e.currentTarget && e.currentTarget.dataset) {
+      contact = e.currentTarget.dataset.contact;
+      const index = e.currentTarget.dataset.index;
+      console.log('从滑动菜单编辑联系人:', { contact, index });
+      this.closeAllSwipeMenus();
+    } else {
+      // 从长按菜单点击
+      contact = this.data.selectedContact;
+      this.closeActionMenu();
+    }
+    
+    if (contact && contact.id) {
       wx.navigateTo({
         url: `${PAGE_ROUTES.CONTACT_FORM}?id=${contact.id}&mode=edit`
+      });
+    } else {
+      console.error('编辑联系人失败：联系人数据不完整', contact);
+      wx.showToast({
+        title: '联系人数据错误',
+        icon: 'none'
       });
     }
   },
@@ -698,11 +717,31 @@ Page({
   /**
    * 删除联系人
    */
-  onDeleteContact() {
-    const contact = this.data.selectedContact;
-    this.closeActionMenu();
+  onDeleteContact(e) {
+    e && e.stopPropagation && e.stopPropagation(); // 阻止事件冒泡
     
-    if (!contact) return;
+    let contact;
+    
+    // 如果有事件对象，说明是从滑动菜单点击
+    if (e && e.currentTarget && e.currentTarget.dataset) {
+      contact = e.currentTarget.dataset.contact;
+      const index = e.currentTarget.dataset.index;
+      console.log('从滑动菜单删除联系人:', { contact, index });
+      this.closeAllSwipeMenus();
+    } else {
+      // 从长按菜单点击
+      contact = this.data.selectedContact;
+      this.closeActionMenu();
+    }
+    
+    if (!contact || !contact.id) {
+      console.error('删除联系人失败：联系人数据不完整', contact);
+      wx.showToast({
+        title: '联系人数据错误',
+        icon: 'none'
+      });
+      return;
+    }
     
     wx.showModal({
       title: '确认删除',
@@ -880,7 +919,7 @@ Page({
    */
   onTouchStart(e) {
     const { clientX, clientY } = e.touches[0];
-    const index = e.currentTarget.dataset.index;
+    const index = parseInt(e.currentTarget.dataset.index);
     
     this.setData({
       touchStartX: clientX,
@@ -899,13 +938,15 @@ Page({
     const index = parseInt(e.currentTarget.dataset.index);
     const { touchStartX, touchStartY } = this.data;
     
+    if (isNaN(index)) return;
+    
     const deltaX = clientX - touchStartX;
     const deltaY = clientY - touchStartY;
     
-    // 判断是否为水平滑动
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
-      // 左滑显示操作菜单
-      if (deltaX < -50) {
+    // 判断是否为水平滑动（降低阈值，更容易触发）
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
+      // 左滑显示操作菜单（降低阈值到-30）
+      if (deltaX < -30 && !this.data.swipeStates[index]) {
         const newSwipeStates = { ...this.data.swipeStates };
         
         // 关闭其他已打开的项
@@ -924,8 +965,8 @@ Page({
         
         console.log('左滑打开操作菜单:', index);
       }
-      // 右滑关闭操作菜单
-      else if (deltaX > 50 && this.data.swipeStates[index]) {
+      // 右滑关闭操作菜单（降低阈值到20）
+      else if (deltaX > 20 && this.data.swipeStates[index]) {
         const newSwipeStates = { ...this.data.swipeStates };
         newSwipeStates[index] = false;
         
@@ -944,8 +985,10 @@ Page({
    */
   onTouchEnd(e) {
     const { clientX, clientY } = e.changedTouches[0];
-    const index = e.currentTarget.dataset.index;
+    const index = parseInt(e.currentTarget.dataset.index);
     const { touchStartX, touchStartY, touchStartTime } = this.data;
+    
+    if (isNaN(index)) return;
     
     const deltaX = clientX - touchStartX;
     const deltaY = clientY - touchStartY;
@@ -956,8 +999,30 @@ Page({
       deltaX, 
       deltaY, 
       deltaTime,
-      isSwipe: Math.abs(deltaX) > 30
+      isSwipe: Math.abs(deltaX) > 20,
+      currentState: this.data.swipeStates[index]
     });
+    
+    // 如果是快速左滑且距离足够，确保菜单打开
+    if (deltaX < -60 && deltaTime < 400 && !this.data.swipeStates[index]) {
+      const newSwipeStates = { ...this.data.swipeStates };
+      
+      // 关闭其他菜单
+      Object.keys(newSwipeStates).forEach(key => {
+        if (parseInt(key) !== index) {
+          newSwipeStates[key] = false;
+        }
+      });
+      
+      newSwipeStates[index] = true;
+      
+      this.setData({
+        swipeStates: newSwipeStates,
+        currentSwipeIndex: index
+      });
+      
+      console.log('快速左滑，强制打开菜单:', index);
+    }
   },
 
   /**
@@ -979,9 +1044,14 @@ Page({
    * 拨打电话
    */
   onCallContact(e) {
-    const contact = e.currentTarget.dataset.contact;
+    e.stopPropagation(); // 阻止事件冒泡
     
-    if (!contact.phone) {
+    const contact = e.currentTarget.dataset.contact;
+    const index = e.currentTarget.dataset.index;
+    
+    console.log('点击拨打电话:', { contact, index });
+    
+    if (!contact || !contact.phone) {
       wx.showToast({
         title: '该联系人没有电话号码',
         icon: 'none',
@@ -1009,6 +1079,9 @@ Page({
               });
             }
           });
+        } else {
+          // 取消后也关闭菜单
+          this.closeAllSwipeMenus();
         }
       }
     });
@@ -1020,8 +1093,8 @@ Page({
   onPageTap(e) {
     // 检查点击目标是否在滑动菜单区域
     const { target } = e;
-    if (target && target.dataset && target.dataset.contact) {
-      return; // 点击的是联系人项，交给onContactTap处理
+    if (target && target.dataset && (target.dataset.contact || target.dataset.index !== undefined)) {
+      return; // 点击的是联系人项或操作按钮
     }
     
     // 关闭所有滑动菜单
