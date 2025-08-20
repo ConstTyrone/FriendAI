@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Git**: Push all changes to https://github.com/ConstTyrone/FriendAI after completing each task
 - **Testing**: Use test user ID `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` for all tests
 - **Documentation**: Refer to `weixin_doc/` folder for WeChat Customer Service documentation
+- **Theme**: Deep dark mode support implemented with ThemeManager - use `themeManager` singleton for all theme operations
+- **Voice**: Advanced voice input with real-time recognition and AI parsing for contact forms
 
 ## Project Overview
 
@@ -136,13 +138,24 @@ python generate_embeddings.py            # Batch generate embeddings
 # In WeChat Developer Tools:
 # 1. Tools → Build npm                   # Required for TDesign components
 # 2. Compile (Ctrl+B/Cmd+B)              # Build project
-# 3. Preview                             # Test on mobile device
+# 3. Preview                             # Test on mobile device  
 # 4. Upload                              # Deploy to production
+
+# Theme development:
+# - Toggle theme in Settings page        # Test dark/light mode switching
+# - Check system theme compatibility     # Auto-follow system settings
+# - Test navigation bar color updates    # Verify theme transitions
+
+# Voice input testing:
+# - Use voice button in contact forms    # Test real-time recognition
+# - Test AI field parsing                # Verify intelligent form filling
+# - Check recording state management     # Test press-and-hold vs tap modes
 
 # Debug commands (in Settings page):
 # - "Clear Local Data"                   # Clear cache and storage
 # - "View Storage Info"                  # Check cache usage
 # - Switch login modes                   # Test different auth methods
+# - "Theme Settings"                     # Manual theme override
 ```
 
 ## Architecture Patterns
@@ -165,11 +178,13 @@ python generate_embeddings.py            # Batch generate embeddings
 ### Frontend Architecture (weixi_minimo)
 
 **Core Patterns**:
-- **Singleton Managers**: `authManager`, `dataManager`, `apiClient` for centralized state
-- **Route Guards**: Auto-redirect to login for protected pages via `app.js` interceptors
-- **Caching Strategy**: 5-minute local cache with automatic expiration checks
+- **Singleton Managers**: `authManager`, `dataManager`, `apiClient`, `themeManager`, `notificationManager`, `cacheManager` for centralized state
+- **Route Guards**: Auto-redirect to login for protected pages via `app.js` interceptors  
+- **Caching Strategy**: 5-minute local cache with automatic expiration checks via `cacheManager`
 - **Mock Mode**: Offline development support with simulated data
 - **Event System**: Listener pattern for cross-component communication
+- **Theme System**: Complete dark mode support with system theme following and manual override
+- **Voice Input**: Real-time speech recognition with AI-powered contact field parsing
 
 **Data Flow**:
 1. Authentication: WeChat login → Backend API → JWT token → Local storage
@@ -376,6 +391,56 @@ matches = intent_matcher.match_profile_with_intents(
 - Network panel for API debugging
 - Settings page → "View Storage Info"
 
+## Latest Features (Recent Updates)
+
+### Deep Dark Mode System
+
+**Complete theme management with system integration**:
+- **Theme Manager**: `utils/theme-manager.js` - Singleton for theme operations
+- **Auto Theme**: Follows system theme changes automatically  
+- **Manual Override**: User can manually set preferred theme
+- **Navigation Bar**: Automatic color updates during theme transitions
+- **Color System**: Comprehensive light/dark color schemes built-in
+- **Component Integration**: Easy theme application via `applyToPage(page)`
+
+**Usage**:
+```javascript
+import themeManager from '../utils/theme-manager';
+
+// In page onLoad
+themeManager.applyToPage(this);
+
+// Manual theme control
+themeManager.toggleTheme();
+themeManager.setTheme('dark');
+const currentTheme = themeManager.getTheme();
+const colors = themeManager.getThemeColors();
+```
+
+### Advanced Voice Input System
+
+**Real-time speech recognition with AI parsing**:
+- **Recording Modes**: Press-and-hold or tap-to-toggle recording
+- **Real-time Display**: Live speech recognition results during recording
+- **AI Field Parsing**: Intelligent extraction of contact information into form fields
+- **State Management**: Robust recording state with visual feedback
+- **Error Recovery**: Graceful handling of recognition failures
+- **Multi-field Support**: Automatically fills name, phone, company, position, etc.
+
+**Voice Integration Points**:
+- Contact forms (create/edit)
+- Real-time results overlay
+- AI-powered field mapping
+- Fallback to manual input
+
+### Enhanced Management System
+
+**New utility managers**:
+- **Cache Manager**: `utils/cache-manager.js` - Advanced caching with namespaces
+- **Notification Manager**: `utils/notification-manager.js` - Push notification handling
+- **Theme Manager**: Complete theme system as described above
+- **Enhanced Auth**: Improved authentication flow with better error handling
+
 ## Key Files Reference
 
 ### Core Services
@@ -384,7 +449,16 @@ matches = intent_matcher.match_profile_with_intents(
 - `src/services/push_service.py` - Push notification system
 - `src/core/main.py` - All API endpoints
 
+### Frontend Core Systems
+- `utils/theme-manager.js` - Complete theme system management
+- `utils/cache-manager.js` - Advanced caching with TTL and namespaces
+- `utils/notification-manager.js` - Push notification coordination
+- `utils/auth-manager.js` - Enhanced authentication management
+- `utils/data-manager.js` - Data fetching with cache integration
+
 ### Configuration
 - `WeiXinKeFu/.env` - Backend environment variables
 - `weixi_minimo/utils/constants.js` - Frontend configuration
 - `weixi_minimo/app.json` - Mini program pages and components
+- `weixi_minimo/utils/theme-manager.js` - Theme system configuration and color schemes
+- `weixi_minimo/styles/theme-dark.wxss` - Dark mode global styles
