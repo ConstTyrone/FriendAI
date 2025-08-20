@@ -1,13 +1,22 @@
 <!--联系人列表页面-->
 <view class="contact-list-page {{themeClass}}" bind:tap="onPageTap">
-  <!-- 增强搜索栏 -->
-  <view class="enhanced-search-header">
+  <!-- AI智能搜索栏 -->
+  <view class="ai-search-header">
+    <!-- AI搜索标识 -->
+    <view class="ai-search-badge">
+      <text class="ai-icon">🤖</text>
+      <text class="ai-label">AI智能搜索</text>
+    </view>
+    
     <view class="search-box-container">
       <view class="search-input-wrapper">
+        <!-- AI搜索图标 -->
+        <text class="search-ai-icon">🔍</text>
+        
         <input 
-          class="search-input intelligent-mode"
+          class="search-input ai-enhanced"
           value="{{searchQuery}}"
-          placeholder="智能搜索：30岁的程序员、在北京做金融的..."
+          placeholder="试试：30岁的程序员、在北京做金融的联系人..."
           placeholder-class="search-placeholder"
           bindinput="onSearchChange"
           bindconfirm="onSearchSubmit"
@@ -17,7 +26,7 @@
         
         <!-- 搜索建议按钮 -->
         <view class="search-suggestions-btn" wx:if="{{!searchQuery}}" bind:tap="onToggleSearchPanel">
-          <text class="suggestion-icon">▼</text>
+          <text class="suggestion-icon">✨</text>
         </view>
       </view>
       
