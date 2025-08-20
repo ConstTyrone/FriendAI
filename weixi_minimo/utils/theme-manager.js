@@ -3,11 +3,65 @@
  */
 
 const STORAGE_KEY = 'app_theme';
+const ACCENT_COLOR_KEY = 'app_accent_color';
 
 class ThemeManager {
   constructor() {
     this.currentTheme = 'light'; // 默认浅色主题
+    this.currentAccentColor = 'default'; // 默认主题色
     this.listeners = [];
+    
+    // 可用的主题色配置
+    this.accentColors = {
+      default: {
+        name: '微信绿',
+        primary: '#07c160',
+        primaryDark: '#06ae56',
+        secondary: '#05994d',
+        light: 'rgba(7, 193, 96, 0.1)',
+        description: '经典微信绿色主题'
+      },
+      blue: {
+        name: '天空蓝',
+        primary: '#1890ff',
+        primaryDark: '#1677ff',
+        secondary: '#0958d9',
+        light: 'rgba(24, 144, 255, 0.1)',
+        description: '清新天空蓝色主题'
+      },
+      purple: {
+        name: '优雅紫',
+        primary: '#722ed1',
+        primaryDark: '#531dab',
+        secondary: '#391085',
+        light: 'rgba(114, 46, 209, 0.1)',
+        description: '优雅紫色主题'
+      },
+      orange: {
+        name: '活力橙',
+        primary: '#fa8c16',
+        primaryDark: '#d46b08',
+        secondary: '#ad4e00',
+        light: 'rgba(250, 140, 22, 0.1)',
+        description: '活力橙色主题'
+      },
+      pink: {
+        name: '温馨粉',
+        primary: '#eb2f96',
+        primaryDark: '#c41d7f',
+        secondary: '#9e1068',
+        light: 'rgba(235, 47, 150, 0.1)',
+        description: '温馨粉色主题'
+      },
+      red: {
+        name: '激情红',
+        primary: '#f5222d',
+        primaryDark: '#cf1322',
+        secondary: '#a8071a',
+        light: 'rgba(245, 34, 45, 0.1)',
+        description: '激情红色主题'
+      }
+    };
   }
 
   /**
@@ -25,6 +79,12 @@ class ThemeManager {
         if (systemInfo.theme) {
           this.currentTheme = systemInfo.theme;
         }
+      }
+      
+      // 读取主题色设置
+      const savedAccentColor = wx.getStorageSync(ACCENT_COLOR_KEY);
+      if (savedAccentColor && this.accentColors[savedAccentColor]) {
+        this.currentAccentColor = savedAccentColor;
       }
     } catch (e) {
       console.error('读取主题设置失败:', e);
@@ -89,6 +149,54 @@ class ThemeManager {
   }
 
   /**
+   * 获取当前主题色
+   */
+  getAccentColor() {
+    return this.currentAccentColor;
+  }
+
+  /**
+   * 设置主题色
+   */
+  setAccentColor(colorKey) {
+    if (!this.accentColors[colorKey]) {
+      console.error('无效的主题色:', colorKey);
+      return false;
+    }
+    
+    this.currentAccentColor = colorKey;
+    
+    // 保存到存储
+    try {
+      wx.setStorageSync(ACCENT_COLOR_KEY, colorKey);
+    } catch (e) {
+      console.error('保存主题色设置失败:', e);
+    }
+    
+    // 通知所有监听器主题色变化
+    this.notifyListeners(this.currentTheme, colorKey);
+    
+    return true;
+  }
+
+  /**
+   * 获取所有可用的主题色
+   */
+  getAvailableAccentColors() {
+    return Object.keys(this.accentColors).map(key => ({
+      key,
+      ...this.accentColors[key]
+    }));
+  }
+
+  /**
+   * 获取当前主题色配置
+   */
+  getCurrentAccentColorConfig() {
+    return this.accentColors[this.currentAccentColor] || this.accentColors.default;
+  }
+
+  /**
    * 添加主题变化监听器
    */
   addListener(callback) {
@@ -110,10 +218,10 @@ class ThemeManager {
   /**
    * 通知所有监听器
    */
-  notifyListeners(theme) {
+  notifyListeners(theme, accentColor) {
     this.listeners.forEach(callback => {
       try {
-        callback(theme);
+        callback(theme, accentColor || this.currentAccentColor);
       } catch (e) {
         console.error('主题监听器执行失败:', e);
       }
@@ -146,7 +254,10 @@ class ThemeManager {
    * 获取主题色彩配置
    */
   getThemeColors() {
-    const themes = {
+    const accentConfig = this.getCurrentAccentColorConfig();
+    const isDark = this.currentTheme === 'dark';
+    
+    const baseColors = {
       light: {
         // 基础颜色
         bgPrimary: '#ffffff',
@@ -164,9 +275,7 @@ class ThemeManager {
         border: '#e5e5e5',
         divider: '#eeeeee',
         
-        // 功能色
-        primary: '#07c160',
-        success: '#07c160',
+        // 系统功能色
         warning: '#ff976a',
         error: '#ee0a24',
         info: '#1989fa',
@@ -192,9 +301,7 @@ class ThemeManager {
         border: '#3a3a3a',
         divider: '#333333',
         
-        // 功能色（深色模式下稍微调暗）
-        primary: '#06ae56',
-        success: '#06ae56',
+        // 系统功能色
         warning: '#ff8f5a',
         error: '#dc0a1a',
         info: '#1080e8',
@@ -205,7 +312,15 @@ class ThemeManager {
       }
     };
     
-    return themes[this.currentTheme] || themes.light;
+    const colors = { ...baseColors[this.currentTheme] };
+    
+    // 应用当前主题色
+    colors.primary = isDark ? accentConfig.primaryDark : accentConfig.primary;
+    colors.primaryLight = accentConfig.light;
+    colors.primarySecondary = accentConfig.secondary;
+    colors.success = colors.primary;
+    
+    return colors;
   }
 
   /**
@@ -216,20 +331,25 @@ class ThemeManager {
     
     const theme = this.currentTheme;
     const colors = this.getThemeColors();
+    const accentColor = this.currentAccentColor;
     
     // 设置页面数据
     page.setData({
       theme: theme,
       themeClass: this.getThemeClass(),
-      themeColors: colors
+      themeColors: colors,
+      accentColor: accentColor,
+      accentColorConfig: this.getCurrentAccentColorConfig()
     });
     
     // 添加主题变化监听
-    const listener = (newTheme) => {
+    const listener = (newTheme, newAccentColor) => {
       page.setData({
         theme: newTheme,
         themeClass: `theme-${newTheme}`,
-        themeColors: this.getThemeColors()
+        themeColors: this.getThemeColors(),
+        accentColor: newAccentColor || this.currentAccentColor,
+        accentColorConfig: this.getCurrentAccentColorConfig()
       });
     };
     
@@ -248,5 +368,8 @@ class ThemeManager {
 
 // 创建单例
 const themeManager = new ThemeManager();
+
+// 自动初始化
+themeManager.init();
 
 module.exports = themeManager;

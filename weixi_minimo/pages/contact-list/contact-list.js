@@ -44,7 +44,14 @@ Page({
     searchAnalysis: '',
     allContacts: [], // 缓存所有联系人用于本地搜索
     isSearching: false,
-    searchFocused: false
+    searchFocused: false,
+    
+    // 手势操作状态
+    swipeStates: {}, // 每个item的滑动状态 {index: boolean}
+    touchStartX: 0,
+    touchStartY: 0,
+    touchStartTime: 0,
+    currentSwipeIndex: -1, // 当前正在滑动的item索引
   },
 
   onLoad(options) {
@@ -594,6 +601,13 @@ Page({
     
     if (!contact) return;
     
+    // 检查是否有打开的滑动菜单，如果有则先关闭
+    const hasOpenMenus = Object.values(this.data.swipeStates).some(state => state);
+    if (hasOpenMenus) {
+      this.closeAllSwipeMenus();
+      return; // 第一次点击关闭菜单，不跳转
+    }
+    
     console.log('点击联系人:', contact);
     
     wx.navigateTo({
@@ -859,5 +873,158 @@ Page({
         this.dataListener = null;
       }
     }
+  },
+
+  /**
+   * 手势操作 - 触摸开始
+   */
+  onTouchStart(e) {
+    const { clientX, clientY } = e.touches[0];
+    const index = e.currentTarget.dataset.index;
+    
+    this.setData({
+      touchStartX: clientX,
+      touchStartY: clientY,
+      touchStartTime: Date.now()
+    });
+    
+    console.log('触摸开始:', { index, x: clientX, y: clientY });
+  },
+
+  /**
+   * 手势操作 - 触摸移动
+   */
+  onTouchMove(e) {
+    const { clientX, clientY } = e.touches[0];
+    const index = parseInt(e.currentTarget.dataset.index);
+    const { touchStartX, touchStartY } = this.data;
+    
+    const deltaX = clientX - touchStartX;
+    const deltaY = clientY - touchStartY;
+    
+    // 判断是否为水平滑动
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+      // 左滑显示操作菜单
+      if (deltaX < -50) {
+        const newSwipeStates = { ...this.data.swipeStates };
+        
+        // 关闭其他已打开的项
+        Object.keys(newSwipeStates).forEach(key => {
+          if (parseInt(key) !== index) {
+            newSwipeStates[key] = false;
+          }
+        });
+        
+        newSwipeStates[index] = true;
+        
+        this.setData({
+          swipeStates: newSwipeStates,
+          currentSwipeIndex: index
+        });
+        
+        console.log('左滑打开操作菜单:', index);
+      }
+      // 右滑关闭操作菜单
+      else if (deltaX > 50 && this.data.swipeStates[index]) {
+        const newSwipeStates = { ...this.data.swipeStates };
+        newSwipeStates[index] = false;
+        
+        this.setData({
+          swipeStates: newSwipeStates,
+          currentSwipeIndex: -1
+        });
+        
+        console.log('右滑关闭操作菜单:', index);
+      }
+    }
+  },
+
+  /**
+   * 手势操作 - 触摸结束
+   */
+  onTouchEnd(e) {
+    const { clientX, clientY } = e.changedTouches[0];
+    const index = e.currentTarget.dataset.index;
+    const { touchStartX, touchStartY, touchStartTime } = this.data;
+    
+    const deltaX = clientX - touchStartX;
+    const deltaY = clientY - touchStartY;
+    const deltaTime = Date.now() - touchStartTime;
+    
+    console.log('触摸结束:', { 
+      index, 
+      deltaX, 
+      deltaY, 
+      deltaTime,
+      isSwipe: Math.abs(deltaX) > 30
+    });
+  },
+
+  /**
+   * 关闭所有滑动菜单
+   */
+  closeAllSwipeMenus() {
+    const hasOpenMenus = Object.values(this.data.swipeStates).some(state => state);
+    
+    if (hasOpenMenus) {
+      this.setData({
+        swipeStates: {},
+        currentSwipeIndex: -1
+      });
+      console.log('关闭所有滑动菜单');
+    }
+  },
+
+  /**
+   * 拨打电话
+   */
+  onCallContact(e) {
+    const contact = e.currentTarget.dataset.contact;
+    
+    if (!contact.phone) {
+      wx.showToast({
+        title: '该联系人没有电话号码',
+        icon: 'none',
+        duration: 2000
+      });
+      return;
+    }
+    
+    wx.showModal({
+      title: '拨打电话',
+      content: `确定要拨打 ${contact.phone} 吗？`,
+      success: (res) => {
+        if (res.confirm) {
+          wx.makePhoneCall({
+            phoneNumber: contact.phone,
+            success: () => {
+              console.log('拨打电话成功:', contact.phone);
+              this.closeAllSwipeMenus();
+            },
+            fail: (error) => {
+              console.error('拨打电话失败:', error);
+              wx.showToast({
+                title: '拨打失败',
+                icon: 'none'
+              });
+            }
+          });
+        }
+      }
+    });
+  },
+
+  /**
+   * 页面点击事件 - 关闭滑动菜单
+   */
+  onPageTap(e) {
+    // 检查点击目标是否在滑动菜单区域
+    const { target } = e;
+    if (target && target.dataset && target.dataset.contact) {
+      return; // 点击的是联系人项，交给onContactTap处理
+    }
+    
+    // 关闭所有滑动菜单
+    this.closeAllSwipeMenus();
   }
 });

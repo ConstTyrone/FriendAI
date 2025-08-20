@@ -197,6 +197,18 @@
             bindchange="onDarkModeChange"
           />
         </view>
+        
+        <view class="option-item" bind:tap="onThemeColorTap">
+          <view class="option-content">
+            <text class="option-title">主题色彩</text>
+            <text class="option-note">{{accentColorConfig.description}}</text>
+          </view>
+          <view class="option-right">
+            <view class="theme-color-preview" style="background-color: {{accentColorConfig.primary}};"></view>
+            <text class="option-value">{{accentColorConfig.name}}</text>
+            <text class="option-arrow">></text>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -265,5 +277,45 @@
   />
 
   <!-- 自定义TabBar -->
+  <!-- 主题色选择弹窗 -->
+  <view class="theme-color-overlay {{showThemeColorModal ? 'show' : ''}}" bind:tap="onCloseThemeColorModal">
+    <view class="theme-color-modal" catch:tap="onStopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">选择主题色彩</text>
+        <view class="modal-close" bind:tap="onCloseThemeColorModal">
+          <text class="close-icon">×</text>
+        </view>
+      </view>
+      
+      <view class="theme-color-grid">
+        <view 
+          wx:for="{{availableColors}}" 
+          wx:key="key"
+          class="color-option {{accentColor === item.key ? 'selected' : ''}}"
+          bind:tap="onSelectThemeColor"
+          data-color="{{item.key}}"
+        >
+          <view class="color-circle" style="background-color: {{item.primary}};"></view>
+          <view class="color-info">
+            <text class="color-name">{{item.name}}</text>
+            <text class="color-desc">{{item.description}}</text>
+          </view>
+          <view class="color-check" wx:if="{{accentColor === item.key}}">
+            <text class="check-icon">✓</text>
+          </view>
+        </view>
+      </view>
+      
+      <view class="modal-actions">
+        <view class="action-button secondary" bind:tap="onCloseThemeColorModal">
+          <text class="button-text">取消</text>
+        </view>
+        <view class="action-button primary" bind:tap="onConfirmThemeColor">
+          <text class="button-text">确定</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <custom-tabbar current="settings" />
 </view>

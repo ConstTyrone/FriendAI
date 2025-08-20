@@ -26,6 +26,11 @@ Page({
       darkMode: false
     },
     
+    // 主题色设置
+    showThemeColorModal: false,
+    availableColors: [],
+    selectedThemeColor: 'default', // 当前选择的主题色
+    
     // 对话框状态
     showLogoutDialog: false,
     
@@ -86,6 +91,9 @@ Page({
       
       // 加载设置
       this.loadSettings();
+      
+      // 初始化主题色数据
+      this.initThemeColors();
       
       console.log('页面数据初始化完成');
     } catch (error) {
@@ -814,5 +822,96 @@ Page({
       // authManager.removeListener(this.authListener);
       this.authListener = null;
     }
+  },
+
+  /**
+   * 初始化主题色数据
+   */
+  initThemeColors() {
+    try {
+      const availableColors = themeManager.getAvailableAccentColors();
+      const currentAccentColor = themeManager.getAccentColor();
+      
+      this.setData({
+        availableColors: availableColors,
+        selectedThemeColor: currentAccentColor
+      });
+      
+      console.log('主题色数据初始化完成:', { availableColors: availableColors.length, current: currentAccentColor });
+    } catch (error) {
+      console.error('初始化主题色数据失败:', error);
+    }
+  },
+
+  /**
+   * 点击主题色选项
+   */
+  onThemeColorTap() {
+    console.log('打开主题色选择弹窗');
+    this.setData({
+      showThemeColorModal: true,
+      selectedThemeColor: themeManager.getAccentColor() // 重置为当前主题色
+    });
+  },
+
+  /**
+   * 关闭主题色选择弹窗
+   */
+  onCloseThemeColorModal() {
+    console.log('关闭主题色选择弹窗');
+    this.setData({
+      showThemeColorModal: false,
+      selectedThemeColor: themeManager.getAccentColor() // 重置为当前主题色
+    });
+  },
+
+  /**
+   * 选择主题色
+   */
+  onSelectThemeColor(e) {
+    const colorKey = e.currentTarget.dataset.color;
+    console.log('选择主题色:', colorKey);
+    
+    this.setData({
+      selectedThemeColor: colorKey
+    });
+  },
+
+  /**
+   * 确认主题色选择
+   */
+  onConfirmThemeColor() {
+    const { selectedThemeColor } = this.data;
+    
+    console.log('确认应用主题色:', selectedThemeColor);
+    
+    // 应用主题色
+    const success = themeManager.setAccentColor(selectedThemeColor);
+    
+    if (success) {
+      wx.showToast({
+        title: '主题色已更新',
+        icon: 'success',
+        duration: 1500
+      });
+      
+      // 关闭弹窗
+      this.setData({
+        showThemeColorModal: false
+      });
+    } else {
+      wx.showToast({
+        title: '设置失败',
+        icon: 'error',
+        duration: 2000
+      });
+    }
+  },
+
+  /**
+   * 阻止事件冒泡
+   */
+  onStopPropagation() {
+    // 阻止事件冒泡，用于模态框内容区域
   }
 });

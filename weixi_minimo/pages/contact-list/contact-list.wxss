@@ -315,39 +315,106 @@
   padding: 0;
 }
 
-.contact-group {
+/* 滑动操作容器 */
+.contact-item-wrapper {
+  position: relative;
+  overflow: hidden;
   background: #FFFFFF;
   margin: 0 16rpx 16rpx;
   border-radius: 12rpx;
-  overflow: hidden;
   border: 1rpx solid #E5E5E5;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  transform: translateY(0);
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.contact-group:hover {
+.contact-item-wrapper:hover {
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
   transform: translateY(-2rpx);
+}
+
+.contact-item-wrapper.high-match {
+  background: linear-gradient(135deg, rgba(7, 193, 96, 0.03), rgba(6, 174, 86, 0.03));
+  border-left: 4rpx solid #07c160;
+}
+
+/* 滑动操作按钮区域 */
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  right: -240rpx;
+  bottom: 0;
+  width: 240rpx;
+  display: flex;
+  z-index: 1;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 24rpx;
+  min-height: 100rpx;
+  transition: all 0.2s ease;
+}
+
+.action-btn:active {
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+
+.action-call {
+  background: linear-gradient(135deg, #07c160 0%, #06ae56 100%);
+}
+
+.action-edit {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+}
+
+.action-delete {
+  background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+}
+
+.action-icon {
+  font-size: 32rpx;
+  margin-bottom: 4rpx;
+  display: block;
+}
+
+.action-text {
+  font-size: 20rpx;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.contact-group {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .contact-item {
   display: flex;
   align-items: center;
   padding: 20rpx 24rpx;
-  border-bottom: 1rpx solid #F5F5F5;
   position: relative;
-  overflow: hidden;
-  transition: all 0.2s ease;
+  background: transparent;
+  z-index: 2;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
 }
 
-.contact-item:last-child {
-  border-bottom: none;
+.contact-item.swiped {
+  transform: translateX(-240rpx);
 }
 
 .contact-item:active {
-  background: #FAFAFA;
-  transform: scale(0.995);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 /* 交互反馈效果 */
@@ -667,24 +734,37 @@
   background-color: #06ae56;
 }
 
-.theme-dark .contact-group {
+.theme-dark .contact-item-wrapper {
   background-color: #2d2d2d;
   border-color: #3a3a3a;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.2);
 }
 
-.theme-dark .contact-group:hover {
+.theme-dark .contact-item-wrapper:hover {
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.3);
   transform: translateY(-2rpx);
 }
 
-.theme-dark .contact-item {
-  border-bottom-color: #3a3a3a;
+.theme-dark .contact-item-wrapper.high-match {
+  background: linear-gradient(135deg, rgba(6, 174, 86, 0.1), rgba(7, 193, 96, 0.1));
+  border-left-color: #06ae56;
 }
 
 .theme-dark .contact-item:active {
-  background-color: #3a3a3a;
-  transform: scale(0.995);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 深色模式滑动操作按钮 */
+.theme-dark .action-call {
+  background: linear-gradient(135deg, #06ae56 0%, #05994d 100%);
+}
+
+.theme-dark .action-edit {
+  background: linear-gradient(135deg, #1677ff 0%, #0958d9 100%);
+}
+
+.theme-dark .action-delete {
+  background: linear-gradient(135deg, #dc0a1a 0%, #cf1322 100%);
 }
 
 /* 深色模式交互反馈 */

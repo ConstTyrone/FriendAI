@@ -192,3 +192,69 @@
 .theme-dark .version-info {
   color: #666666;
 }
+
+/* 主题色弹窗深色模式 */
+.theme-dark .theme-color-preview {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-dark .theme-color-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.theme-dark .theme-color-modal {
+  background-color: #2d2d2d;
+}
+
+.theme-dark .modal-header {
+  border-bottom-color: #3a3a3a;
+}
+
+.theme-dark .modal-title {
+  color: #ffffff;
+}
+
+.theme-dark .modal-close {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .modal-close:active {
+  background-color: #4a4a4a;
+}
+
+.theme-dark .close-icon {
+  color: #cccccc;
+}
+
+.theme-dark .color-option:active {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .color-option.selected {
+  background-color: rgba(6, 174, 86, 0.15);
+  border-color: #06ae56;
+}
+
+.theme-dark .color-name {
+  color: #ffffff;
+}
+
+.theme-dark .color-desc {
+  color: #999999;
+}
+
+.theme-dark .modal-actions {
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .action-button.secondary {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .action-button.secondary .button-text {
+  color: #ffffff;
+}
+
+.theme-dark .action-button.primary {
+  background-color: #06ae56;
+}
