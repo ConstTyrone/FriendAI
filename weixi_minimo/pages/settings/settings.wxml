@@ -43,7 +43,7 @@
       </view>
       
       <view class="login-form">
-        <!-- 真正的微信登录按钮 -->
+        <!-- 微信一键登录按钮 -->
         <view 
           class="login-button primary {{loginLoading ? 'disabled' : ''}}"
           bind:tap="onRealWechatLogin"
@@ -52,75 +52,8 @@
           <view class="loading-spinner" wx:if="{{loginLoading}}"></view>
         </view>
         
-        <!-- 分隔线 -->
-        <view class="divider">
-          <text class="divider-text">或手动输入微信ID</text>
-        </view>
-        
-        <!-- 手动输入微信ID -->
-        <input
-          class="login-input"
-          value="{{wechatIdInput}}"
-          placeholder="请输入微信用户ID（OpenID）"
-          bindinput="onWechatIdChange"
-        />
-        
-        <!-- 快速选择微信ID -->
-        <view class="quick-select">
-          <text class="quick-label">快速选择：</text>
-          <text 
-            class="quick-link"
-            bind:tap="onQuickWechatId"
-            data-wechat-id="oXXXXXXXXXXXXXXXXXXXXXXX"
-          >示例ID</text>
-        </view>
-        
-        <view 
-          class="login-button {{!wechatIdInput || loginLoading ? 'disabled' : ''}}"
-          bind:tap="onWechatLogin"
-        >
-          <text class="button-text">{{loginLoading ? '登录中...' : '使用微信ID登录'}}</text>
-          <view class="loading-spinner" wx:if="{{loginLoading}}"></view>
-        </view>
-        
-        <!-- 测试账户登录区域 -->
-        <view class="test-login-section">
-          <view class="divider">
-            <text class="divider-text">或使用测试账户</text>
-          </view>
-          
-          <input
-            class="login-input"
-            value="{{loginUserId}}"
-            placeholder="请输入用户ID（如：test_user_001）"
-            bindinput="onUserIdChange"
-          />
-          
-          <view class="quick-login-section">
-            <text class="quick-login-title">快速登录</text>
-            <view class="quick-login-buttons">
-              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="test_user_001">
-                <text class="quick-button-text">测试用户1</text>
-              </view>
-              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="test_user_002">
-                <text class="quick-button-text">测试用户2</text>
-              </view>
-              <view class="quick-button" bind:tap="onQuickLogin" data-user-id="demo_user_001">
-                <text class="quick-button-text">演示用户</text>
-              </view>
-              <view class="quick-button mock" bind:tap="onMockLogin">
-                <text class="quick-button-text">Mock用户</text>
-              </view>
-            </view>
-          </view>
-          
-          <view 
-            class="login-button {{!loginUserId || testLoginLoading ? 'disabled' : ''}}"
-            bind:tap="onLogin"
-          >
-            <text class="button-text">{{testLoginLoading ? '登录中...' : '测试账户登录'}}</text>
-            <view class="loading-spinner" wx:if="{{testLoginLoading}}"></view>
-          </view>
+        <view class="login-tips">
+          <text class="tips-text">安全便捷，一键即可开始使用</text>
         </view>
       </view>
     </view>
