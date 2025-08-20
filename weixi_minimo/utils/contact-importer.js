@@ -230,7 +230,7 @@ class ContactImporter {
         }
       });
     });
-  },
+  }
 
   /**
    * 创建导入的联系人
