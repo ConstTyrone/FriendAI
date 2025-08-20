@@ -13,7 +13,7 @@
         <text class="badge-text">Hot</text>
       </view>
       <view class="tab-icon">
-        <t-icon name="{{item.icon}}" size="42rpx" color="{{item.key === current ? '#1890ff' : (item.highlight ? '#ff6b6b' : '#999999')}}" />
+        <t-icon name="{{item.icon}}" size="42rpx" color="{{item.key === current ? (theme === 'dark' ? '#06ae56' : '#1890ff') : (item.highlight ? '#ff6b6b' : '#999999')}}" />
       </view>
       <view class="tab-text {{item.highlight ? 'highlight-text' : ''}}">{{item.text}}</view>
     </view>

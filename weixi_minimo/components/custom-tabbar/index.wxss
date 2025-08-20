@@ -76,6 +76,10 @@
   border-radius: 3rpx;
 }
 
+.theme-dark .tab-item.active::before {
+  background: #06ae56;
+}
+
 /* 图标样式 */
 .tab-icon {
   display: flex;
@@ -100,6 +104,10 @@
   border-radius: 50%;
   z-index: -1;
   animation: iconPulse 0.6s ease-out;
+}
+
+.theme-dark .tab-item.active .tab-icon::before {
+  background: rgba(6, 174, 86, 0.15);
 }
 
 @keyframes iconPulse {
@@ -131,6 +139,10 @@
   color: #1890ff;
   font-weight: 600;
   transform: scale(1.05);
+}
+
+.theme-dark .tab-item.active .tab-text {
+  color: #06ae56;
 }
 
 /* 突出显示的tab项 */
