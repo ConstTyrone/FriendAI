@@ -724,6 +724,17 @@ class DataManager {
   }
   
   /**
+   * 移除指定监听器
+   */
+  removeListener(listener) {
+    const index = this.listeners.indexOf(listener);
+    if (index > -1) {
+      this.listeners.splice(index, 1);
+      console.log('已移除数据监听器');
+    }
+  }
+  
+  /**
    * 移除所有监听器
    */
   removeAllListeners() {

@@ -849,9 +849,15 @@ Page({
    * 移除数据监听器
    */
   removeDataListeners() {
-    if (this.dataListener) {
-      dataManager.removeListener(this.dataListener);
-      this.dataListener = null;
+    if (this.dataListener && dataManager.removeListener) {
+      try {
+        dataManager.removeListener(this.dataListener);
+        this.dataListener = null;
+        console.log('联系人页面监听器已移除');
+      } catch (error) {
+        console.error('移除监听器失败:', error);
+        this.dataListener = null;
+      }
     }
   }
 });
