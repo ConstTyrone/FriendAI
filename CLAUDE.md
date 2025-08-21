@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Documentation**: Refer to `weixin_doc/` folder for WeChat Customer Service documentation
 - **Theme**: Deep dark mode support implemented with ThemeManager - use `themeManager` singleton for all theme operations
 - **Voice**: Advanced voice input with real-time recognition and AI parsing for contact forms
+- **Intent System**: Core AI-powered matching engine is the primary innovation feature
 
 ## Project Overview
 
@@ -95,16 +96,17 @@ python run.py                            # Start server on port 8000
 ### Backend Commands
 
 ```bash
-# Core services
+# Core services (WeiXinKeFu directory)
+cd WeiXinKeFu
 python run.py                            # Start FastAPI server with auto-reload
 uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000  # Alternative start
 
 # Intent system testing
-python test_intent_system.py             # Full intent system test
-python test_intent_matching.py           # Test matching logic
-python test_ai_matching.py               # Test AI-enhanced matching
-python test_hybrid_matching.py           # Test hybrid matching
-python test_integrated_system.py         # Integration tests
+python tests/integration/test_intent_system.py             # Full intent system test
+python tests/integration/test_intent_matching.py           # Test matching logic
+python tests/integration/test_ai_matching.py               # Test AI-enhanced matching
+python tests/integration/test_hybrid_matching.py           # Test hybrid matching
+python tests/integration/test_integrated_system.py         # Integration tests
 
 # Database operations
 python scripts/create_intent_tables.py   # Initialize intent tables
@@ -123,8 +125,8 @@ python test-scripts/reset_test_data.py   # Reset test environment
 
 # API testing
 python tests/test_api.py                 # Full API test suite
-python test_api_simple.py                # Simple API tests
-python test_notification_api.py          # Notification system tests
+python tests/integration/test_api_simple.py              # Simple API tests
+python tests/integration/test_notification_api.py        # Notification system tests
 
 # Performance optimization
 python optimize_prompts.py               # Optimize AI prompts
@@ -393,6 +395,33 @@ matches = intent_matcher.match_profile_with_intents(
 
 ## Latest Features (Recent Updates)
 
+### Advanced Intent Matching System
+
+**AI-powered contact matching engine with hybrid scoring**:
+- **Dual-Trigger Mechanism**: Intent-to-profiles and profile-to-intents matching
+- **Hybrid Scoring**: Vector similarity (30-40%) + keyword matching (30-40%) + conditions (25-40%)
+- **AI Enhancement**: Qwen API embeddings with semantic similarity calculation
+- **Real-time Notifications**: Push notifications for new matches with spam prevention
+- **Feedback Learning**: User feedback integration for improving match accuracy
+
+**Core Implementation**:
+```python
+# Intent matching workflow
+from src.services.intent_matcher import intent_matcher
+
+# Match intent with all profiles
+matches = intent_matcher.match_intent_with_profiles(
+    intent_id=1, 
+    user_id="wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
+)
+
+# Match profile with all intents
+matches = intent_matcher.match_profile_with_intents(
+    profile_id=1,
+    user_id="wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q"
+)
+```
+
 ### Deep Dark Mode System
 
 **Complete theme management with system integration**:
@@ -443,21 +472,28 @@ const colors = themeManager.getThemeColors();
 
 ## Key Files Reference
 
-### Core Services
-- `src/services/intent_matcher.py` - Intent matching engine
-- `src/services/vector_service.py` - AI embeddings and semantic search
-- `src/services/push_service.py` - Push notification system
-- `src/core/main.py` - All API endpoints
+### Backend Core Services (WeiXinKeFu/)
+- `src/services/intent_matcher.py` - Intent matching engine with hybrid scoring
+- `src/services/vector_service.py` - AI embeddings and semantic search using Qwen API
+- `src/services/push_service.py` - Push notification system with spam prevention
+- `src/services/hybrid_matcher.py` - Advanced matching algorithms
+- `src/services/ai_service.py` - AI profile extraction and analysis
+- `src/core/main.py` - All API endpoints including intent management
+- `src/handlers/message_handler.py` - WeChat message processing pipeline
+- `src/database/database_sqlite_v2.py` - Multi-user database with intent tables
 
-### Frontend Core Systems
+### Frontend Core Systems (weixi_minimo/)
 - `utils/theme-manager.js` - Complete theme system management
 - `utils/cache-manager.js` - Advanced caching with TTL and namespaces
 - `utils/notification-manager.js` - Push notification coordination
 - `utils/auth-manager.js` - Enhanced authentication management
 - `utils/data-manager.js` - Data fetching with cache integration
+- `pages/intent-manager/intent-manager.js` - Intent creation and management UI
+- `pages/matches/matches.js` - Match results display and feedback
+- `components/custom-tabbar/index.js` - Navigation with intent badge system
 
 ### Configuration
-- `WeiXinKeFu/.env` - Backend environment variables
+- `WeiXinKeFu/.env` - Backend environment variables including Qwen API key
 - `weixi_minimo/utils/constants.js` - Frontend configuration
 - `weixi_minimo/app.json` - Mini program pages and components
 - `weixi_minimo/utils/theme-manager.js` - Theme system configuration and color schemes
