@@ -6,6 +6,7 @@ import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import themeManager from '../../utils/theme-manager';
 import debugHelper from '../../utils/debug-helper';
+import contactImporter from '../../utils/contact-importer';
 
 Page({
   data: {
