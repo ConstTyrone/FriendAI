@@ -96,9 +96,9 @@
         <text class="action-icon">📱</text>
         <text class="action-text">单个导入</text>
       </view>
-      <view class="quick-action-btn" bind:tap="onQuickBatchImportDirect">
+      <view class="quick-action-btn" bind:tap="onShowContactPicker">
         <text class="action-icon">📲</text>
-        <text class="action-text">快速批量导入</text>
+        <text class="action-text">批量多选导入</text>
       </view>
       <view class="quick-action-btn" bind:tap="onBatchImport">
         <text class="action-icon">📋</text>
@@ -258,5 +258,13 @@
     visible="{{showImportProgress}}"
     progress="{{importProgress}}"
     bind:close="onCloseImportProgress"
+  />
+  
+  <!-- 联系人多选组件 -->
+  <contact-picker 
+    visible="{{showContactPicker}}"
+    maxCount="{{20}}"
+    bind:confirm="onContactPickerConfirm"
+    bind:cancel="onContactPickerCancel"
   />
 </view>

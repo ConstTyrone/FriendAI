@@ -342,6 +342,8 @@ class ContactImporter {
    * 执行批量导入队列
    */
   async executeBatchImportFromQueue() {
+    let loadingShown = false;
+    
     try {
       this.importStartTime = Date.now();
       
@@ -349,6 +351,7 @@ class ContactImporter {
         title: `📥 准备导入 ${this.batchQueue.length} 个联系人...`,
         mask: true
       });
+      loadingShown = true;
       
       // 回调开始导入
       if (this.progressCallback) {
@@ -408,7 +411,10 @@ class ContactImporter {
         }
       }
 
-      wx.hideLoading();
+      if (loadingShown) {
+        wx.hideLoading();
+        loadingShown = false;
+      }
       this.importEndTime = Date.now();
 
       // 更新统计
@@ -419,7 +425,10 @@ class ContactImporter {
       this.showQuickBatchImportResult();
 
     } catch (error) {
-      wx.hideLoading();
+      if (loadingShown) {
+        wx.hideLoading();
+        loadingShown = false;
+      }
       console.error('批量导入执行失败:', error);
       
       wx.showModal({
