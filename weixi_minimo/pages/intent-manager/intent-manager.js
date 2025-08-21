@@ -160,7 +160,10 @@ Page({
           priorityLabel: this.data.priorityOptions[intent.priority - 1] || '中等',
           thresholdPercent: Math.round((intent.threshold || 0.7) * 100),
           keywordsList: this.extractKeywords(intent.conditions),
-          match_count: intent.match_count || 0  // 确保有默认值
+          match_count: intent.match_count || 0,  // 确保有默认值
+          // AI功能可视化
+          isAIMatch: this.isAIEnhanced(intent),
+          aiFeatures: this.getAIFeatures(intent)
         }));
         
         // 计算总匹配数
@@ -732,6 +735,41 @@ Page({
     });
     
     return [...new Set(keywords)].slice(0, 10);
+  },
+
+  /**
+   * 判断AI增强功能
+   */
+  isAIEnhanced(intent) {
+    // 检查意图是否使用了AI功能
+    return !!(intent.embedding || intent.vector_enabled || 
+              (intent.conditions && intent.conditions.ai_keywords) ||
+              intent.match_type === 'hybrid' || intent.match_type === 'vector');
+  },
+
+  /**
+   * 获取AI功能特性
+   */
+  getAIFeatures(intent) {
+    const features = [];
+    
+    if (intent.embedding) {
+      features.push('语义向量');
+    }
+    
+    if (intent.match_type === 'hybrid') {
+      features.push('混合匹配');
+    }
+    
+    if (intent.match_type === 'vector') {
+      features.push('向量匹配');
+    }
+    
+    if (intent.conditions && intent.conditions.ai_keywords) {
+      features.push('智能关键词');
+    }
+    
+    return features;
   },
 
   /**

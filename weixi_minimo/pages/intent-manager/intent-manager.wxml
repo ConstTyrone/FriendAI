@@ -4,24 +4,24 @@
   <view class="top-bar">
     <text class="page-title">我的意图</text>
     <view class="create-btn" bindtap="showCreateDialog">
-      <text class="btn-icon">+</text>
+      <text class="btn-icon">✨</text>
       <text class="btn-text">创建意图</text>
     </view>
   </view>
   
-  <!-- 意图统计 -->
+  <!-- 意图统计 - 现代化设计 -->
   <view class="stats-card">
     <view class="stat-item">
       <text class="stat-value">{{stats.activeCount}}</text>
-      <text class="stat-label">活跃意图</text>
+      <text class="stat-label">🎯 活跃意图</text>
     </view>
     <view class="stat-item">
       <text class="stat-value">{{stats.totalMatches}}</text>
-      <text class="stat-label">累计匹配</text>
+      <text class="stat-label">🤝 累计匹配</text>
     </view>
     <view class="stat-item">
       <text class="stat-value">{{stats.todayPush}}</text>
-      <text class="stat-label">今日推送</text>
+      <text class="stat-label">📨 今日推送</text>
     </view>
   </view>
   
