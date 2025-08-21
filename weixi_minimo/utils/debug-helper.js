@@ -3,6 +3,11 @@
  * 用于快速诊断和测试各种功能
  */
 
+// 导入模块 - 微信小程序使用ES6模块语法
+import contactImporter from './contact-importer';
+import dataManager from './data-manager';
+import apiClient from './api-client';
+
 class DebugHelper {
   constructor() {
     this.testResults = [];
@@ -78,25 +83,22 @@ class DebugHelper {
     console.log('🧪 [Debug] 测试 contactImporter 模块');
     
     try {
-      const contactImporter = await import('./contact-importer');
-      const importer = contactImporter.default;
-      
       console.log('🔍 [Debug] contactImporter 检查:', {
-        exists: !!importer,
-        isCurrentlyImporting: typeof importer?.isCurrentlyImporting,
-        importFromPhoneBook: typeof importer?.importFromPhoneBook,
-        quickBatchImportFromPhoneBook: typeof importer?.quickBatchImportFromPhoneBook,
-        selectContactFromPhoneBook: typeof importer?.selectContactFromPhoneBook
+        exists: !!contactImporter,
+        isCurrentlyImporting: typeof contactImporter?.isCurrentlyImporting,
+        importFromPhoneBook: typeof contactImporter?.importFromPhoneBook,
+        quickBatchImportFromPhoneBook: typeof contactImporter?.quickBatchImportFromPhoneBook,
+        selectContactFromPhoneBook: typeof contactImporter?.selectContactFromPhoneBook
       });
       
       return {
         status: 'success',
         message: 'contactImporter 模块导入成功',
         methods: {
-          isCurrentlyImporting: typeof importer?.isCurrentlyImporting,
-          importFromPhoneBook: typeof importer?.importFromPhoneBook,
-          quickBatchImportFromPhoneBook: typeof importer?.quickBatchImportFromPhoneBook,
-          selectContactFromPhoneBook: typeof importer?.selectContactFromPhoneBook
+          isCurrentlyImporting: typeof contactImporter?.isCurrentlyImporting,
+          importFromPhoneBook: typeof contactImporter?.importFromPhoneBook,
+          quickBatchImportFromPhoneBook: typeof contactImporter?.quickBatchImportFromPhoneBook,
+          selectContactFromPhoneBook: typeof contactImporter?.selectContactFromPhoneBook
         }
       };
     } catch (error) {
@@ -116,21 +118,18 @@ class DebugHelper {
     console.log('🧪 [Debug] 测试 dataManager 模块');
     
     try {
-      const dataManager = await import('./data-manager');
-      const manager = dataManager.default;
-      
       console.log('🔍 [Debug] dataManager 检查:', {
-        exists: !!manager,
-        createProfile: typeof manager?.createProfile,
-        getContacts: typeof manager?.getContacts
+        exists: !!dataManager,
+        createProfile: typeof dataManager?.createProfile,
+        getContacts: typeof dataManager?.getContacts
       });
       
       return {
         status: 'success',
         message: 'dataManager 模块导入成功',
         methods: {
-          createProfile: typeof manager?.createProfile,
-          getContacts: typeof manager?.getContacts
+          createProfile: typeof dataManager?.createProfile,
+          getContacts: typeof dataManager?.getContacts
         }
       };
     } catch (error) {
@@ -150,11 +149,8 @@ class DebugHelper {
     console.log('🧪 [Debug] 测试 API 连接');
     
     try {
-      const apiClient = await import('./api-client');
-      const client = apiClient.default;
-      
       // 尝试获取统计信息作为连接测试
-      const result = await client.getStats();
+      const result = await apiClient.getStats();
       
       console.log('✅ [Debug] API 连接成功:', result);
       
