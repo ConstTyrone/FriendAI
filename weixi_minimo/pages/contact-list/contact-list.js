@@ -58,6 +58,9 @@ Page({
     showImportProgress: false,
     importProgress: {},
     
+    // 添加菜单状态
+    showAddMenu: false,
+    
   },
 
   onLoad(options) {
@@ -800,9 +803,36 @@ Page({
    * 添加联系人
    */
   onAddContact() {
+    // 关闭添加菜单
+    this.setData({ showAddMenu: false });
+    
     wx.navigateTo({
       url: `${PAGE_ROUTES.CONTACT_FORM}?mode=add`
     });
+  },
+
+  /**
+   * 切换添加菜单显示状态
+   */
+  onToggleAddMenu() {
+    this.setData({
+      showAddMenu: !this.data.showAddMenu
+    });
+  },
+
+  /**
+   * 关闭添加菜单
+   */
+  onCloseAddMenu() {
+    this.setData({ showAddMenu: false });
+  },
+
+  /**
+   * 阻止事件冒泡
+   */
+  onStopPropagation(e) {
+    // 阻止事件冒泡，防止点击菜单内容时关闭菜单
+    e.stopPropagation && e.stopPropagation();
   },
 
   /**
@@ -1039,8 +1069,9 @@ Page({
       return; // 点击的是联系人项或操作按钮
     }
     
-    // 关闭所有滑动菜单
+    // 关闭所有滑动菜单和添加菜单
     this.closeAllSwipeMenus();
+    this.setData({ showAddMenu: false });
   },
 
   /**
@@ -1048,6 +1079,9 @@ Page({
    */
   async onImportFromPhoneBook() {
     console.log('🔍 [调试] onImportFromPhoneBook 方法被调用');
+    
+    // 关闭添加菜单
+    this.setData({ showAddMenu: false });
     
     try {
       console.log('🔍 [调试] 检查 contactImporter 对象:', typeof contactImporter);
@@ -1317,6 +1351,9 @@ Page({
    * 批量导入联系人（文本/文件）
    */
   async onBatchImport() {
+    // 关闭添加菜单
+    this.setData({ showAddMenu: false });
+    
     try {
       // 检查是否正在导入
       if (contactImporter.isCurrentlyImporting()) {

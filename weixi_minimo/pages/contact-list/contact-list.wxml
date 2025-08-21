@@ -90,17 +90,6 @@
       </view>
     </view>
     
-    <!-- 快捷操作按钮 -->
-    <view class="quick-actions">
-      <view class="quick-action-btn" bind:tap="onImportFromPhoneBook">
-        <text class="action-icon">📱</text>
-        <text class="action-text">单个导入</text>
-      </view>
-      <view class="quick-action-btn" bind:tap="onBatchImport">
-        <text class="action-icon">📋</text>
-        <text class="action-text">文本导入</text>
-      </view>
-    </view>
   </view>
 
   <!-- 列表内容 -->
@@ -216,9 +205,28 @@
   </view>
 
   <!-- 添加按钮 -->
-  <view class="add-button" bind:tap="onAddContact">
-    <text class="add-text">+</text>
+  <view class="add-button" bind:tap="onToggleAddMenu">
+    <text class="add-text {{showAddMenu ? 'rotated' : ''}}">+</text>
   </view>
+
+  <!-- 添加菜单 -->
+  <view class="add-menu {{showAddMenu ? 'show' : ''}}" catch:tap="onStopPropagation">
+    <view class="add-menu-item" bind:tap="onAddContact">
+      <text class="menu-icon">✏️</text>
+      <text class="menu-text">新建联系人</text>
+    </view>
+    <view class="add-menu-item" bind:tap="onImportFromPhoneBook">
+      <text class="menu-icon">📱</text>
+      <text class="menu-text">单个导入</text>
+    </view>
+    <view class="add-menu-item" bind:tap="onBatchImport">
+      <text class="menu-icon">📋</text>
+      <text class="menu-text">文本导入</text>
+    </view>
+  </view>
+
+  <!-- 添加菜单遮罩 -->
+  <view class="add-menu-mask {{showAddMenu ? 'show' : ''}}" bind:tap="onCloseAddMenu"></view>
 
   <!-- 操作菜单 -->
   <view class="action-overlay {{showActionMenu ? 'show' : ''}}" bind:tap="onCloseActionMenu">

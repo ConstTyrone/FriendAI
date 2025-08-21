@@ -214,46 +214,6 @@ page.theme-dark {
   opacity: 0.6;
 }
 
-/* 快捷操作区域 - 现代化卡片设计 */
-.quick-actions {
-  padding: var(--space-lg);
-  margin: 0 var(--space-md) var(--space-sm);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-large);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  justify-content: center;
-  gap: var(--space-lg);
-}
-
-.quick-action-btn {
-  display: flex;
-  align-items: center;
-  padding: var(--space-md) var(--space-lg);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: var(--radius-medium);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-  transition: all 0.3s ease;
-  min-width: 200rpx;
-  justify-content: center;
-}
-
-.quick-action-btn:active {
-  transform: translateY(2rpx);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.quick-action-btn .action-icon {
-  font-size: 36rpx;
-  margin-right: var(--space-sm);
-}
-
-.quick-action-btn .action-text {
-  font-size: 28rpx;
-  color: #FFFFFF;
-  font-weight: 600;
-  letter-spacing: 0.5rpx;
-}
 
 /* 列表容器 */
 .list-container {
@@ -524,25 +484,27 @@ page.theme-dark {
   overflow: visible;
 }
 
-/* 联系人卡片 - 现代化设计 */
+/* 联系人卡片 - 简洁单层设计 */
 .contact-item {
   display: flex;
   align-items: center;
-  padding: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
   position: relative;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-large);
-  margin: 0 var(--space-md) var(--space-sm);
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border-bottom: 1rpx solid var(--color-border-light);
   z-index: 2;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  width: calc(100% - var(--space-md) * 2);
+  width: 100%;
   will-change: transform;
+}
+
+.contact-item:last-child {
+  border-bottom: none;
 }
 
 .contact-item.swiped {
   transform: translateX(-200rpx);
-  box-shadow: var(--shadow-card-hover);
+  background: rgba(102, 126, 234, 0.02);
 }
 
 .contact-item.swiped + .swipe-actions {
@@ -550,14 +512,13 @@ page.theme-dark {
 }
 
 .contact-item:active {
-  transform: translateY(1rpx);
-  box-shadow: var(--shadow-search);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 /* 高匹配联系人特殊样式 */
 .contact-item.high-match {
-  border-left: 6rpx solid #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(255, 255, 255, 1) 100%);
+  background: rgba(102, 126, 234, 0.04);
+  border-left: 4rpx solid #667eea;
 }
 
 /* 联系人头像 - 现代化圆形设计 */
@@ -729,13 +690,14 @@ page.theme-dark {
   bottom: 180rpx;
   width: 88rpx;
   height: 88rpx;
-  background: #000000;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
   z-index: 999;
+  transition: all 0.3s ease;
 }
 
 .add-button:active {
@@ -747,6 +709,79 @@ page.theme-dark {
   color: #FFFFFF;
   font-weight: 300;
   line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+.add-text.rotated {
+  transform: rotate(45deg);
+}
+
+/* 添加菜单 */
+.add-menu {
+  position: fixed;
+  right: 24rpx;
+  bottom: 290rpx;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-card-hover);
+  z-index: 998;
+  min-width: 240rpx;
+  opacity: 0;
+  transform: translateY(20rpx) scale(0.9);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+}
+
+.add-menu.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.add-menu-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1rpx solid var(--color-border-light);
+  transition: background-color 0.2s ease;
+}
+
+.add-menu-item:last-child {
+  border-bottom: none;
+}
+
+.add-menu-item:active {
+  background: rgba(102, 126, 234, 0.06);
+}
+
+.menu-icon {
+  font-size: 32rpx;
+  margin-right: var(--space-sm);
+}
+
+.menu-text {
+  font-size: 28rpx;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+/* 添加菜单遮罩 */
+.add-menu-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 997;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.add-menu-mask.show {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* 操作菜单 */
