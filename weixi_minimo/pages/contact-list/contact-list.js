@@ -1120,13 +1120,36 @@ Page({
       
       // 检查是否正在导入
       if (contactImporter.isCurrentlyImporting()) {
-        console.log('⚠️ [调试] 正在导入中，返回');
-        wx.showToast({
-          title: '⏳ 正在导入中，请稍候...',
-          icon: 'none',
-          duration: 2000
+        console.log('⚠️ [调试] 检测到导入状态异常，询问用户是否重置');
+        
+        // 询问用户是否重置导入状态
+        const resetResult = await new Promise((resolve) => {
+          wx.showModal({
+            title: '导入状态异常',
+            content: '检测到上次导入可能未正常结束，是否重置导入状态并继续？',
+            confirmText: '重置并继续',
+            cancelText: '取消',
+            success: (res) => {
+              resolve(res.confirm);
+            },
+            fail: () => {
+              resolve(false);
+            }
+          });
         });
-        return;
+        
+        if (!resetResult) {
+          console.log('⚠️ [调试] 用户取消导入');
+          return;
+        }
+        
+        // 重置导入状态
+        console.log('🔄 [调试] 用户确认重置导入状态');
+        if (typeof contactImporter.resetImportState === 'function') {
+          contactImporter.resetImportState();
+        } else {
+          console.log('⚠️ [调试] resetImportState 方法不存在，跳过重置');
+        }
       }
 
       console.log('✅ [调试] 开始快速批量导入联系人');

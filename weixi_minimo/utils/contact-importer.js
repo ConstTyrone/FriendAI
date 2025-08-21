@@ -97,9 +97,12 @@ class ContactImporter {
   async quickBatchImportFromPhoneBook(progressCallback = null) {
     console.log('🚀 [ContactImporter] quickBatchImportFromPhoneBook 方法开始');
     
+    // 如果正在导入，先尝试重置状态
     if (this.isImporting) {
-      console.log('⚠️ [ContactImporter] 正在导入中，抛出错误');
-      throw new Error('正在导入中，请稍候...');
+      console.log('⚠️ [ContactImporter] 检测到导入状态异常，尝试重置');
+      this.resetImportState();
+      // 短暂延迟确保状态重置
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     try {
@@ -983,6 +986,23 @@ class ContactImporter {
    */
   isCurrentlyImporting() {
     return this.isImporting;
+  }
+
+  /**
+   * 重置导入状态
+   */
+  resetImportState() {
+    console.log('🔄 [ContactImporter] 强制重置导入状态');
+    this.isImporting = false;
+    this.isBatchMode = false;
+    this.progressCallback = null;
+    this.batchQueue = [];
+    this.importStats = {
+      total: 0,
+      success: 0,
+      errors: 0,
+      duplicates: 0
+    };
   }
 
   /**
