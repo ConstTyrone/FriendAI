@@ -43,6 +43,12 @@
   },
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents",
+  "permission": {
+    "scope.addPhoneContact": {
+      "desc": "用于导入手机通讯录联系人到应用中"
+    }
+  },
+  "requiredBackgroundModes": [],
   "rendererOptions": {
     "skyline": {
       "disableABTest": true,

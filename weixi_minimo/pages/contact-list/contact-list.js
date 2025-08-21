@@ -1040,9 +1040,29 @@ Page({
    * 从通讯录导入联系人
    */
   async onImportFromPhoneBook() {
+    console.log('🔍 [调试] onImportFromPhoneBook 方法被调用');
+    
     try {
+      console.log('🔍 [调试] 检查 contactImporter 对象:', typeof contactImporter);
+      
+      if (!contactImporter) {
+        console.error('❌ [调试] contactImporter 未正确导入');
+        wx.showModal({
+          title: '错误',
+          content: 'contactImporter 模块导入失败',
+          showCancel: false
+        });
+        return;
+      }
+      
+      console.log('🔍 [调试] contactImporter 方法检查:', {
+        isCurrentlyImporting: typeof contactImporter.isCurrentlyImporting,
+        importFromPhoneBook: typeof contactImporter.importFromPhoneBook
+      });
+      
       // 检查是否正在导入
       if (contactImporter.isCurrentlyImporting()) {
+        console.log('⚠️ [调试] 正在导入中，返回');
         wx.showToast({
           title: '正在导入中...',
           icon: 'none',
@@ -1051,21 +1071,25 @@ Page({
         return;
       }
 
-      console.log('开始从通讯录导入联系人');
+      console.log('✅ [调试] 开始从通讯录导入联系人');
       
       // 开始导入流程
-      await contactImporter.importFromPhoneBook();
+      const result = await contactImporter.importFromPhoneBook();
+      console.log('🔍 [调试] 导入结果:', result);
       
       // 导入完成后刷新列表
       await this.refreshData();
+      console.log('✅ [调试] 数据刷新完成');
       
     } catch (error) {
-      console.error('通讯录导入失败:', error);
+      console.error('❌ [调试] 通讯录导入失败:', error);
+      console.error('❌ [调试] 错误堆栈:', error.stack);
       
-      wx.showToast({
-        title: '导入失败: ' + (error.message || '未知错误'),
-        icon: 'none',
-        duration: 3000
+      wx.showModal({
+        title: '导入失败',
+        content: `错误信息: ${error.message || '未知错误'}\n\n请查看控制台获取详细信息`,
+        showCancel: false,
+        confirmText: '知道了'
       });
     }
   },
@@ -1074,9 +1098,29 @@ Page({
    * 快速批量导入从通讯录
    */
   async onQuickBatchImport() {
+    console.log('🚀 [调试] onQuickBatchImport 方法被调用');
+    
     try {
+      console.log('🔍 [调试] 检查 contactImporter 对象:', typeof contactImporter);
+      
+      if (!contactImporter) {
+        console.error('❌ [调试] contactImporter 未正确导入');
+        wx.showModal({
+          title: '错误',
+          content: 'contactImporter 模块导入失败',
+          showCancel: false
+        });
+        return;
+      }
+      
+      console.log('🔍 [调试] contactImporter 快速批量导入方法检查:', {
+        isCurrentlyImporting: typeof contactImporter.isCurrentlyImporting,
+        quickBatchImportFromPhoneBook: typeof contactImporter.quickBatchImportFromPhoneBook
+      });
+      
       // 检查是否正在导入
       if (contactImporter.isCurrentlyImporting()) {
+        console.log('⚠️ [调试] 正在导入中，返回');
         wx.showToast({
           title: '⏳ 正在导入中，请稍候...',
           icon: 'none',
@@ -1085,33 +1129,40 @@ Page({
         return;
       }
 
-      console.log('开始快速批量导入联系人');
+      console.log('✅ [调试] 开始快速批量导入联系人');
       
       // 设置进度回调
       const progressCallback = (progress) => {
+        console.log('📊 [调试] 进度回调:', progress);
         this.handleImportProgress(progress);
       };
       
       // 开始快速批量导入流程
+      console.log('🚀 [调试] 调用 quickBatchImportFromPhoneBook');
       const result = await contactImporter.quickBatchImportFromPhoneBook(progressCallback);
+      console.log('🔍 [调试] 快速批量导入结果:', result);
       
       if (result && result.success) {
+        console.log('✅ [调试] 导入成功，开始刷新数据');
         // 导入成功，刷新列表
         await this.refreshData();
         
         // 显示性能统计（仅在开发模式下）
         if (wx.getAccountInfoSync().miniProgram.envVersion === 'develop') {
           const perfStats = contactImporter.getPerformanceStats();
-          console.log('导入性能统计:', perfStats);
+          console.log('📊 [调试] 导入性能统计:', perfStats);
         }
+      } else {
+        console.log('⚠️ [调试] 导入未成功或被取消');
       }
       
     } catch (error) {
-      console.error('快速批量导入失败:', error);
+      console.error('❌ [调试] 快速批量导入失败:', error);
+      console.error('❌ [调试] 错误堆栈:', error.stack);
       
       wx.showModal({
         title: '❌ 批量导入失败',
-        content: `导入过程中遇到问题：\n\n${error.message || '未知错误'}\n\n请检查网络连接后重试`,
+        content: `导入过程中遇到问题：\n\n${error.message || '未知错误'}\n\n请查看控制台获取详细错误信息`,
         showCancel: false,
         confirmText: '知道了',
         confirmColor: '#ff4757'

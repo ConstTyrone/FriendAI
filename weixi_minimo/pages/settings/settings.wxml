@@ -190,6 +190,22 @@
     <view class="option-group" wx:if="{{isLoggedIn}}">
       <text class="group-title">🧪 开发者选项</text>
       <view class="option-list">
+        <view class="option-item" bind:tap="onSystemDiagnosis">
+          <view class="option-content">
+            <text class="option-title">系统诊断</text>
+            <text class="option-note">全面检查系统状态和功能</text>
+          </view>
+          <text class="option-arrow">🏥</text>
+        </view>
+        
+        <view class="option-item" bind:tap="onPermissionManager">
+          <view class="option-content">
+            <text class="option-title">权限管理</text>
+            <text class="option-note">检查和管理通讯录权限</text>
+          </view>
+          <text class="option-arrow">🔐</text>
+        </view>
+        
         <view class="option-item" bind:tap="onTestBatchImport">
           <view class="option-content">
             <text class="option-title">测试批量导入</text>

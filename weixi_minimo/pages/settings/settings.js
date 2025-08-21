@@ -5,6 +5,7 @@ import { getStorageSync, setStorageSync, defaultStorage } from '../../utils/stor
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import themeManager from '../../utils/theme-manager';
+import debugHelper from '../../utils/debug-helper';
 
 Page({
   data: {
@@ -636,6 +637,102 @@ Page({
         }
       }
     });
+  },
+
+  /**
+   * 系统诊断
+   */
+  async onSystemDiagnosis() {
+    try {
+      wx.showLoading({
+        title: '🏥 正在诊断...',
+        mask: true
+      });
+
+      console.log('🏥 [Settings] 开始系统诊断');
+      
+      // 运行完整诊断
+      const results = await debugHelper.runFullDiagnosis();
+      
+      wx.hideLoading();
+      
+      // 显示诊断结果
+      debugHelper.showDiagnosisResults(results);
+      
+    } catch (error) {
+      wx.hideLoading();
+      console.error('❌ [Settings] 系统诊断失败:', error);
+      
+      wx.showModal({
+        title: '❌ 诊断失败',
+        content: `系统诊断过程中出现错误：\n\n${error.message}\n\n请查看控制台获取详细信息。`,
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#ff4757'
+      });
+    }
+  },
+
+  /**
+   * 权限管理
+   */
+  async onPermissionManager() {
+    try {
+      wx.showLoading({
+        title: '🔐 检查权限...',
+        mask: true
+      });
+
+      // 检查当前权限状态
+      const permissionStatus = await debugHelper.testContactPermission();
+      
+      wx.hideLoading();
+      
+      if (permissionStatus.status === 'granted') {
+        wx.showModal({
+          title: '✅ 权限状态',
+          content: '通讯录权限已授权，可以正常使用导入功能。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+      } else if (permissionStatus.status === 'denied') {
+        wx.showModal({
+          title: '❌ 权限被拒绝',
+          content: '通讯录权限被拒绝，无法使用导入功能。\n\n点击"去设置"可以重新授权。',
+          confirmText: '去设置',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              wx.openSetting();
+            }
+          }
+        });
+      } else {
+        wx.showModal({
+          title: '📋 权限未请求',
+          content: '尚未请求通讯录权限。\n\n点击"立即授权"申请权限。',
+          confirmText: '立即授权',
+          cancelText: '取消',
+          success: async (res) => {
+            if (res.confirm) {
+              const result = await debugHelper.requestContactPermission();
+              console.log('权限申请结果:', result);
+            }
+          }
+        });
+      }
+      
+    } catch (error) {
+      wx.hideLoading();
+      console.error('❌ [Settings] 权限检查失败:', error);
+      
+      wx.showModal({
+        title: '❌ 权限检查失败',
+        content: `权限检查过程中出现错误：\n\n${error.message}`,
+        showCancel: false,
+        confirmText: '知道了'
+      });
+    }
   }
 
 });

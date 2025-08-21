@@ -21,23 +21,33 @@ class ContactImporter {
    * 从手机通讯录导入联系人
    */
   async importFromPhoneBook() {
+    console.log('📱 [ContactImporter] importFromPhoneBook 方法开始');
+    
     if (this.isImporting) {
+      console.log('⚠️ [ContactImporter] 正在导入中，抛出错误');
       throw new Error('正在导入中，请稍候...');
     }
 
     try {
+      console.log('✅ [ContactImporter] 设置导入状态');
       this.isImporting = true;
       this.resetImportStats();
 
       // 显示导入说明
+      console.log('📋 [ContactImporter] 显示导入说明');
       const userConfirmed = await this.showImportGuide();
+      console.log('🔍 [ContactImporter] 用户确认结果:', userConfirmed);
       if (!userConfirmed) {
+        console.log('❌ [ContactImporter] 用户取消导入');
         return null;
       }
 
       // 开始选择联系人
+      console.log('📲 [ContactImporter] 开始选择联系人');
       const contact = await this.selectContactFromPhoneBook();
+      console.log('🔍 [ContactImporter] 选择联系人结果:', contact);
       if (!contact) {
+        console.log('❌ [ContactImporter] 未选择联系人');
         return null;
       }
 
@@ -85,11 +95,15 @@ class ContactImporter {
    * 快速批量导入从手机通讯录
    */
   async quickBatchImportFromPhoneBook(progressCallback = null) {
+    console.log('🚀 [ContactImporter] quickBatchImportFromPhoneBook 方法开始');
+    
     if (this.isImporting) {
+      console.log('⚠️ [ContactImporter] 正在导入中，抛出错误');
       throw new Error('正在导入中，请稍候...');
     }
 
     try {
+      console.log('✅ [ContactImporter] 设置批量导入状态');
       this.isImporting = true;
       this.isBatchMode = true;
       this.batchQueue = [];
@@ -97,13 +111,22 @@ class ContactImporter {
       this.resetImportStats();
 
       // 显示快速批量导入说明
+      console.log('📋 [ContactImporter] 显示快速批量导入说明');
       const userConfirmed = await this.showQuickBatchImportGuide();
+      console.log('🔍 [ContactImporter] 用户确认结果:', userConfirmed);
       if (!userConfirmed) {
-        return null;
+        console.log('❌ [ContactImporter] 用户取消批量导入');
+        return {
+          success: false,
+          cancelled: true,
+          stats: this.importStats
+        };
       }
 
       // 开始快速连续选择联系人
+      console.log('🔄 [ContactImporter] 开始快速连续选择');
       await this.startQuickSelection();
+      console.log('✅ [ContactImporter] 快速选择完成，队列长度:', this.batchQueue.length);
 
       return {
         success: true,
@@ -111,7 +134,8 @@ class ContactImporter {
       };
 
     } catch (error) {
-      console.error('快速批量导入失败:', error);
+      console.error('❌ [ContactImporter] 快速批量导入失败:', error);
+      console.error('❌ [ContactImporter] 错误堆栈:', error.stack);
       this.showErrorDialog('快速批量导入失败', error.message);
       return {
         success: false,
@@ -119,6 +143,7 @@ class ContactImporter {
         stats: this.importStats
       };
     } finally {
+      console.log('🏁 [ContactImporter] 重置导入状态');
       this.isImporting = false;
       this.isBatchMode = false;
       this.progressCallback = null;
@@ -549,32 +574,46 @@ class ContactImporter {
    * 从手机通讯录选择联系人
    */
   selectContactFromPhoneBook() {
+    console.log('📞 [ContactImporter] selectContactFromPhoneBook 开始');
+    
     return new Promise((resolve) => {
+      console.log('📞 [ContactImporter] 调用 wx.chooseContact');
+      
       wx.chooseContact({
         success: (res) => {
-          console.log('选择联系人成功:', res);
-          resolve({
+          console.log('✅ [ContactImporter] 选择联系人成功:', res);
+          const contact = {
             name: res.displayName,
             phone: res.phoneNumber
-          });
+          };
+          console.log('🔍 [ContactImporter] 格式化后的联系人:', contact);
+          resolve(contact);
         },
         fail: (error) => {
-          console.error('选择联系人失败:', error);
+          console.error('❌ [ContactImporter] 选择联系人失败:', error);
+          console.error('❌ [ContactImporter] 错误详情:', {
+            errMsg: error.errMsg,
+            errCode: error.errCode
+          });
           
           if (error.errMsg.includes('auth deny')) {
-            wx.showToast({
-              title: '需要授权访问通讯录',
-              icon: 'none',
-              duration: 2000
+            console.log('🚫 [ContactImporter] 权限被拒绝');
+            wx.showModal({
+              title: '权限申请',
+              content: '需要授权访问通讯录才能导入联系人。请在小程序设置中开启通讯录权限。',
+              showCancel: false,
+              confirmText: '知道了'
             });
           } else if (error.errMsg.includes('cancel')) {
             // 用户取消选择
-            console.log('用户取消选择联系人');
+            console.log('🚫 [ContactImporter] 用户取消选择联系人');
           } else {
-            wx.showToast({
-              title: '选择联系人失败',
-              icon: 'none',
-              duration: 2000
+            console.log('❌ [ContactImporter] 其他错误');
+            wx.showModal({
+              title: '选择失败',
+              content: `选择联系人失败：${error.errMsg}\n\n请确保已授权通讯录权限`,
+              showCancel: false,
+              confirmText: '知道了'
             });
           }
           
@@ -686,12 +725,26 @@ class ContactImporter {
    * 创建导入的联系人
    */
   async createImportedContact(contactData) {
+    console.log('💾 [ContactImporter] createImportedContact 开始');
+    
     try {
-      console.log('创建导入的联系人:', contactData);
+      console.log('🔍 [ContactImporter] 准备创建联系人:', contactData);
+      console.log('🔍 [ContactImporter] dataManager 检查:', {
+        exists: !!dataManager,
+        hasCreateProfile: !!dataManager?.createProfile,
+        type: typeof dataManager?.createProfile
+      });
       
+      if (!dataManager || !dataManager.createProfile) {
+        throw new Error('dataManager 或 createProfile 方法不可用');
+      }
+      
+      console.log('📡 [ContactImporter] 调用 dataManager.createProfile');
       const result = await dataManager.createProfile(contactData);
+      console.log('🔍 [ContactImporter] dataManager.createProfile 结果:', result);
       
-      if (result.success) {
+      if (result && result.success) {
+        console.log('✅ [ContactImporter] 联系人创建成功');
         wx.showToast({
           title: '导入成功',
           icon: 'success',
@@ -700,10 +753,12 @@ class ContactImporter {
         
         return result;
       } else {
-        throw new Error(result.message || '创建失败');
+        console.log('❌ [ContactImporter] 联系人创建失败:', result);
+        throw new Error(result?.message || result?.detail || '创建失败');
       }
     } catch (error) {
-      console.error('创建导入联系人失败:', error);
+      console.error('❌ [ContactImporter] 创建导入联系人失败:', error);
+      console.error('❌ [ContactImporter] 错误堆栈:', error.stack);
       throw error;
     }
   }
