@@ -324,12 +324,146 @@ class ContactImporter {
   }
 
   /**
-   * 批量导入联系人（预留接口）
+   * 批量导入联系人
    */
-  async batchImportContacts(contacts) {
-    // 此功能需要用户逐个确认，暂时不实现
-    // 可以在未来版本中添加
-    throw new Error('批量导入功能暂未实现');
+  async batchImportContacts(contacts, importMode = 'create') {
+    if (this.isImporting) {
+      throw new Error('正在导入中，请稍候...');
+    }
+
+    try {
+      this.isImporting = true;
+      this.resetImportStats();
+      this.importStats.total = contacts.length;
+
+      console.log('开始批量导入联系人:', contacts.length, '个');
+
+      const result = await dataManager.batchImportProfiles(contacts, importMode);
+      
+      // 更新统计信息
+      this.importStats.success = result.success_count || 0;
+      this.importStats.errors = result.failed_count || 0;
+      this.importStats.duplicates = result.skipped_count || 0;
+
+      console.log('批量导入完成:', this.importStats);
+
+      return {
+        success: result.success,
+        stats: this.importStats,
+        details: result
+      };
+    } catch (error) {
+      console.error('批量导入失败:', error);
+      throw error;
+    } finally {
+      this.isImporting = false;
+    }
+  }
+
+  /**
+   * 解析文本格式的联系人数据
+   */
+  parseTextContacts(text) {
+    try {
+      const lines = text.trim().split('\n');
+      const contacts = [];
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // 尝试解析不同格式
+        const contact = this.parseContactLine(line);
+        if (contact) {
+          contacts.push(contact);
+        }
+      }
+      
+      return contacts;
+    } catch (error) {
+      console.error('解析文本联系人失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 解析单行联系人数据
+   */
+  parseContactLine(line) {
+    try {
+      // 支持多种格式：
+      // 1. "姓名,手机号,公司,职位"
+      // 2. "姓名 手机号 公司 职位"
+      // 3. "姓名\t手机号\t公司\t职位"
+      
+      let parts = [];
+      
+      // 尝试逗号分隔
+      if (line.includes(',')) {
+        parts = line.split(',').map(p => p.trim());
+      }
+      // 尝试制表符分隔
+      else if (line.includes('\t')) {
+        parts = line.split('\t').map(p => p.trim());
+      }
+      // 尝试空格分隔（至少2个空格）
+      else if (line.includes('  ')) {
+        parts = line.split(/\s{2,}/).map(p => p.trim());
+      }
+      // 单个空格分隔（可能不准确）
+      else if (line.includes(' ')) {
+        parts = line.split(' ').map(p => p.trim());
+      }
+      // 只有一个字段，作为姓名
+      else {
+        parts = [line];
+      }
+      
+      if (parts.length === 0 || !parts[0]) {
+        return null;
+      }
+      
+      const contact = {
+        name: parts[0],
+        phone: parts[1] || '',
+        company: parts[2] || '',
+        position: parts[3] || '',
+        address: parts[4] || '',
+        notes: parts[5] || '批量导入',
+        tags: [],
+        gender: '',
+        age: '',
+        marital_status: '',
+        education: '',
+        asset_level: '',
+        personality: ''
+      };
+      
+      return contact;
+    } catch (error) {
+      console.error('解析联系人行失败:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 显示批量导入引导
+   */
+  showBatchImportGuide() {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '批量导入联系人',
+        content: '支持以下格式：\n1. 姓名,手机,公司,职位\n2. 每行一个联系人\n3. 用逗号或制表符分隔字段\n\n点击确定开始导入',
+        confirmText: '开始导入',
+        cancelText: '取消',
+        success: (res) => {
+          resolve(res.confirm);
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
   }
 
   /**

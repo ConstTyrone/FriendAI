@@ -96,6 +96,10 @@
         <text class="action-icon">📱</text>
         <text class="action-text">从通讯录导入</text>
       </view>
+      <view class="quick-action-btn" bind:tap="onBatchImport">
+        <text class="action-icon">📋</text>
+        <text class="action-text">批量导入</text>
+      </view>
     </view>
   </view>
 

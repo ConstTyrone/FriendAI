@@ -15,5 +15,9 @@ scikit-learn>=1.0.0
 aiohttp>=3.8.0
 httpx>=0.24.0
 
+# 数据处理依赖（批量导入功能）
+pandas>=1.5.0
+openpyxl>=3.0.0
+
 # 阿里云语音识别SDK（可选，如果需要语音识别功能）
 # alibabacloud-nls>=1.0.0

@@ -1064,5 +1064,178 @@ Page({
         duration: 3000
       });
     }
+  },
+
+  /**
+   * 批量导入联系人
+   */
+  async onBatchImport() {
+    try {
+      // 检查是否正在导入
+      if (contactImporter.isCurrentlyImporting()) {
+        wx.showToast({
+          title: '正在导入中...',
+          icon: 'none',
+          duration: 1500
+        });
+        return;
+      }
+
+      // 显示批量导入引导
+      const userConfirmed = await contactImporter.showBatchImportGuide();
+      if (!userConfirmed) {
+        return;
+      }
+
+      // 显示文本输入对话框
+      wx.showModal({
+        title: '批量导入联系人',
+        content: '请粘贴联系人数据，每行一个联系人：\n姓名,手机,公司,职位',
+        editable: true,
+        placeholderText: '张三,13800138000,阿里巴巴,工程师\n李四,13900139000,腾讯,设计师',
+        confirmText: '开始解析',
+        cancelText: '取消',
+        success: async (res) => {
+          if (res.confirm && res.content) {
+            await this.processBatchImportText(res.content.trim());
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('批量导入失败:', error);
+      
+      wx.showToast({
+        title: '导入失败: ' + (error.message || '未知错误'),
+        icon: 'none',
+        duration: 3000
+      });
+    }
+  },
+
+  /**
+   * 处理批量导入文本
+   */
+  async processBatchImportText(text) {
+    try {
+      if (!text || !text.trim()) {
+        wx.showToast({
+          title: '请输入联系人数据',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+
+      // 解析文本数据
+      const contacts = contactImporter.parseTextContacts(text);
+      
+      if (contacts.length === 0) {
+        wx.showToast({
+          title: '未能解析到有效联系人',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+
+      // 显示解析结果预览
+      await this.showBatchImportPreview(contacts);
+
+    } catch (error) {
+      console.error('处理批量导入文本失败:', error);
+      wx.showToast({
+        title: '解析失败: ' + (error.message || '未知错误'),
+        icon: 'none',
+        duration: 3000
+      });
+    }
+  },
+
+  /**
+   * 显示批量导入预览
+   */
+  async showBatchImportPreview(contacts) {
+    try {
+      // 生成预览文本
+      let previewText = `解析到 ${contacts.length} 个联系人：\n\n`;
+      contacts.slice(0, 5).forEach((contact, index) => {
+        previewText += `${index + 1}. ${contact.name}`;
+        if (contact.phone) previewText += ` - ${contact.phone}`;
+        if (contact.company) previewText += ` - ${contact.company}`;
+        previewText += '\n';
+      });
+      
+      if (contacts.length > 5) {
+        previewText += `...\n还有 ${contacts.length - 5} 个联系人`;
+      }
+      
+      previewText += '\n\n确认批量导入这些联系人吗？';
+
+      // 显示确认对话框
+      wx.showModal({
+        title: '确认批量导入',
+        content: previewText,
+        confirmText: '确认导入',
+        cancelText: '取消',
+        success: async (res) => {
+          if (res.confirm) {
+            await this.executeBatchImport(contacts);
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('显示批量导入预览失败:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * 执行批量导入
+   */
+  async executeBatchImport(contacts) {
+    try {
+      wx.showLoading({
+        title: '正在批量导入...',
+        mask: true
+      });
+
+      // 执行批量导入
+      const result = await contactImporter.batchImportContacts(contacts, 'create');
+      
+      wx.hideLoading();
+
+      // 显示导入结果
+      const stats = result.stats;
+      let message = `导入完成！\n`;
+      message += `总计: ${stats.total}个\n`;
+      message += `成功: ${stats.success}个\n`;
+      if (stats.errors > 0) message += `失败: ${stats.errors}个\n`;
+      if (stats.duplicates > 0) message += `跳过: ${stats.duplicates}个`;
+
+      wx.showModal({
+        title: '批量导入结果',
+        content: message,
+        showCancel: false,
+        confirmText: '知道了',
+        success: () => {
+          // 刷新联系人列表
+          this.refreshData();
+        }
+      });
+
+      console.log('批量导入完成:', result);
+
+    } catch (error) {
+      wx.hideLoading();
+      console.error('执行批量导入失败:', error);
+      
+      wx.showModal({
+        title: '批量导入失败',
+        content: error.message || '导入过程中出现错误，请重试',
+        showCancel: false
+      });
+    }
   }
 });

@@ -305,6 +305,47 @@ class APIClient {
   }
 
   /**
+   * 解析导入文件
+   */
+  async parseImportFile(filePath) {
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: `${this.baseURL}/api/profiles/parse-file`,
+        filePath,
+        name: 'file',
+        header: {
+          ...(this.token && { 'Authorization': `Bearer ${this.token}` })
+        },
+        success: (res) => {
+          try {
+            const data = JSON.parse(res.data);
+            if (res.statusCode === 200 && data.success) {
+              resolve(data);
+            } else {
+              reject(new Error(data.detail || '文件解析失败'));
+            }
+          } catch (error) {
+            reject(new Error('响应解析失败'));
+          }
+        },
+        fail: (error) => {
+          reject(new Error('文件上传失败'));
+        }
+      });
+    });
+  }
+
+  /**
+   * 批量导入联系人
+   */
+  async batchImportProfiles(data) {
+    return await this.request('/api/profiles/batch', {
+      method: 'POST',
+      data
+    });
+  }
+
+  /**
    * 上传文件
    */
   async uploadFile(filePath, fileName) {

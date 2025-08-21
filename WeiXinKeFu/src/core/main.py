@@ -1128,6 +1128,21 @@ class UpdateProfileRequest(BaseModel):
     asset_level: Optional[str] = None
     personality: Optional[str] = None
 
+class BatchImportRequest(BaseModel):
+    """批量导入联系人请求模型"""
+    profiles: List[CreateProfileRequest]
+    import_mode: str = "create"  # create, merge, skip_duplicate
+
+class BatchImportResult(BaseModel):
+    """批量导入结果模型"""
+    success: bool
+    total_count: int
+    success_count: int
+    failed_count: int
+    skipped_count: int
+    errors: List[Dict[str, Any]] = []
+    created_profiles: List[Dict[str, Any]] = []
+
 @app.post("/api/profiles")
 async def create_profile(
     request: CreateProfileRequest,
@@ -1313,6 +1328,243 @@ async def update_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"更新联系人失败: {str(e)}"
+        )
+
+@app.post("/api/profiles/parse-file")
+async def parse_import_file(
+    file: UploadFile = File(...),
+    current_user: str = Depends(verify_user_token)
+):
+    """解析导入文件并返回预览数据"""
+    try:
+        # 验证文件类型
+        allowed_types = ['text/csv', 'application/vnd.ms-excel', 
+                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="仅支持CSV和Excel文件格式"
+            )
+        
+        # 读取文件内容
+        contents = await file.read()
+        
+        # 根据文件类型解析数据
+        import pandas as pd
+        import io
+        
+        try:
+            if file.content_type == 'text/csv':
+                df = pd.read_csv(io.BytesIO(contents), encoding='utf-8')
+            else:
+                df = pd.read_excel(io.BytesIO(contents))
+        except UnicodeDecodeError:
+            # 尝试GBK编码
+            if file.content_type == 'text/csv':
+                df = pd.read_csv(io.BytesIO(contents), encoding='gbk')
+            else:
+                raise
+        
+        # 字段映射配置
+        field_mapping = {
+            '姓名': 'name', '联系人': 'name', '名字': 'name', 'name': 'name',
+            '手机': 'phone', '电话': 'phone', '手机号': 'phone', 'phone': 'phone',
+            '微信': 'wechat_id', '微信号': 'wechat_id', 'wechat': 'wechat_id',
+            '邮箱': 'email', '邮件': 'email', 'email': 'email',
+            '公司': 'company', '单位': 'company', 'company': 'company',
+            '职位': 'position', '岗位': 'position', 'position': 'position',
+            '地址': 'address', '住址': 'address', '地区': 'address', 'address': 'address',
+            '备注': 'notes', '说明': 'notes', 'notes': 'notes',
+            '性别': 'gender', 'gender': 'gender',
+            '年龄': 'age', 'age': 'age',
+            '婚姻状况': 'marital_status', '婚姻': 'marital_status',
+            '学历': 'education', 'education': 'education',
+            '资产水平': 'asset_level', '资产': 'asset_level',
+            '性格': 'personality', 'personality': 'personality'
+        }
+        
+        # 解析数据
+        parsed_data = []
+        errors = []
+        
+        for index, row in df.iterrows():
+            try:
+                contact = {}
+                
+                # 映射字段
+                for col in df.columns:
+                    col_name = str(col).strip()
+                    if col_name in field_mapping:
+                        field_name = field_mapping[col_name]
+                        value = str(row[col]) if pd.notna(row[col]) else ""
+                        if value and value != 'nan':
+                            contact[field_name] = value.strip()
+                
+                # 验证必填字段
+                if not contact.get('name'):
+                    errors.append({
+                        'row': index + 2,  # Excel行号从1开始，加上表头
+                        'error': '缺少姓名字段'
+                    })
+                    continue
+                
+                # 处理标签（如果有）
+                if 'tags' in contact:
+                    tags_str = contact['tags']
+                    if tags_str:
+                        contact['tags'] = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+                    else:
+                        contact['tags'] = []
+                else:
+                    contact['tags'] = []
+                
+                parsed_data.append({
+                    'row': index + 2,
+                    'data': contact,
+                    'valid': True
+                })
+                
+            except Exception as e:
+                errors.append({
+                    'row': index + 2,
+                    'error': f'解析失败: {str(e)}'
+                })
+        
+        return {
+            "success": True,
+            "total_rows": len(df),
+            "valid_count": len(parsed_data),
+            "error_count": len(errors),
+            "data": parsed_data,
+            "errors": errors,
+            "field_mapping": {v: k for k, v in field_mapping.items() if any(k in str(col) for col in df.columns)}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"解析导入文件失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"文件解析失败: {str(e)}"
+        )
+
+@app.post("/api/profiles/batch")
+async def batch_import_profiles(
+    request: BatchImportRequest,
+    current_user: str = Depends(verify_user_token)
+) -> BatchImportResult:
+    """批量导入联系人"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        total_count = len(request.profiles)
+        success_count = 0
+        failed_count = 0
+        skipped_count = 0
+        errors = []
+        created_profiles = []
+        
+        for i, profile_request in enumerate(request.profiles):
+            try:
+                # 验证必填字段
+                if not profile_request.name or not profile_request.name.strip():
+                    errors.append({
+                        'index': i,
+                        'name': profile_request.name or '未知',
+                        'error': '联系人姓名不能为空'
+                    })
+                    failed_count += 1
+                    continue
+                
+                # 检查重复（如果设置了跳过重复）
+                if request.import_mode == "skip_duplicate":
+                    existing = db.search_user_profiles(query_user_id, profile_request.name.strip())
+                    if existing and len(existing) > 0:
+                        skipped_count += 1
+                        continue
+                
+                # 准备画像数据
+                profile_data = {
+                    "profile_name": profile_request.name.strip(),
+                    "name": profile_request.name.strip(),
+                    "gender": profile_request.gender or "未知",
+                    "age": profile_request.age or "未知",
+                    "phone": profile_request.phone or "未知",
+                    "location": profile_request.location or profile_request.address or "未知",
+                    "marital_status": profile_request.marital_status or "未知",
+                    "education": profile_request.education or "未知",
+                    "company": profile_request.company or "未知",
+                    "position": profile_request.position or "未知",
+                    "asset_level": profile_request.asset_level or "未知",
+                    "personality": profile_request.personality or "未知",
+                    "tags": profile_request.tags or []
+                }
+                
+                # 准备AI响应数据
+                ai_response = {
+                    "summary": f"批量导入的联系人：{profile_request.name.strip()}",
+                    "user_profiles": [profile_data]
+                }
+                
+                # 保存到数据库
+                profile_id = db.save_user_profile(
+                    wechat_user_id=query_user_id,
+                    profile_data=profile_data,
+                    raw_message=profile_request.notes or f"批量导入联系人：{profile_request.name.strip()}",
+                    message_type="batch_import",
+                    ai_response=ai_response
+                )
+                
+                if profile_id:
+                    success_count += 1
+                    created_profile = db.get_user_profile_detail(query_user_id, profile_id)
+                    created_profiles.append(created_profile)
+                    
+                    # 异步触发意图匹配
+                    import asyncio
+                    async def run_intent_matching():
+                        try:
+                            from src.services.intent_matcher import intent_matcher
+                            await intent_matcher.match_profile_with_intents(profile_id, query_user_id)
+                        except Exception as e:
+                            logger.error(f"批量导入触发意图匹配失败: {e}")
+                    
+                    asyncio.create_task(run_intent_matching())
+                    
+                else:
+                    failed_count += 1
+                    errors.append({
+                        'index': i,
+                        'name': profile_request.name,
+                        'error': '数据库保存失败'
+                    })
+                    
+            except Exception as e:
+                failed_count += 1
+                errors.append({
+                    'index': i,
+                    'name': getattr(profile_request, 'name', '未知'),
+                    'error': str(e)
+                })
+        
+        logger.info(f"批量导入完成: 总计{total_count}，成功{success_count}，失败{failed_count}，跳过{skipped_count}")
+        
+        return BatchImportResult(
+            success=success_count > 0,
+            total_count=total_count,
+            success_count=success_count,
+            failed_count=failed_count,
+            skipped_count=skipped_count,
+            errors=errors,
+            created_profiles=created_profiles
+        )
+        
+    except Exception as e:
+        logger.error(f"批量导入联系人失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"批量导入失败: {str(e)}"
         )
 
 # ===================== 意图匹配系统 API =====================

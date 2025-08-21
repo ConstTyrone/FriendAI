@@ -840,6 +840,135 @@ class DataManager {
       throw error;
     }
   }
+
+  /**
+   * 解析导入文件
+   */
+  async parseImportFile(filePath) {
+    console.log('DataManager: 解析导入文件', filePath);
+    
+    try {
+      const result = await apiClient.parseImportFile(filePath);
+      console.log('文件解析结果:', result);
+      return result;
+    } catch (error) {
+      console.error('解析导入文件失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量导入联系人
+   */
+  async batchImportProfiles(profiles, importMode = 'create') {
+    console.log('DataManager: 批量导入联系人', profiles.length, importMode);
+    
+    try {
+      // 如果是Mock模式，模拟批量导入
+      if (this.isMockMode) {
+        return this.mockBatchImport(profiles, importMode);
+      }
+      
+      const result = await apiClient.batchImportProfiles({
+        profiles: profiles,
+        import_mode: importMode
+      });
+      
+      if (result.success) {
+        console.log('批量导入成功:', result);
+        
+        // 清除缓存，强制下次重新加载
+        this.clearCache();
+        
+        // 通知监听器
+        this.notifyListeners('contacts_batch_imported', result);
+        
+        return result;
+      } else {
+        throw new Error(result.message || '批量导入失败');
+      }
+    } catch (error) {
+      console.error('批量导入联系人失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mock模式下的批量导入
+   */
+  mockBatchImport(profiles, importMode) {
+    console.log('Mock模式: 模拟批量导入', profiles.length);
+    
+    const result = {
+      success: true,
+      total_count: profiles.length,
+      success_count: 0,
+      failed_count: 0,
+      skipped_count: 0,
+      errors: [],
+      created_profiles: []
+    };
+    
+    profiles.forEach((profile, index) => {
+      try {
+        // 验证必填字段
+        if (!profile.name || !profile.name.trim()) {
+          result.failed_count++;
+          result.errors.push({
+            index: index,
+            name: profile.name || '未知',
+            error: '联系人姓名不能为空'
+          });
+          return;
+        }
+        
+        // 检查重复
+        if (importMode === 'skip_duplicate') {
+          const existing = this.contacts.find(c => 
+            c.profile_name === profile.name.trim() || c.name === profile.name.trim()
+          );
+          if (existing) {
+            result.skipped_count++;
+            return;
+          }
+        }
+        
+        // 创建新联系人
+        const newContact = {
+          id: Date.now() + index,  // 模拟ID
+          profile_name: profile.name.trim(),
+          phone: profile.phone || '未知',
+          company: profile.company || '未知',
+          position: profile.position || '未知',
+          location: profile.address || profile.location || '未知',
+          tags: profile.tags || [],
+          created_at: new Date().toISOString(),
+          ...profile
+        };
+        
+        // 添加到本地数据
+        this.contacts.unshift(newContact);
+        this.contactsMap.set(newContact.id, newContact);
+        
+        result.success_count++;
+        result.created_profiles.push(newContact);
+        
+      } catch (error) {
+        result.failed_count++;
+        result.errors.push({
+          index: index,
+          name: profile.name || '未知',
+          error: error.message
+        });
+      }
+    });
+    
+    // 保存到缓存
+    this.saveToCache();
+    
+    console.log('Mock批量导入完成:', result);
+    return result;
+  }
   
   /**
    * 启动内存清理定时器
