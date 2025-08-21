@@ -17,7 +17,13 @@
           <text class="ai-match-badge" wx:if="{{item.isAIMatch}}">AI</text>
         </view>
         <view class="match-score-row">
-          <text class="match-score">{{item.scorePercent}}% 匹配</text>
+          <view class="match-score-container">
+            <text class="match-score">{{item.scorePercent}}% 匹配</text>
+            <!-- 匹配度进度条 -->
+            <view class="score-progress">
+              <view class="progress-bar" style="width: {{item.scorePercent}}%;"></view>
+            </view>
+          </view>
           <!-- 向量相似度 -->
           <text class="vector-score" wx:if="{{item.hasVectorSimilarity}}">
             语义: {{item.vectorSimilarity}}%
@@ -74,10 +80,10 @@
     </view>
   </view>
   
-  <!-- 空状态 -->
+  <!-- 空状态 - 现代化设计 -->
   <view class="empty-state" wx:if="{{!loading && matches.length === 0}}">
     <text class="empty-title">暂无匹配结果</text>
-    <text class="empty-desc">调整意图条件或降低匹配阈值试试</text>
+    <text class="empty-desc">调整意图条件或降低匹配阈值，AI会为您找到更多潜在匹配</text>
   </view>
   
   <!-- 加载状态 -->

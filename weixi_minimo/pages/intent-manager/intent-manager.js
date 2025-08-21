@@ -209,6 +209,14 @@ Page({
    * 显示创建对话框
    */
   showCreateDialog() {
+    console.log('显示创建对话框');
+    
+    // 防止重复点击
+    if (this.data.showCreateDialog) {
+      console.log('对话框已经显示，忽略重复请求');
+      return;
+    }
+    
     this.setData({
       showCreateDialog: true,
       createMode: 'natural',
@@ -228,6 +236,8 @@ Page({
         priority: 5,
         maxPushPerDay: 5
       }
+    }, () => {
+      console.log('对话框状态设置完成:', this.data.showCreateDialog);
     });
   },
 
@@ -235,6 +245,8 @@ Page({
    * 隐藏创建对话框
    */
   hideCreateDialog() {
+    console.log('隐藏创建对话框');
+    
     this.setData({
       showCreateDialog: false,
       editMode: false,
@@ -253,6 +265,8 @@ Page({
         priority: 5,
         maxPushPerDay: 5
       }
+    }, () => {
+      console.log('对话框隐藏完成:', this.data.showCreateDialog);
     });
   },
 
@@ -790,7 +804,12 @@ Page({
   /**
    * 停止事件冒泡
    */
-  stopPropagation() {
-    // 阻止事件冒泡
+  stopPropagation(e) {
+    console.log('阻止事件冒泡');
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+    // 显式返回false阻止事件冒泡
+    return false;
   }
 });
