@@ -435,7 +435,7 @@ class ContactImporter {
     }
     
     return {
-      profile_name: sanitizedContact.name || '',
+      name: sanitizedContact.name || '',  // 修正：使用 name 而不是 profile_name
       phone: sanitizedContact.phone || '',
       wechat_id: '',
       email: '',
@@ -692,7 +692,7 @@ class ContactImporter {
           if (res.confirm) {
             // 用户确认导入，格式化数据
             const contactData = {
-              profile_name: contact.name || '',
+              name: contact.name || '',  // 修正：使用 name 而不是 profile_name
               phone: contact.phone || '',
               wechat_id: '',
               email: '',
