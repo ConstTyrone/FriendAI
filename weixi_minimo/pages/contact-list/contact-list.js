@@ -1240,10 +1240,10 @@ Page({
       const progressCallback = this.handleImportProgress.bind(this);
       
       // 直接调用快速批量导入，但跳过说明
-      console.log('🚀 [调试] 调用 quickBatchImportFromPhoneBook (直接模式)');
+      console.log('🚀 [调试] 调用 quickBatchImportFromPhoneBookDirect (直接模式)');
       
-      // 直接开始快速选择，跳过说明弹窗
-      const result = await contactImporter.startQuickSelection();
+      // 使用新的跳过说明弹窗的批量导入方法
+      const result = await contactImporter.quickBatchImportFromPhoneBookDirect(progressCallback);
       console.log('🔍 [调试] 直接快速批量导入结果:', result);
       
       if (result && result.success) {

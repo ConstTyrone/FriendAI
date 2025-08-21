@@ -1012,6 +1012,61 @@ class ContactImporter {
   }
 
   /**
+   * 快速批量导入（跳过说明弹窗）
+   */
+  async quickBatchImportFromPhoneBookDirect(progressCallback = null) {
+    console.log('🚀 [ContactImporter] quickBatchImportFromPhoneBookDirect 方法开始 - 跳过说明');
+    
+    // 如果正在导入，先尝试重置状态
+    if (this.isImporting) {
+      console.log('⚠️ [ContactImporter] 检测到导入状态异常，尝试重置');
+      this.resetImportState();
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    try {
+      console.log('✅ [ContactImporter] 设置批量导入状态');
+      this.isImporting = true;
+      this.isBatchMode = true;
+      this.batchQueue = [];
+      this.progressCallback = progressCallback;
+      this.resetImportStats();
+
+      // 跳过说明弹窗，直接开始快速选择
+      console.log('⚡ [ContactImporter] 跳过说明，直接开始快速连续选择');
+      const result = await this.startQuickSelection();
+      
+      if (result && result.success) {
+        console.log('✅ [ContactImporter] 快速批量导入完成');
+        return {
+          success: true,
+          stats: this.importStats
+        };
+      } else {
+        console.log('⚠️ [ContactImporter] 快速批量导入未完成或被取消');
+        return {
+          success: false,
+          cancelled: result?.cancelled || false,
+          stats: this.importStats
+        };
+      }
+      
+    } catch (error) {
+      console.error('❌ [ContactImporter] 快速批量导入失败:', error);
+      return {
+        success: false,
+        error: error.message,
+        stats: this.importStats
+      };
+    } finally {
+      console.log('🏁 [ContactImporter] 重置导入状态');
+      this.isImporting = false;
+      this.isBatchMode = false;
+      this.progressCallback = null;
+    }
+  }
+
+  /**
    * 将数组分块
    */
   chunkArray(array, chunkSize) {
