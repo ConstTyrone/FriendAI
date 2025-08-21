@@ -58,8 +58,6 @@ Page({
     showImportProgress: false,
     importProgress: {},
     
-    // 联系人多选组件
-    showContactPicker: false
   },
 
   onLoad(options) {
@@ -699,9 +697,12 @@ Page({
     
     // 如果有事件对象，说明是从滑动菜单点击
     if (e && e.currentTarget && e.currentTarget.dataset) {
-      contact = e.currentTarget.dataset.contact;
+      const contactId = e.currentTarget.dataset.contactId;
       const index = e.currentTarget.dataset.index;
-      console.log('从滑动菜单编辑联系人:', { contact, index });
+      console.log('从滑动菜单编辑联系人:', { contactId, index });
+      
+      // 根据ID查找联系人
+      contact = this.data.contacts.find(item => item.id == contactId);
       this.closeAllSwipeMenus();
     } else {
       // 从长按菜单点击
@@ -732,9 +733,12 @@ Page({
     
     // 如果有事件对象，说明是从滑动菜单点击
     if (e && e.currentTarget && e.currentTarget.dataset) {
-      contact = e.currentTarget.dataset.contact;
+      const contactId = e.currentTarget.dataset.contactId;
       const index = e.currentTarget.dataset.index;
-      console.log('从滑动菜单删除联系人:', { contact, index });
+      console.log('从滑动菜单删除联系人:', { contactId, index });
+      
+      // 根据ID查找联系人
+      contact = this.data.contacts.find(item => item.id == contactId);
       this.closeAllSwipeMenus();
     } else {
       // 从长按菜单点击
@@ -1482,135 +1486,4 @@ Page({
     }
   },
 
-  /**
-   * 显示联系人多选组件
-   */
-  onShowContactPicker() {
-    console.log('🎯 [调试] 显示联系人多选组件');
-    this.setData({
-      showContactPicker: true
-    });
-  },
-
-  /**
-   * 联系人多选确认
-   */
-  async onContactPickerConfirm(e) {
-    const { contacts, count } = e.detail;
-    console.log('✅ [调试] 用户选择了联系人:', { contacts, count });
-    
-    this.setData({
-      showContactPicker: false
-    });
-
-    if (!contacts || contacts.length === 0) {
-      wx.showToast({
-        title: '未选择任何联系人',
-        icon: 'none'
-      });
-      return;
-    }
-
-    try {
-      // 显示导入进度
-      wx.showLoading({
-        title: `准备导入 ${count} 个联系人...`,
-        mask: true
-      });
-
-      // 设置进度回调
-      const progressCallback = this.handleImportProgress.bind(this);
-      
-      // 转换为导入格式
-      const importContacts = contacts.map(contact => ({
-        name: contact.name,
-        phone: contact.phone || '',
-        wechat_id: '',
-        email: '',
-        company: '',
-        position: '',
-        location: '',
-        notes: '批量多选导入',
-        tags: [],
-        gender: '',
-        age: '',
-        marital_status: '',
-        education: '',
-        asset_level: '',
-        personality: ''
-      }));
-
-      // 执行批量导入
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (let i = 0; i < importContacts.length; i++) {
-        const contact = importContacts[i];
-        
-        // 更新进度
-        wx.showLoading({
-          title: `导入中 ${i + 1}/${importContacts.length}\n${contact.name}`,
-          mask: true
-        });
-
-        try {
-          const result = await dataManager.createProfile(contact);
-          if (result && result.success) {
-            successCount++;
-            console.log(`✅ 导入成功: ${contact.name}`);
-          } else {
-            errorCount++;
-            console.error(`❌ 导入失败: ${contact.name}`);
-          }
-        } catch (error) {
-          errorCount++;
-          console.error(`❌ 导入异常: ${contact.name}`, error);
-        }
-
-        // 短暂延迟避免API限制
-        if (i < importContacts.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
-
-      wx.hideLoading();
-
-      // 显示结果
-      const resultTitle = errorCount === 0 ? '🎉 导入完成' : '⚠️ 导入完成（部分失败）';
-      const resultContent = `成功导入: ${successCount} 个\n失败: ${errorCount} 个\n\n${errorCount > 0 ? '请检查失败的联系人数据是否正确' : '所有联系人已成功导入！'}`;
-
-      wx.showModal({
-        title: resultTitle,
-        content: resultContent,
-        showCancel: false,
-        confirmText: '知道了'
-      });
-
-      // 刷新列表
-      if (successCount > 0) {
-        this.refreshData();
-      }
-
-    } catch (error) {
-      wx.hideLoading();
-      console.error('❌ 批量导入失败:', error);
-      
-      wx.showModal({
-        title: '❌ 导入失败',
-        content: `导入过程中出现错误：\n\n${error.message || '未知错误'}`,
-        showCancel: false,
-        confirmText: '知道了'
-      });
-    }
-  },
-
-  /**
-   * 联系人多选取消
-   */
-  onContactPickerCancel() {
-    console.log('❌ [调试] 用户取消了联系人选择');
-    this.setData({
-      showContactPicker: false
-    });
-  }
 });

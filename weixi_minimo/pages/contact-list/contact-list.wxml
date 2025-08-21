@@ -96,10 +96,6 @@
         <text class="action-icon">📱</text>
         <text class="action-text">单个导入</text>
       </view>
-      <view class="quick-action-btn" bind:tap="onShowContactPicker">
-        <text class="action-icon">📲</text>
-        <text class="action-text">批量多选导入</text>
-      </view>
       <view class="quick-action-btn" bind:tap="onBatchImport">
         <text class="action-icon">📋</text>
         <text class="action-text">文本导入</text>
@@ -189,11 +185,11 @@
           
           <!-- 滑动操作区域 -->
           <view class="swipe-actions">
-            <view class="action-btn action-edit" bind:tap="onEditContact" data-contact="{{item}}" data-index="{{index}}">
+            <view class="action-btn action-edit" bind:tap="onEditContact" data-contact-id="{{item.id}}" data-index="{{index}}">
               <text class="action-icon">✏️</text>
               <text class="action-text">编辑</text>
             </view>
-            <view class="action-btn action-delete" bind:tap="onDeleteContact" data-contact="{{item}}" data-index="{{index}}">
+            <view class="action-btn action-delete" bind:tap="onDeleteContact" data-contact-id="{{item.id}}" data-index="{{index}}">
               <text class="action-icon">🗑️</text>
               <text class="action-text">删除</text>
             </view>
@@ -260,11 +256,4 @@
     bind:close="onCloseImportProgress"
   />
   
-  <!-- 联系人多选组件 -->
-  <contact-picker 
-    visible="{{showContactPicker}}"
-    maxCount="{{20}}"
-    bind:confirm="onContactPickerConfirm"
-    bind:cancel="onContactPickerCancel"
-  />
 </view>

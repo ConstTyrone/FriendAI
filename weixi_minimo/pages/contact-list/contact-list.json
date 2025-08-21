@@ -12,7 +12,6 @@
     "t-loading": "tdesign-miniprogram/loading/loading",
     "t-fab": "tdesign-miniprogram/fab/fab",
     "skeleton-loader": "/components/skeleton-loader/index",
-    "import-progress": "/components/import-progress/import-progress",
-    "contact-picker": "/components/contact-picker/index"
+    "import-progress": "/components/import-progress/import-progress"
   }
 }
