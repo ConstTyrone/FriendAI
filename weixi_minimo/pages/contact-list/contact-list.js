@@ -1194,6 +1194,79 @@ Page({
   },
 
   /**
+   * 直接开始快速批量导入（跳过说明）
+   */
+  async onQuickBatchImportDirect() {
+    console.log('🚀 [调试] onQuickBatchImportDirect 方法被调用 - 跳过说明');
+    
+    try {
+      // 检查导入器
+      if (!contactImporter) {
+        throw new Error('contactImporter 模块不可用');
+      }
+      
+      // 检查是否正在导入
+      if (contactImporter.isCurrentlyImporting()) {
+        console.log('⚠️ [调试] 检测到导入状态异常，询问用户是否重置');
+        
+        const resetResult = await new Promise((resolve) => {
+          wx.showModal({
+            title: '导入状态异常',
+            content: '检测到上次导入可能未正常结束，是否重置导入状态并继续？',
+            confirmText: '重置并继续',
+            cancelText: '取消',
+            success: (res) => {
+              resolve(res.confirm);
+            },
+            fail: () => {
+              resolve(false);
+            }
+          });
+        });
+        
+        if (!resetResult) {
+          console.log('⚠️ [调试] 用户取消导入');
+          return;
+        }
+        
+        if (typeof contactImporter.resetImportState === 'function') {
+          contactImporter.resetImportState();
+        }
+      }
+
+      console.log('✅ [调试] 直接开始快速批量导入联系人（跳过说明）');
+      
+      // 设置进度回调
+      const progressCallback = this.handleImportProgress.bind(this);
+      
+      // 直接调用快速批量导入，但跳过说明
+      console.log('🚀 [调试] 调用 quickBatchImportFromPhoneBook (直接模式)');
+      
+      // 直接开始快速选择，跳过说明弹窗
+      const result = await contactImporter.startQuickSelection();
+      console.log('🔍 [调试] 直接快速批量导入结果:', result);
+      
+      if (result && result.success) {
+        console.log('✅ [调试] 导入成功');
+        this.refreshData();
+      } else {
+        console.log('⚠️ [调试] 导入未成功或被取消');
+      }
+      
+    } catch (error) {
+      console.error('❌ [调试] 直接快速批量导入失败:', error);
+      
+      wx.showModal({
+        title: '❌ 批量导入失败',
+        content: `导入过程中遇到问题：\n\n${error.message || '未知错误'}\n\n请查看控制台获取详细错误信息`,
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#ff4757'
+      });
+    }
+  },
+
+  /**
    * 处理导入进度回调
    */
   handleImportProgress(progress) {

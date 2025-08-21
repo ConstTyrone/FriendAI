@@ -158,15 +158,21 @@ class ContactImporter {
    */
   showQuickBatchImportGuide() {
     return new Promise((resolve) => {
+      console.log('🎯 [ContactImporter] 准备显示快速批量导入说明弹窗');
+      
       wx.showModal({
         title: '🚀 快速批量导入',
         content: `🎯 快速导入模式特点：\n\n✅ 连续选择多个联系人\n⚡ 自动跳过重复联系人\n🔄 智能重试失败请求\n📊 实时进度反馈\n📈 导入完成后显示详细统计\n\n💡 性能建议：\n• 单次导入 5-10 个效果最佳\n• 最大支持 ${this.maxSelectionsPerSession} 个联系人\n• 建议在 WiFi 环境下操作`,
         confirmText: '开始快速导入',
         cancelText: '取消',
         success: (res) => {
+          console.log('🎯 [ContactImporter] 用户选择结果:', res);
+          console.log('🎯 [ContactImporter] res.confirm:', res.confirm);
+          console.log('🎯 [ContactImporter] res.cancel:', res.cancel);
           resolve(res.confirm);
         },
-        fail: () => {
+        fail: (error) => {
+          console.error('❌ [ContactImporter] 弹窗显示失败:', error);
           resolve(false);
         }
       });

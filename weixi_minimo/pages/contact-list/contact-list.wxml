@@ -96,7 +96,7 @@
         <text class="action-icon">📱</text>
         <text class="action-text">单个导入</text>
       </view>
-      <view class="quick-action-btn" bind:tap="onQuickBatchImport">
+      <view class="quick-action-btn" bind:tap="onQuickBatchImportDirect">
         <text class="action-icon">📲</text>
         <text class="action-text">快速批量导入</text>
       </view>
