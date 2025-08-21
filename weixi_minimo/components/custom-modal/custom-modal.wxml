@@ -1,0 +1,49 @@
+<view class="custom-modal {{visible ? 'visible' : ''}} {{animationClass}}" wx:if="{{visible}}" bind:tap="onMaskTap">
+  <!-- 遮罩层 -->
+  <view class="modal-mask"></view>
+  
+  <!-- 模态框内容 -->
+  <view class="modal-content" catch:tap="onModalTap">
+    <!-- 关闭按钮 -->
+    <view class="modal-close" wx:if="{{showClose}}" bind:tap="onClose">
+      <text class="close-icon">×</text>
+    </view>
+    
+    <!-- 标题 -->
+    <view class="modal-header" wx:if="{{title}}">
+      <text class="modal-title">{{title}}</text>
+    </view>
+    
+    <!-- 内容 -->
+    <view class="modal-body" wx:if="{{content}}">
+      <text class="modal-text">{{content}}</text>
+    </view>
+    
+    <!-- 自定义内容插槽 -->
+    <view class="modal-slot" wx:if="{{!content}}">
+      <slot></slot>
+    </view>
+    
+    <!-- 按钮区域 -->
+    <view class="modal-footer">
+      <view class="modal-buttons">
+        <!-- 取消按钮 -->
+        <view 
+          class="modal-button cancel-button" 
+          wx:if="{{showCancel}}"
+          bind:tap="onCancel"
+        >
+          <text class="button-text">{{cancelText}}</text>
+        </view>
+        
+        <!-- 确认按钮 -->
+        <view 
+          class="modal-button confirm-button {{confirmType}}" 
+          bind:tap="onConfirm"
+        >
+          <text class="button-text">{{confirmText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

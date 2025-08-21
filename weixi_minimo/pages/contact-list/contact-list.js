@@ -61,6 +61,12 @@ Page({
     // 添加菜单状态
     showAddMenu: false,
     
+    // 弹窗状态
+    showImportModal: false,
+    showDeleteModal: false,
+    deleteContactName: '',
+    pendingDeleteContact: null,
+    
   },
 
   onLoad(options) {
@@ -94,6 +100,7 @@ Page({
 
   onShow() {
     console.log('联系人列表页面显示');
+    console.log('当前showAddMenu状态:', this.data.showAddMenu);
     
     // 每次显示时刷新数据
     this.refreshData();
@@ -698,19 +705,24 @@ Page({
     
     let contact;
     
-    // 如果有事件对象，说明是从滑动菜单点击
-    if (e && e.currentTarget && e.currentTarget.dataset) {
-      const contactId = e.currentTarget.dataset.contactId;
-      const index = e.currentTarget.dataset.index;
-      console.log('从滑动菜单编辑联系人:', { contactId, index });
-      
-      // 根据ID查找联系人
-      contact = this.data.contacts.find(item => item.id == contactId);
+    console.log('编辑联系人调用，检查来源');
+    console.log('currentSwipeIndex:', this.data.currentSwipeIndex);
+    console.log('selectedContact:', this.data.selectedContact);
+    
+    // 优先检查是否有滑动菜单打开
+    const swipeIndex = this.data.currentSwipeIndex;
+    if (swipeIndex >= 0 && swipeIndex < this.data.contacts.length) {
+      // 从滑动菜单点击
+      contact = this.data.contacts[swipeIndex];
+      console.log('从滑动菜单编辑联系人:', contact);
       this.closeAllSwipeMenus();
-    } else {
+    } else if (this.data.selectedContact) {
       // 从长按菜单点击
       contact = this.data.selectedContact;
+      console.log('从长按菜单编辑联系人:', contact);
       this.closeActionMenu();
+    } else {
+      console.error('无法确定操作来源，currentSwipeIndex:', swipeIndex);
     }
     
     if (contact && contact.id) {
@@ -734,19 +746,24 @@ Page({
     
     let contact;
     
-    // 如果有事件对象，说明是从滑动菜单点击
-    if (e && e.currentTarget && e.currentTarget.dataset) {
-      const contactId = e.currentTarget.dataset.contactId;
-      const index = e.currentTarget.dataset.index;
-      console.log('从滑动菜单删除联系人:', { contactId, index });
-      
-      // 根据ID查找联系人
-      contact = this.data.contacts.find(item => item.id == contactId);
+    console.log('删除联系人调用，检查来源');
+    console.log('currentSwipeIndex:', this.data.currentSwipeIndex);
+    console.log('selectedContact:', this.data.selectedContact);
+    
+    // 优先检查是否有滑动菜单打开
+    const swipeIndex = this.data.currentSwipeIndex;
+    if (swipeIndex >= 0 && swipeIndex < this.data.contacts.length) {
+      // 从滑动菜单点击
+      contact = this.data.contacts[swipeIndex];
+      console.log('从滑动菜单删除联系人:', contact);
       this.closeAllSwipeMenus();
-    } else {
+    } else if (this.data.selectedContact) {
       // 从长按菜单点击
       contact = this.data.selectedContact;
+      console.log('从长按菜单删除联系人:', contact);
       this.closeActionMenu();
+    } else {
+      console.error('无法确定操作来源，currentSwipeIndex:', swipeIndex);
     }
     
     if (!contact || !contact.id) {
@@ -758,15 +775,11 @@ Page({
       return;
     }
     
-    wx.showModal({
-      title: '确认删除',
-      content: `确定要删除联系人"${contact.profile_name || contact.name}"吗？`,
-      confirmColor: '#ff4757',
-      success: (res) => {
-        if (res.confirm) {
-          this.deleteContact(contact.id);
-        }
-      }
+    // 显示自定义删除确认弹窗
+    this.setData({
+      showDeleteModal: true,
+      deleteContactName: contact.profile_name || contact.name || '未知',
+      pendingDeleteContact: contact
     });
   },
 
@@ -814,10 +827,31 @@ Page({
   /**
    * 切换添加菜单显示状态
    */
-  onToggleAddMenu() {
-    this.setData({
-      showAddMenu: !this.data.showAddMenu
+  onToggleAddMenu(e) {
+    // 阻止事件冒泡，防止触发onPageTap
+    e && e.stopPropagation && e.stopPropagation();
+    
+    const newState = !this.data.showAddMenu;
+    console.log('切换添加菜单:', { 
+      current: this.data.showAddMenu, 
+      newState: newState 
     });
+    
+    // 添加触觉反馈
+    wx.vibrateShort();
+    
+    this.setData({
+      showAddMenu: newState
+    });
+    
+    // 延迟检查DOM状态
+    setTimeout(() => {
+      console.log('菜单状态最终确认:', this.data.showAddMenu);
+      const query = wx.createSelectorQuery();
+      query.select('.add-menu').boundingClientRect((rect) => {
+        console.log('菜单元素信息:', rect);
+      }).exec();
+    }, 100);
   },
 
   /**
@@ -833,6 +867,73 @@ Page({
   onStopPropagation(e) {
     // 阻止事件冒泡，防止点击菜单内容时关闭菜单
     e.stopPropagation && e.stopPropagation();
+  },
+
+  /**
+   * 导入弹窗 - 确认
+   */
+  async onConfirmImport() {
+    this.setData({
+      showImportModal: false
+    });
+    await this.executeImportFromPhoneBook();
+  },
+
+  /**
+   * 导入弹窗 - 取消
+   */
+  onCancelImport() {
+    this.setData({
+      showImportModal: false
+    });
+  },
+
+  /**
+   * 导入弹窗 - 关闭
+   */
+  onCloseImportModal() {
+    this.setData({
+      showImportModal: false
+    });
+  },
+
+  /**
+   * 删除弹窗 - 确认
+   */
+  async onConfirmDelete() {
+    this.setData({
+      showDeleteModal: false
+    });
+    
+    if (this.data.pendingDeleteContact) {
+      await this.executeDeleteContact(this.data.pendingDeleteContact);
+      this.setData({
+        pendingDeleteContact: null,
+        deleteContactName: ''
+      });
+    }
+  },
+
+  /**
+   * 删除弹窗 - 取消
+   */
+  onCancelDelete() {
+    this.setData({
+      showDeleteModal: false,
+      pendingDeleteContact: null,
+      deleteContactName: ''
+    });
+  },
+
+  /**
+   * 删除弹窗 - 关闭
+   */
+  onCloseDeleteModal() {
+    this.setData({
+      showDeleteModal: false,
+      pendingDeleteContact: null,
+      deleteContactName: ''
+    });
   },
 
   /**
@@ -1069,6 +1170,24 @@ Page({
       return; // 点击的是联系人项或操作按钮
     }
     
+    // 检查是否点击的是添加按钮或添加菜单
+    if (target) {
+      const classList = target.className || '';
+      const parentClassList = target.parentNode?.className || '';
+      
+      if (classList.includes('add-button') || 
+          classList.includes('add-text') ||
+          classList.includes('add-menu') ||
+          classList.includes('add-menu-item') ||
+          classList.includes('menu-icon') ||
+          classList.includes('menu-text') ||
+          parentClassList.includes('add-button') ||
+          parentClassList.includes('add-menu') ||
+          parentClassList.includes('add-menu-item')) {
+        return; // 点击的是添加按钮或菜单，不关闭
+      }
+    }
+    
     // 关闭所有滑动菜单和添加菜单
     this.closeAllSwipeMenus();
     this.setData({ showAddMenu: false });
@@ -1078,32 +1197,14 @@ Page({
    * 从通讯录导入联系人
    */
   async onImportFromPhoneBook() {
-    console.log('🔍 [调试] onImportFromPhoneBook 方法被调用');
+    console.log('从通讯录导入联系人');
     
     // 关闭添加菜单
     this.setData({ showAddMenu: false });
     
     try {
-      console.log('🔍 [调试] 检查 contactImporter 对象:', typeof contactImporter);
-      
-      if (!contactImporter) {
-        console.error('❌ [调试] contactImporter 未正确导入');
-        wx.showModal({
-          title: '错误',
-          content: 'contactImporter 模块导入失败',
-          showCancel: false
-        });
-        return;
-      }
-      
-      console.log('🔍 [调试] contactImporter 方法检查:', {
-        isCurrentlyImporting: typeof contactImporter.isCurrentlyImporting,
-        importFromPhoneBook: typeof contactImporter.importFromPhoneBook
-      });
-      
       // 检查是否正在导入
-      if (contactImporter.isCurrentlyImporting()) {
-        console.log('⚠️ [调试] 正在导入中，返回');
+      if (contactImporter && contactImporter.isCurrentlyImporting()) {
         wx.showToast({
           title: '正在导入中...',
           icon: 'none',
@@ -1111,26 +1212,72 @@ Page({
         });
         return;
       }
-
-      console.log('✅ [调试] 开始从通讯录导入联系人');
       
+      // 显示自定义导入确认弹窗
+      this.setData({
+        showImportModal: true
+      });
+
+    } catch (error) {
+      console.error('通讯录导入失败:', error);
+      wx.showModal({
+        title: '导入失败',
+        content: `导入过程中发生错误：${error.message || '未知错误'}`,
+        showCancel: false
+      });
+    }
+  },
+
+  /**
+   * 执行从通讯录导入
+   */
+  async executeImportFromPhoneBook() {
+    try {
+      if (!contactImporter) {
+        wx.showModal({
+          title: '错误',
+          content: '导入模块不可用，请重试',
+          showCancel: false
+        });
+        return;
+      }
+
+      wx.showLoading({
+        title: '正在导入...',
+        mask: true
+      });
+
       // 开始导入流程
       const result = await contactImporter.importFromPhoneBook();
-      console.log('🔍 [调试] 导入结果:', result);
-      
-      // 导入完成后刷新列表
-      await this.refreshData();
-      console.log('✅ [调试] 数据刷新完成');
-      
+      console.log('导入结果:', result);
+
+      wx.hideLoading();
+
+      if (result && result.success) {
+        wx.showToast({
+          title: '导入成功！',
+          icon: 'success',
+          duration: 2000
+        });
+
+        // 导入完成后刷新列表
+        await this.refreshData();
+      } else {
+        wx.showModal({
+          title: '导入失败',
+          content: result?.message || '未能成功导入联系人',
+          showCancel: false
+        });
+      }
+
     } catch (error) {
-      console.error('❌ [调试] 通讯录导入失败:', error);
-      console.error('❌ [调试] 错误堆栈:', error.stack);
+      wx.hideLoading();
+      console.error('导入执行失败:', error);
       
       wx.showModal({
         title: '导入失败',
-        content: `错误信息: ${error.message || '未知错误'}\n\n请查看控制台获取详细信息`,
-        showCancel: false,
-        confirmText: '知道了'
+        content: `导入过程中发生错误：${error.message || '未知错误'}`,
+        showCancel: false
       });
     }
   },

@@ -41,7 +41,6 @@
   padding: calc(var(--spacing-lg) + env(safe-area-inset-top)) var(--spacing-lg) var(--spacing-lg);
   background: var(--card-background);
   border-bottom: 1rpx solid var(--border-color);
-  backdrop-filter: blur(20rpx);
   box-shadow: 0 2rpx 12rpx var(--shadow-light);
   transition: all 0.3s ease;
 }
@@ -90,11 +89,10 @@
   justify-content: space-around;
   margin: var(--spacing-md);
   padding: var(--spacing-xl) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255, 255, 255, 0.95) 100%);
+  background: var(--card-background);
   border-radius: var(--radius-large);
   border: 1rpx solid var(--border-color);
   box-shadow: 0 8rpx 32rpx var(--shadow-light);
-  backdrop-filter: blur(10rpx);
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -137,7 +135,7 @@
   color: var(--primary-green);
   line-height: 1;
   margin-bottom: 4rpx;
-  background: linear-gradient(135deg, var(--primary-green) 0%, rgba(6, 174, 86, 0.8) 100%);
+  background: linear-gradient(135deg, #06ae56 0%, rgba(6, 174, 86, 0.8) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -278,9 +276,7 @@
   line-height: 1.6;
   margin-bottom: var(--spacing-sm);
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  max-height: 120rpx;
   transition: color 0.3s ease;
 }
 
@@ -503,7 +499,6 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10rpx);
   display: flex;
   align-items: center;
   justify-content: center;
