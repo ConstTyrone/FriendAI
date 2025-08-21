@@ -28,7 +28,7 @@ Page({
     formData: {
       name: '',
       description: '',
-      type: 'general',
+      type: 'business',
       conditions: {
         required: [],
         preferred: [],
@@ -89,7 +89,6 @@ Page({
     // 选项数据
     priorityOptions: ['低', '较低', '中等', '较高', '高', '紧急'],
     typeOptions: [
-      { value: 'general', label: '通用' },
       { value: 'business', label: '商务' },
       { value: 'recruitment', label: '招聘' },
       { value: 'social', label: '社交' },
@@ -211,17 +210,11 @@ Page({
   showCreateDialog() {
     console.log('显示创建对话框');
     
-    // 防止重复点击
-    if (this.data.showCreateDialog) {
-      console.log('对话框已经显示，忽略重复请求');
-      return;
-    }
-    
     this.setData({
       showCreateDialog: true,
       createMode: 'natural',
       typeIndex: 0,
-      editMode: false,  // 确保是创建模式
+      editMode: false,
       editingIntentId: null,
       formData: {
         name: '',
@@ -236,8 +229,6 @@ Page({
         priority: 5,
         maxPushPerDay: 5
       }
-    }, () => {
-      console.log('对话框状态设置完成:', this.data.showCreateDialog);
     });
   },
 
@@ -251,7 +242,6 @@ Page({
       showCreateDialog: false,
       editMode: false,
       editingIntentId: null,
-      // 重置表单
       formData: {
         name: '',
         description: '',
@@ -265,8 +255,6 @@ Page({
         priority: 5,
         maxPushPerDay: 5
       }
-    }, () => {
-      console.log('对话框隐藏完成:', this.data.showCreateDialog);
     });
   },
 
@@ -806,10 +794,6 @@ Page({
    */
   stopPropagation(e) {
     console.log('阻止事件冒泡');
-    if (e && e.stopPropagation) {
-      e.stopPropagation();
-    }
-    // 显式返回false阻止事件冒泡
-    return false;
+    // 不做任何操作，只是阻止冒泡到父元素
   }
 });

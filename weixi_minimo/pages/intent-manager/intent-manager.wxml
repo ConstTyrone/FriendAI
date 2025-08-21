@@ -45,15 +45,14 @@
       
       <text class="intent-desc">{{item.description}}</text>
       
-      <view class="intent-tags" wx:if="{{item.keywordsList.length > 0}}">
+      <view class="intent-tags" wx:if="{{item.keywordsList.length > 0 && item.keywordsList.length <= 5}}">
         <text wx:for="{{item.keywordsList}}" wx:for-item="keyword" wx:key="*this"
               class="keyword-tag">{{keyword}}</text>
       </view>
       
       <view class="intent-meta">
-        <text class="meta-item">阈值: {{item.thresholdPercent}}%</text>
-        <text class="meta-item">优先级: {{item.priorityLabel}}</text>
-        <text class="meta-item">每日推送: {{item.max_push_per_day}}次</text>
+        <text class="meta-item">匹配度: {{item.thresholdPercent}}%</text>
+        <text class="meta-item">{{item.priorityLabel}}优先级</text>
       </view>
       
       <view class="intent-footer">
@@ -92,7 +91,7 @@
   
   <!-- 创建/编辑意图对话框 -->
   <view class="dialog-overlay {{showCreateDialog ? 'show' : ''}}" 
-        bindtap="hideCreateDialog">
+        catchtap="hideCreateDialog">
     <view class="dialog-content" catchtap="stopPropagation">
       <text class="dialog-title">{{editMode ? '编辑意图' : '创建新意图'}}</text>
       
