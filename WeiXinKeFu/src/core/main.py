@@ -952,37 +952,44 @@ async def parse_voice_audio(
         if merge_mode and contact_id:
             logger.info(f"编辑模式，获取现有联系人数据: {contact_id}")
             try:
-                # 获取现有联系人数据
-                db = db_manager.get_database(current_user)
-                existing_profile = db.get_profile_by_id(contact_id)
+                # 获取查询用户ID
+                query_user_id = get_query_user_id(current_user)
+                
+                # 获取现有联系人数据 - 使用统一的数据库实例
+                existing_profile = db.get_user_profile_detail(query_user_id, int(contact_id))
                 
                 if existing_profile:
                     logger.info(f"找到现有联系人: {existing_profile.get('profile_name', '')}")
                     
-                    # 构建合并提示，让AI整合新旧数据
-                    merge_prompt = f"""你需要整合以下两部分信息：
+                    # 构建合并提示，让AI整合新旧数据 - 使用正确的字段访问方式
+                    merge_prompt = f"""你需要智能整合以下两部分信息：
 
 【现有联系人信息】
 姓名: {existing_profile.get('profile_name', '未知')}
-性别: {existing_profile.get('basic_info', {}).get('gender', '未知')}
-年龄: {existing_profile.get('basic_info', {}).get('age', '未知')}
+性别: {existing_profile.get('gender', '未知')}
+年龄: {existing_profile.get('age', '未知')}
 电话: {existing_profile.get('phone', '未知')}
-所在地: {existing_profile.get('basic_info', {}).get('location', '未知')}
-婚育: {existing_profile.get('basic_info', {}).get('marital_status', '未知')}
-学历: {existing_profile.get('basic_info', {}).get('education', '未知')}
-公司: {existing_profile.get('basic_info', {}).get('company', '未知')}
-职位: {existing_profile.get('basic_info', {}).get('position', '未知')}
-资产水平: {existing_profile.get('basic_info', {}).get('asset_level', '未知')}
-性格: {existing_profile.get('basic_info', {}).get('personality', '未知')}
+微信号: {existing_profile.get('wechat_id', '未知')}
+邮箱: {existing_profile.get('email', '未知')}
+所在地: {existing_profile.get('location', '未知')}
+婚育: {existing_profile.get('marital_status', '未知')}
+学历: {existing_profile.get('education', '未知')}
+公司: {existing_profile.get('company', '未知')}
+职位: {existing_profile.get('position', '未知')}
+资产水平: {existing_profile.get('asset_level', '未知')}
+性格: {existing_profile.get('personality', '未知')}
+备注: {existing_profile.get('ai_summary', '无')}
 
-【新输入的信息】
+【新语音输入的信息】
 {recognized_text}
 
-请整合上述信息，生成一个完整的用户画像。规则：
-1. 如果新信息中有明确的数据，优先使用新信息
-2. 如果新信息中没有提到某个字段，保留现有信息
-3. 如果新信息与现有信息冲突，使用新信息
-4. 输出一个完整的用户画像，包含所有字段"""
+请智能整合上述信息，生成一个更完整的用户画像。整合规则：
+1. 如果新信息中有更具体、更准确的数据，使用新信息替换旧信息
+2. 如果新信息是对现有信息的补充，将两者合并
+3. 如果新信息中没有提到某个字段，保留现有的有效信息（不要输出"未知"）
+4. 如果旧信息为"未知"而新信息有值，使用新信息
+5. 对于备注字段，如果两者都有内容，将新的备注追加到原有备注后
+6. 输出完整的用户画像，所有有效字段都要包含"""
                     
                     # 使用AI服务解析整合后的文本
                     ai_service = UserProfileExtractor()
@@ -994,6 +1001,9 @@ async def parse_voice_audio(
                     result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
             except Exception as e:
                 logger.error(f"获取现有联系人数据失败: {e}")
+                logger.error(f"错误详情: {str(e)}")
+                import traceback
+                logger.error(traceback.format_exc())
                 # 出错时直接使用新识别的文本
                 ai_service = UserProfileExtractor()
                 result = ai_service.extract_user_profile(recognized_text, is_chat_record=False)
@@ -1252,40 +1262,61 @@ async def update_profile(
                 detail="联系人不存在"
             )
         
-        # 准备更新数据
+        # 准备更新数据 - 过滤空值，避免覆盖有效数据
         update_data = {}
         
-        # 只更新提供的字段
-        if request.name is not None:
+        # 辅助函数：检查值是否有效（非空且有意义）
+        def is_valid_value(value):
+            if value is None:
+                return False
+            if isinstance(value, str):
+                return value.strip() != ''
+            if isinstance(value, list):
+                return len(value) > 0
+            return True
+        
+        # 只更新提供的且有效的字段
+        if is_valid_value(request.name):
             update_data["profile_name"] = request.name.strip()
-        if request.gender is not None:
+            
+        # 处理字符串字段 - 只更新非空字符串
+        string_fields = [
+            ('phone', 'phone'),
+            ('age', 'age'),
+            ('education', 'education'),
+            ('company', 'company'),
+            ('position', 'position'),
+            ('personality', 'personality'),
+            ('wechat_id', 'wechat_id'),
+            ('email', 'email')
+        ]
+        
+        for request_field, db_field in string_fields:
+            value = getattr(request, request_field, None)
+            if is_valid_value(value):
+                update_data[db_field] = value.strip() if isinstance(value, str) else value
+        
+        # 处理位置字段（支持location和address两个字段名）
+        if is_valid_value(request.location):
+            update_data["location"] = request.location.strip()
+        elif is_valid_value(request.address):
+            update_data["location"] = request.address.strip()
+            
+        # 处理选择器字段 - 避免设置为"未知"
+        if is_valid_value(request.gender) and request.gender != '未知':
             update_data["gender"] = request.gender
-        if request.age is not None:
-            update_data["age"] = request.age
-        if request.phone is not None:
-            update_data["phone"] = request.phone
-        if request.location is not None:
-            update_data["location"] = request.location
-        elif request.address is not None:
-            update_data["location"] = request.address
-        if request.marital_status is not None:
+        if is_valid_value(request.marital_status) and request.marital_status != '未知':
             update_data["marital_status"] = request.marital_status
-        if request.education is not None:
-            update_data["education"] = request.education
-        if request.company is not None:
-            update_data["company"] = request.company
-        if request.position is not None:
-            update_data["position"] = request.position
-        if request.asset_level is not None:
+        if is_valid_value(request.asset_level) and request.asset_level != '未知':
             update_data["asset_level"] = request.asset_level
-        if request.personality is not None:
-            update_data["personality"] = request.personality
-        if request.tags is not None:
-            update_data["tags"] = request.tags  # 添加tags字段更新
+            
+        # 处理标签字段
+        if is_valid_value(request.tags):
+            update_data["tags"] = request.tags
         
         # 更新AI摘要（如果有备注）
-        if request.notes is not None:
-            update_data["ai_summary"] = request.notes
+        if is_valid_value(request.notes):
+            update_data["ai_summary"] = request.notes.strip()
         
         # 调用数据库更新方法
         success = db.update_user_profile(query_user_id, profile_id, update_data)

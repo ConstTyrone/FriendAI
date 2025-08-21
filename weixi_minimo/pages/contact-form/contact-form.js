@@ -496,27 +496,76 @@ Page({
         mask: true
       });
       
-      const { formData } = this.data;
+      const { formData, originalData, mode } = this.data;
       
-      // 准备提交的数据 - 安全处理字符串
-      const submitData = {
-        name: (formData.name || '').trim(),
-        phone: (formData.phone || '').trim(),
-        wechat_id: (formData.wechat_id || '').trim(),
-        email: (formData.email || '').trim(),
-        company: (formData.company || '').trim(),
-        position: (formData.position || '').trim(),
-        address: (formData.address || '').trim(),
-        notes: (formData.notes || '').trim(),
-        tags: formData.tags || [],
-        // 新增字段
-        gender: formData.gender || '未知',
-        age: (formData.age || '').trim(),
-        marital_status: formData.marital_status || '未知',
-        education: (formData.education || '').trim(),
-        asset_level: formData.asset_level || '未知',
-        personality: (formData.personality || '').trim()
-      };
+      // 准备提交的数据 - 只发送有值的字段，避免覆盖原有数据
+      const submitData = {};
+      
+      // 姓名是必填字段，总是发送
+      const name = (formData.name || '').trim();
+      if (name) {
+        submitData.name = name;
+      }
+      
+      // 对于其他字段，只在以下情况发送：
+      // 1. 新增模式：字段有值时发送
+      // 2. 编辑模式：字段有值且与原始数据不同时发送
+      const fieldsToCheck = [
+        'phone', 'wechat_id', 'email', 'company', 'position', 
+        'address', 'notes', 'age', 'education', 'personality'
+      ];
+      
+      fieldsToCheck.forEach(field => {
+        const value = (formData[field] || '').trim();
+        const originalValue = originalData ? (originalData[field] || '').trim() : '';
+        
+        if (mode === 'add') {
+          // 新增模式：有值就发送
+          if (value) {
+            submitData[field] = value;
+          }
+        } else {
+          // 编辑模式：有值且不同于原始值时才发送
+          if (value && value !== originalValue) {
+            submitData[field] = value;
+          }
+        }
+      });
+      
+      // 处理选择器字段
+      const pickerFields = ['gender', 'marital_status', 'asset_level'];
+      pickerFields.forEach(field => {
+        const value = formData[field] || '';
+        const originalValue = originalData ? (originalData[field] || '') : '';
+        
+        if (mode === 'add') {
+          // 新增模式：有选择的值就发送
+          if (value && value !== '未知' && value !== '') {
+            submitData[field] = value;
+          }
+        } else {
+          // 编辑模式：有选择且不同于原始值时发送
+          if (value && value !== originalValue) {
+            submitData[field] = value;
+          }
+        }
+      });
+      
+      // 处理标签字段
+      const tags = formData.tags || [];
+      const originalTags = originalData ? (originalData.tags || []) : [];
+      
+      if (mode === 'add') {
+        // 新增模式：有标签就发送
+        if (tags.length > 0) {
+          submitData.tags = tags;
+        }
+      } else {
+        // 编辑模式：标签有变化时发送
+        if (JSON.stringify(tags) !== JSON.stringify(originalTags)) {
+          submitData.tags = tags;
+        }
+      }
       
       console.log('提交的数据包含标签:', submitData.tags);
       console.log('完整提交数据:', submitData);
