@@ -11,6 +11,7 @@
     "t-empty": "tdesign-miniprogram/empty/empty",
     "t-loading": "tdesign-miniprogram/loading/loading",
     "t-fab": "tdesign-miniprogram/fab/fab",
-    "skeleton-loader": "/components/skeleton-loader/index"
+    "skeleton-loader": "/components/skeleton-loader/index",
+    "import-progress": "/components/import-progress/import-progress"
   }
 }

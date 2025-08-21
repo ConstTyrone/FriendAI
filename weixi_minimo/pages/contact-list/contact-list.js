@@ -53,6 +53,10 @@ Page({
     touchStartY: 0,
     touchStartTime: 0,
     currentSwipeIndex: -1, // 当前正在滑动的item索引
+    
+    // 导入进度状态
+    showImportProgress: false,
+    importProgress: {}
   },
 
   onLoad(options) {
@@ -1067,7 +1071,96 @@ Page({
   },
 
   /**
-   * 批量导入联系人
+   * 快速批量导入从通讯录
+   */
+  async onQuickBatchImport() {
+    try {
+      // 检查是否正在导入
+      if (contactImporter.isCurrentlyImporting()) {
+        wx.showToast({
+          title: '⏳ 正在导入中，请稍候...',
+          icon: 'none',
+          duration: 2000
+        });
+        return;
+      }
+
+      console.log('开始快速批量导入联系人');
+      
+      // 设置进度回调
+      const progressCallback = (progress) => {
+        this.handleImportProgress(progress);
+      };
+      
+      // 开始快速批量导入流程
+      const result = await contactImporter.quickBatchImportFromPhoneBook(progressCallback);
+      
+      if (result && result.success) {
+        // 导入成功，刷新列表
+        await this.refreshData();
+        
+        // 显示性能统计（仅在开发模式下）
+        if (wx.getAccountInfoSync().miniProgram.envVersion === 'develop') {
+          const perfStats = contactImporter.getPerformanceStats();
+          console.log('导入性能统计:', perfStats);
+        }
+      }
+      
+    } catch (error) {
+      console.error('快速批量导入失败:', error);
+      
+      wx.showModal({
+        title: '❌ 批量导入失败',
+        content: `导入过程中遇到问题：\n\n${error.message || '未知错误'}\n\n请检查网络连接后重试`,
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#ff4757'
+      });
+    }
+  },
+
+  /**
+   * 处理导入进度回调
+   */
+  handleImportProgress(progress) {
+    console.log('导入进度更新:', progress);
+    
+    // 如果是开始阶段，显示进度组件
+    if (progress.phase === 'starting') {
+      this.setData({
+        showImportProgress: true,
+        importProgress: progress
+      });
+    } else {
+      // 更新进度数据
+      this.setData({
+        importProgress: progress
+      });
+    }
+    
+    // 如果是完成或错误阶段，3秒后自动隐藏进度组件
+    if (progress.phase === 'completed' || progress.phase === 'error') {
+      setTimeout(() => {
+        this.setData({
+          showImportProgress: false,
+          importProgress: {}
+        });
+      }, 3000);
+    }
+  },
+
+  /**
+   * 关闭导入进度显示
+   */
+  onCloseImportProgress() {
+    this.setData({
+      showImportProgress: false,
+      importProgress: {}
+    });
+  },
+
+  /**
+   * 批量导入联系人（文本/文件）
    */
   async onBatchImport() {
     try {

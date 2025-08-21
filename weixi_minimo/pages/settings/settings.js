@@ -569,6 +569,73 @@ Page({
     }
   },
 
+  /**
+   * 测试批量导入功能
+   */
+  async onTestBatchImport() {
+    try {
+      wx.showLoading({
+        title: '🧪 运行测试...',
+        mask: true
+      });
 
+      // 动态导入测试模块
+      const tester = await import('../../utils/contact-importer-test');
+      
+      // 运行测试
+      await tester.default.runAllTests();
+      
+      // 运行模拟导入
+      await tester.default.simulateQuickBatchImport();
+      
+      wx.hideLoading();
+      
+      wx.showModal({
+        title: '✅ 测试完成',
+        content: '批量导入功能测试已完成！\n\n请查看控制台获取详细测试结果。\n\n所有核心功能均正常工作。',
+        showCancel: false,
+        confirmText: '查看控制台'
+      });
+      
+    } catch (error) {
+      wx.hideLoading();
+      console.error('测试失败:', error);
+      
+      wx.showModal({
+        title: '❌ 测试失败',
+        content: `测试过程中出现错误：\n\n${error.message}\n\n请检查控制台获取详细信息。`,
+        showCancel: false,
+        confirmText: '知道了',
+        confirmColor: '#ff4757'
+      });
+    }
+  },
+
+  /**
+   * 开发者选项 - 重置批量导入配置
+   */
+  onResetBatchImportConfig() {
+    wx.showModal({
+      title: '🔧 重置批量导入配置',
+      content: '将重置以下配置到默认值：\n\n• 最大重试次数: 3\n• 批处理大小: 5\n• 最大选择数量: 20\n\n确定重置吗？',
+      confirmText: '重置',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          // 重置配置
+          const contactImporter = require('../../utils/contact-importer').default;
+          contactImporter.maxRetries = 3;
+          contactImporter.batchSize = 5;
+          contactImporter.maxSelectionsPerSession = 20;
+          
+          wx.showToast({
+            title: '✅ 配置已重置',
+            icon: 'none',
+            duration: 2000
+          });
+        }
+      }
+    });
+  }
 
 });

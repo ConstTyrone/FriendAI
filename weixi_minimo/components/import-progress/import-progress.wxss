@@ -1,0 +1,285 @@
+/* 导入进度显示组件样式 */
+
+.import-progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.import-progress-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.import-progress-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 30px;
+  margin: 20px;
+  max-width: 320px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  transform: scale(0.8);
+  animation: modalIn 0.3s ease forwards;
+}
+
+@keyframes modalIn {
+  to {
+    transform: scale(1);
+  }
+}
+
+/* 进度圆环容器 */
+.progress-circle-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.progress-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+/* 背景圆环 */
+.progress-ring-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 8px solid #f0f0f0;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+/* 进度圆环 */
+.progress-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 8px solid transparent;
+  border-top-color: #07c160;
+  border-radius: 50%;
+  box-sizing: border-box;
+  transform: rotate(-90deg);
+  transition: all 0.5s ease;
+}
+
+.progress-ring::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #07c160 0%,
+    #07c160 var(--progress, 0%),
+    transparent var(--progress, 0%),
+    transparent 100%
+  );
+  mask: radial-gradient(circle at center, transparent 42px, black 50px);
+  -webkit-mask: radial-gradient(circle at center, transparent 42px, black 50px);
+}
+
+/* 中心显示区域 */
+.progress-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.progress-percentage {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333333;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.progress-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* 状态信息 */
+.progress-info {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.status-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 8px;
+}
+
+.detail-text {
+  font-size: 14px;
+  color: #666666;
+  line-height: 1.4;
+}
+
+/* 统计信息 */
+.progress-stats {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.stats-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats-label {
+  font-size: 14px;
+  color: #666666;
+}
+
+.stats-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.stats-value.success {
+  color: #07c160;
+}
+
+.stats-value.warning {
+  color: #fa8c16;
+}
+
+.stats-value.error {
+  color: #ff4757;
+}
+
+/* 脉冲动画 */
+.pulse-animation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140px;
+  height: 140px;
+  margin-top: -70px;
+  margin-left: -70px;
+  border: 2px solid #07c160;
+  border-radius: 50%;
+  opacity: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* 关闭按钮 */
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.close-button:active {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.close-icon {
+  font-size: 18px;
+  color: #666666;
+  line-height: 1;
+}
+
+/* 深色模式支持 */
+.import-progress-container.dark {
+  background: #2c2c2c;
+}
+
+.dark .progress-percentage,
+.dark .status-text {
+  color: #ffffff;
+}
+
+.dark .detail-text,
+.dark .stats-label {
+  color: #cccccc;
+}
+
+.dark .progress-ring-bg {
+  border-color: #4a4a4a;
+}
+
+.dark .progress-stats {
+  border-top-color: #4a4a4a;
+}
+
+.dark .close-button {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .close-icon {
+  color: #cccccc;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+  .import-progress-container {
+    margin: 15px;
+    padding: 30px 20px;
+  }
+  
+  .progress-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .progress-percentage {
+    font-size: 18px;
+  }
+  
+  .progress-icon {
+    font-size: 20px;
+  }
+}

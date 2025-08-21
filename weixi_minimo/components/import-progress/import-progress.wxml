@@ -1,0 +1,52 @@
+<!-- 导入进度显示组件 -->
+<view class="import-progress-overlay {{visible ? 'show' : ''}}" wx:if="{{visible}}" bind:tap="onMaskTap">
+  <view class="import-progress-container" catch:tap>
+    <!-- 进度圆环 -->
+    <view class="progress-circle-container">
+      <view class="progress-circle">
+        <!-- 背景圆环 -->
+        <view class="progress-ring-bg"></view>
+        
+        <!-- 进度圆环 -->
+        <view class="progress-ring" style="--progress: {{percentage}}%;"></view>
+        
+        <!-- 中心显示区域 -->
+        <view class="progress-center">
+          <view class="progress-percentage">{{percentage}}%</view>
+          <view class="progress-icon">
+            <text wx:if="{{currentPhase === 'starting'}}">🚀</text>
+            <text wx:elif="{{currentPhase === 'importing'}}">📥</text>
+            <text wx:elif="{{currentPhase === 'importing_contact'}}">⚡</text>
+            <text wx:elif="{{currentPhase === 'completed'}}">✅</text>
+            <text wx:elif="{{currentPhase === 'error'}}">❌</text>
+            <text wx:else>🔄</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 状态信息 -->
+    <view class="progress-info">
+      <view class="status-text">{{statusText}}</view>
+      <view class="detail-text" wx:if="{{detailText}}">{{detailText}}</view>
+    </view>
+
+    <!-- 统计信息 (完成状态下显示) -->
+    <view class="progress-stats" wx:if="{{showStats}}">
+      <view class="stats-item">
+        <view class="stats-label">成功率</view>
+        <view class="stats-value {{successRate >= 80 ? 'success' : successRate >= 50 ? 'warning' : 'error'}}">
+          {{successRate}}%
+        </view>
+      </view>
+    </view>
+
+    <!-- 脉冲动画效果 -->
+    <view class="pulse-animation" wx:if="{{showAnimation && currentPhase !== 'completed' && currentPhase !== 'error'}}"></view>
+
+    <!-- 关闭按钮 (完成或错误状态下显示) -->
+    <view class="close-button" wx:if="{{currentPhase === 'completed' || currentPhase === 'error'}}" bind:tap="onClose">
+      <text class="close-icon">×</text>
+    </view>
+  </view>
+</view>

@@ -3,12 +3,18 @@ import dataManager from './data-manager';
 class ContactImporter {
   constructor() {
     this.isImporting = false;
+    this.isBatchMode = false;  // 批量导入模式标识
+    this.batchQueue = [];      // 批量导入队列
     this.importStats = {
       total: 0,
       success: 0,
       duplicates: 0,
       errors: 0
     };
+    this.progressCallback = null; // 进度回调函数
+    this.maxRetries = 3;         // 最大重试次数
+    this.batchSize = 5;          // 批量处理大小（适合小程序性能）
+    this.maxSelectionsPerSession = 20; // 单次最大选择数量限制
   }
 
   /**
@@ -76,17 +82,461 @@ class ContactImporter {
   }
 
   /**
+   * 快速批量导入从手机通讯录
+   */
+  async quickBatchImportFromPhoneBook(progressCallback = null) {
+    if (this.isImporting) {
+      throw new Error('正在导入中，请稍候...');
+    }
+
+    try {
+      this.isImporting = true;
+      this.isBatchMode = true;
+      this.batchQueue = [];
+      this.progressCallback = progressCallback;
+      this.resetImportStats();
+
+      // 显示快速批量导入说明
+      const userConfirmed = await this.showQuickBatchImportGuide();
+      if (!userConfirmed) {
+        return null;
+      }
+
+      // 开始快速连续选择联系人
+      await this.startQuickSelection();
+
+      return {
+        success: true,
+        stats: this.importStats
+      };
+
+    } catch (error) {
+      console.error('快速批量导入失败:', error);
+      this.showErrorDialog('快速批量导入失败', error.message);
+      return {
+        success: false,
+        error: error.message,
+        stats: this.importStats
+      };
+    } finally {
+      this.isImporting = false;
+      this.isBatchMode = false;
+      this.progressCallback = null;
+    }
+  }
+
+  /**
+   * 显示快速批量导入说明
+   */
+  showQuickBatchImportGuide() {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '🚀 快速批量导入',
+        content: `🎯 快速导入模式特点：\n\n✅ 连续选择多个联系人\n⚡ 自动跳过重复联系人\n🔄 智能重试失败请求\n📊 实时进度反馈\n📈 导入完成后显示详细统计\n\n💡 性能建议：\n• 单次导入 5-10 个效果最佳\n• 最大支持 ${this.maxSelectionsPerSession} 个联系人\n• 建议在 WiFi 环境下操作`,
+        confirmText: '开始快速导入',
+        cancelText: '取消',
+        success: (res) => {
+          resolve(res.confirm);
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
+   * 开始快速连续选择
+   */
+  async startQuickSelection() {
+    let continueSelection = true;
+    
+    while (continueSelection) {
+      try {
+        // 选择联系人
+        const contact = await this.selectContactFromPhoneBook();
+        
+        if (!contact) {
+          // 用户取消选择，询问是否完成导入
+          continueSelection = await this.askFinishQuickImport();
+          break;
+        }
+
+        // 检查重复
+        const duplicateCheck = await this.checkDuplicate(contact);
+        if (duplicateCheck.isDuplicate) {
+          this.importStats.duplicates++;
+          
+          // 显示跳过提示
+          wx.showToast({
+            title: `${contact.name} 已存在，已跳过`,
+            icon: 'none',
+            duration: 1500
+          });
+        } else {
+          // 验证联系人数据
+          const validation = this.validateContactData(contact);
+          if (!validation.isValid) {
+            this.importStats.errors++;
+            wx.showToast({
+              title: `⚠️ ${contact.name}: ${validation.errors[0]}`,
+              icon: 'none',
+              duration: 2000
+            });
+          } else {
+            // 添加到导入队列
+            this.batchQueue.push(contact);
+            this.importStats.total++;
+            
+            // 显示添加成功提示（更优雅的反馈）
+            wx.showToast({
+              title: `✅ 已添加 ${contact.name} (${this.batchQueue.length})`,
+              icon: 'none',
+              duration: 800
+            });
+          }
+        }
+
+        // 检查是否达到最大选择数量
+        if (this.batchQueue.length >= this.maxSelectionsPerSession) {
+          wx.showModal({
+            title: '⚠️ 选择数量已达上限',
+            content: `为保证导入性能，单次最多选择 ${this.maxSelectionsPerSession} 个联系人。\n\n当前已选择 ${this.batchQueue.length} 个联系人，是否开始导入？`,
+            confirmText: '开始导入',
+            cancelText: '继续选择',
+            success: (res) => {
+              continueSelection = !res.confirm;
+            }
+          });
+        } else {
+          // 询问是否继续选择
+          continueSelection = await this.askContinueQuickSelection();
+        }
+
+      } catch (error) {
+        console.error('选择联系人失败:', error);
+        this.importStats.errors++;
+        
+        // 询问是否继续
+        continueSelection = await this.askContinueAfterError(error);
+      }
+    }
+
+    // 如果有待导入的联系人，执行批量导入
+    if (this.batchQueue.length > 0) {
+      await this.executeBatchImportFromQueue();
+    } else {
+      wx.showToast({
+        title: '未选择任何联系人',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  }
+
+  /**
+   * 询问是否继续快速选择
+   */
+  askContinueQuickSelection() {
+    return new Promise((resolve) => {
+      const { total, duplicates } = this.importStats;
+      const selectedCount = this.batchQueue.length;
+      
+      wx.showModal({
+        title: '继续选择联系人',
+        content: `已选择: ${selectedCount}个\n跳过重复: ${duplicates}个\n\n继续选择更多联系人？`,
+        confirmText: '继续选择',
+        cancelText: '开始导入',
+        success: (res) => {
+          resolve(res.confirm);
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
+   * 询问是否完成快速导入
+   */
+  askFinishQuickImport() {
+    return new Promise((resolve) => {
+      const selectedCount = this.batchQueue.length;
+      
+      if (selectedCount === 0) {
+        resolve(false);
+        return;
+      }
+      
+      wx.showModal({
+        title: '完成选择',
+        content: `已选择 ${selectedCount} 个联系人\n\n是否开始导入？`,
+        confirmText: '开始导入',
+        cancelText: '继续选择',
+        success: (res) => {
+          resolve(!res.confirm); // 注意：这里返回的是是否继续选择
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
+   * 询问错误后是否继续
+   */
+  askContinueAfterError(error) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '选择失败',
+        content: `${error.message || '选择联系人失败'}\n\n是否继续选择其他联系人？`,
+        confirmText: '继续',
+        cancelText: '结束导入',
+        success: (res) => {
+          resolve(res.confirm);
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
+   * 执行批量导入队列
+   */
+  async executeBatchImportFromQueue() {
+    try {
+      this.importStartTime = Date.now();
+      
+      wx.showLoading({
+        title: `📥 准备导入 ${this.batchQueue.length} 个联系人...`,
+        mask: true
+      });
+      
+      // 回调开始导入
+      if (this.progressCallback) {
+        this.progressCallback({
+          phase: 'starting',
+          total: this.batchQueue.length
+        });
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // 分批并行导入联系人
+      const batches = this.chunkArray(this.batchQueue, this.batchSize);
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        
+        // 更新总体进度
+        const overallProgress = Math.floor((batchIndex / batches.length) * 100);
+        wx.showLoading({
+          title: `批次 ${batchIndex + 1}/${batches.length} (${overallProgress}%)\n正在导入 ${batch.length} 个联系人...`,
+          mask: true
+        });
+        
+        // 回调进度更新
+        if (this.progressCallback) {
+          this.progressCallback({
+            phase: 'importing',
+            batchIndex: batchIndex + 1,
+            totalBatches: batches.length,
+            currentBatch: batch.length,
+            overallProgress
+          });
+        }
+        
+        // 并行处理当前批次
+        const batchPromises = batch.map(async (contact, index) => {
+          const absoluteIndex = batchIndex * this.batchSize + index;
+          return this.importSingleContactWithRetry(contact, absoluteIndex + 1, this.batchQueue.length);
+        });
+        
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        // 统计当前批次结果
+        batchResults.forEach(result => {
+          if (result.status === 'fulfilled' && result.value.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        });
+        
+        // 批次间的短暂延迟
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+
+      wx.hideLoading();
+      this.importEndTime = Date.now();
+
+      // 更新统计
+      this.importStats.success = successCount;
+      this.importStats.errors = errorCount;
+
+      // 显示最终结果
+      this.showQuickBatchImportResult();
+
+    } catch (error) {
+      wx.hideLoading();
+      console.error('批量导入执行失败:', error);
+      
+      wx.showModal({
+        title: '批量导入失败',
+        content: error.message || '导入过程中出现错误',
+        showCancel: false
+      });
+    }
+  }
+
+  /**
+   * 格式化联系人数据
+   */
+  formatContactData(contact) {
+    // 先清理数据
+    const sanitizedContact = this.sanitizeContactData(contact);
+    
+    // 验证数据
+    const validation = this.validateContactData(sanitizedContact);
+    if (!validation.isValid) {
+      throw new Error(`联系人数据无效: ${validation.errors.join(', ')}`);
+    }
+    
+    return {
+      profile_name: sanitizedContact.name || '',
+      phone: sanitizedContact.phone || '',
+      wechat_id: '',
+      email: '',
+      company: sanitizedContact.company || '',
+      position: sanitizedContact.position || '',
+      location: '',
+      notes: '快速批量导入自通讯录',
+      tags: [],
+      gender: '',
+      age: '',
+      marital_status: '',
+      education: '',
+      asset_level: '',
+      personality: ''
+    };
+  }
+
+  /**
+   * 显示快速批量导入结果
+   */
+  showQuickBatchImportResult() {
+    const { total, success, duplicates, errors } = this.importStats;
+    const successRate = total > 0 ? Math.round((success / total) * 100) : 0;
+    
+    let title = '🎉 快速批量导入完成';
+    let icon = '📊';
+    
+    if (successRate === 100) {
+      title = '✅ 导入完美成功！';
+      icon = '🎯';
+    } else if (successRate >= 80) {
+      title = '✨ 导入基本成功';
+      icon = '👍';
+    } else if (successRate >= 50) {
+      title = '⚠️ 导入部分成功';
+      icon = '📈';
+    } else if (successRate > 0) {
+      title = '⚠️ 导入遇到困难';
+      icon = '🔧';
+    } else {
+      title = '❌ 导入失败';
+      icon = '🆘';
+    }
+    
+    let message = `${icon} 导入统计报告\n\n`;
+    message += `📱 选择联系人: ${total}个\n`;
+    message += `✅ 成功导入: ${success}个 (${successRate}%)\n`;
+    if (duplicates > 0) message += `⏭️ 跳过重复: ${duplicates}个\n`;
+    if (errors > 0) message += `❌ 导入失败: ${errors}个\n`;
+    
+    // 添加性能统计
+    const duration = Date.now() - this.importStartTime;
+    if (duration && total > 0) {
+      const avgTime = Math.round(duration / total);
+      message += `\n⏱️ 平均用时: ${avgTime}ms/联系人`;
+    }
+
+    wx.showModal({
+      title: title,
+      content: message,
+      showCancel: false,
+      confirmText: '知道了',
+      success: () => {
+        // 触发数据刷新事件
+        if (dataManager && dataManager.emit) {
+          dataManager.emit('dataChanged', { 
+            type: 'contacts', 
+            action: 'quick_batch_import',
+            stats: this.importStats
+          });
+        }
+        
+        // 回调最终结果
+        if (this.progressCallback) {
+          this.progressCallback({
+            phase: 'completed',
+            stats: this.importStats,
+            successRate
+          });
+        }
+      }
+    });
+  }
+
+  /**
    * 显示导入说明和征求用户同意
    */
   showImportGuide() {
     return new Promise((resolve) => {
       wx.showModal({
         title: '从通讯录导入',
-        content: '由于隐私保护，您需要逐个选择联系人进行导入。点击确定开始选择联系人。',
-        confirmText: '开始导入',
+        content: '选择导入方式：\n\n• 单个导入：逐个选择并确认联系人信息\n• 快速批量导入：连续选择多个联系人快速导入',
+        confirmText: '单个导入',
         cancelText: '取消',
         success: (res) => {
-          resolve(res.confirm);
+          if (res.confirm) {
+            resolve(true);
+          } else {
+            // 显示快速批量导入选项
+            this.showBatchImportOption().then(resolve);
+          }
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  /**
+   * 显示快速批量导入选项
+   */
+  showBatchImportOption() {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: '选择导入方式',
+        content: '您想要快速批量导入联系人吗？\n\n快速模式会连续选择多个联系人并自动导入，无需逐个确认。',
+        confirmText: '快速批量导入',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            // 启动快速批量导入
+            this.quickBatchImportFromPhoneBook().then(() => resolve(false));
+          } else {
+            resolve(false);
+          }
         },
         fail: () => {
           resolve(false);
@@ -478,6 +928,143 @@ class ContactImporter {
    */
   isCurrentlyImporting() {
     return this.isImporting;
+  }
+
+  /**
+   * 将数组分块
+   */
+  chunkArray(array, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+
+  /**
+   * 带重试的单个联系人导入
+   */
+  async importSingleContactWithRetry(contact, index, total, retryCount = 0) {
+    try {
+      // 更新单个联系人进度
+      if (this.progressCallback) {
+        this.progressCallback({
+          phase: 'importing_contact',
+          contact: contact.name,
+          index,
+          total,
+          attempt: retryCount + 1
+        });
+      }
+
+      // 格式化联系人数据
+      const contactData = this.formatContactData(contact);
+      
+      // 创建联系人
+      const result = await dataManager.createProfile(contactData);
+      
+      if (result.success) {
+        return { success: true, contact: contactData };
+      } else {
+        throw new Error(result.message || '创建失败');
+      }
+      
+    } catch (error) {
+      console.error(`导入联系人 ${contact.name} 失败 (尝试 ${retryCount + 1}/${this.maxRetries + 1}):`, error);
+      
+      // 如果还有重试机会，进行重试
+      if (retryCount < this.maxRetries) {
+        console.log(`正在重试导入 ${contact.name}...`);
+        
+        // 指数退避延迟
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return this.importSingleContactWithRetry(contact, index, total, retryCount + 1);
+      }
+      
+      // 超过最大重试次数，返回失败
+      return { 
+        success: false, 
+        error: error.message,
+        contact: contact.name,
+        attempts: retryCount + 1
+      };
+    }
+  }
+
+  /**
+   * 显示错误对话框
+   */
+  showErrorDialog(title, message) {
+    wx.showModal({
+      title: title || '操作失败',
+      content: message || '发生未知错误',
+      showCancel: false,
+      confirmText: '知道了',
+      confirmColor: '#ff4757'
+    });
+  }
+
+  /**
+   * 设置进度回调函数
+   */
+  setProgressCallback(callback) {
+    this.progressCallback = callback;
+  }
+
+  /**
+   * 获取导入性能统计
+   */
+  getPerformanceStats() {
+    const duration = this.importEndTime ? (this.importEndTime - this.importStartTime) : 0;
+    const { total, success, errors, duplicates } = this.importStats;
+    
+    return {
+      duration,
+      totalContacts: total,
+      successRate: total > 0 ? (success / total) * 100 : 0,
+      avgTimePerContact: total > 0 ? duration / total : 0,
+      throughput: duration > 0 ? (total / duration) * 1000 : 0, // 联系人/秒
+      retryRate: errors > 0 ? (errors / total) * 100 : 0
+    };
+  }
+
+  /**
+   * 验证联系人数据
+   */
+  validateContactData(contact) {
+    const errors = [];
+    
+    if (!contact.name || contact.name.trim().length === 0) {
+      errors.push('联系人姓名不能为空');
+    }
+    
+    if (contact.phone && !/^[\d\s\-\(\)\+]{7,20}$/.test(contact.phone)) {
+      errors.push('手机号格式不正确');
+    }
+    
+    if (contact.name && contact.name.length > 50) {
+      errors.push('联系人姓名过长');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  /**
+   * 清理并优化联系人数据
+   */
+  sanitizeContactData(contact) {
+    return {
+      ...contact,
+      name: contact.name ? contact.name.trim().substring(0, 50) : '',
+      phone: contact.phone ? contact.phone.replace(/[^\d\s\-\(\)\+]/g, '') : '',
+      company: contact.company ? contact.company.trim().substring(0, 100) : '',
+      position: contact.position ? contact.position.trim().substring(0, 100) : ''
+    };
   }
 }
 

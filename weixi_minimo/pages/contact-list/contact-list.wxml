@@ -94,11 +94,15 @@
     <view class="quick-actions">
       <view class="quick-action-btn" bind:tap="onImportFromPhoneBook">
         <text class="action-icon">📱</text>
-        <text class="action-text">从通讯录导入</text>
+        <text class="action-text">单个导入</text>
+      </view>
+      <view class="quick-action-btn" bind:tap="onQuickBatchImport">
+        <text class="action-icon">📲</text>
+        <text class="action-text">快速批量导入</text>
       </view>
       <view class="quick-action-btn" bind:tap="onBatchImport">
         <text class="action-icon">📋</text>
-        <text class="action-text">批量导入</text>
+        <text class="action-text">文本导入</text>
       </view>
     </view>
   </view>
@@ -248,4 +252,11 @@
 
   <!-- 自定义TabBar -->
   <custom-tabbar current="contact-list" />
+  
+  <!-- 导入进度显示 -->
+  <import-progress 
+    visible="{{showImportProgress}}"
+    progress="{{importProgress}}"
+    bind:close="onCloseImportProgress"
+  />
 </view>
