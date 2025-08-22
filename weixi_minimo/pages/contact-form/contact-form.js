@@ -110,6 +110,17 @@ Page({
 
   onUnload() {
     console.log('联系人表单页面卸载');
+    
+    // 清理语音识别状态
+    if (this.data.isRecording) {
+      this.stopVoiceInput();
+    }
+    
+    // 隐藏可能显示的Toast
+    wx.hideToast();
+    
+    // 重置初始化标记
+    this._voiceInitialized = false;
   },
 
   /**
@@ -715,10 +726,13 @@ Page({
    * 初始化语音识别
    */
   initVoiceRecognition() {
-    // 先移除所有旧的监听器，避免重复绑定
-    recordManager.onStop(() => {});
-    recordManager.onError(() => {});
-    recordManager.onStart(() => {});
+    // 避免重复初始化
+    if (this._voiceInitialized) {
+      console.log('语音识别已经初始化，跳过');
+      return;
+    }
+    this._voiceInitialized = true;
+    console.log('初始化语音识别事件监听器');
     
     // 录音结束事件
     recordManager.onStop((res) => {
@@ -786,14 +800,19 @@ Page({
       });
     };
     
-    // 开始录音事件
+    // 开始录音事件 - 只在确实处于录音状态时显示提示
     recordManager.onStart = () => {
-      console.log('开始录音');
-      wx.showToast({
-        title: '请说话...',
-        icon: 'none',
-        duration: 60000 // 持续显示
-      });
+      console.log('录音管理器 onStart 事件触发，当前录音状态:', this.data.isRecording);
+      // 只有在页面确实处于录音状态时才显示弹窗
+      if (this.data.isRecording) {
+        wx.showToast({
+          title: '请说话...',
+          icon: 'none',
+          duration: 60000 // 持续显示
+        });
+      } else {
+        console.log('页面未处于录音状态，忽略 onStart 事件');
+      }
     };
   },
 
