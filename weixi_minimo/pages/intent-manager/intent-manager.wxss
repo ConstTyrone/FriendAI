@@ -592,6 +592,7 @@
   margin-bottom: 24rpx;
   box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .intent-name-input:focus {
@@ -613,6 +614,7 @@
   box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
   resize: none;
+  box-sizing: border-box;
 }
 
 .intent-desc-input:focus {
@@ -752,6 +754,7 @@
   text-align: center;
   box-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .config-input:focus {
