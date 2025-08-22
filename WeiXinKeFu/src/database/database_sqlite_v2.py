@@ -139,6 +139,147 @@ class SQLiteDatabase:
             conn.commit()
             logger.info(f"✅ 创建用户画像表: {table_name}")
     
+    def _create_intent_tables(self):
+        """创建意图匹配系统所需的所有表"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 1. 用户意图表
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_intents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    type TEXT DEFAULT 'general',
+                    
+                    -- 条件存储（JSON格式）
+                    conditions TEXT DEFAULT '{}',
+                    
+                    -- 向量数据
+                    embedding BLOB,
+                    embedding_model TEXT DEFAULT 'qwen-v2',
+                    
+                    -- 配置项
+                    threshold REAL DEFAULT 0.7,
+                    priority INTEGER DEFAULT 5,
+                    max_push_per_day INTEGER DEFAULT 5,
+                    
+                    -- 状态控制
+                    status TEXT DEFAULT 'active',
+                    expire_at TIMESTAMP,
+                    
+                    -- 统计数据
+                    match_count INTEGER DEFAULT 0,
+                    success_count INTEGER DEFAULT 0,
+                    last_match_at TIMESTAMP,
+                    
+                    -- 时间戳
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                
+                # 创建索引
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_intents_status ON user_intents(user_id, status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_intents_expire ON user_intents(expire_at)")
+                
+                # 2. 匹配记录表
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS intent_matches (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    intent_id INTEGER NOT NULL,
+                    profile_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
+                    
+                    -- 匹配详情
+                    match_score REAL NOT NULL,
+                    score_details TEXT,
+                    matched_conditions TEXT,
+                    explanation TEXT,
+                    
+                    -- 推送状态
+                    is_pushed BOOLEAN DEFAULT 0,
+                    pushed_at TIMESTAMP,
+                    push_channel TEXT,
+                    
+                    -- 用户反馈
+                    user_feedback TEXT,
+                    feedback_at TIMESTAMP,
+                    feedback_note TEXT,
+                    
+                    -- 状态
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    
+                    FOREIGN KEY (intent_id) REFERENCES user_intents(id) ON DELETE CASCADE
+                )
+                """)
+                
+                # 创建索引
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_matches ON intent_matches(user_id, status)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_intent_matches ON intent_matches(intent_id, match_score DESC)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_profile_matches ON intent_matches(profile_id)")
+                cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_match ON intent_matches(intent_id, profile_id)")
+                
+                # 3. 向量索引表
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS vector_index (
+                    id TEXT PRIMARY KEY,
+                    vector_type TEXT NOT NULL,
+                    entity_id INTEGER NOT NULL,
+                    user_id TEXT NOT NULL,
+                    embedding BLOB NOT NULL,
+                    metadata TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                
+                # 创建索引
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_vector_type ON vector_index(vector_type, user_id)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_vector_entity ON vector_index(entity_id)")
+                
+                # 4. 推送历史表
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS push_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL,
+                    match_ids TEXT NOT NULL,
+                    push_type TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    status TEXT DEFAULT 'sent',
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read_at TIMESTAMP
+                )
+                """)
+                
+                # 创建索引
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_push_user_history ON push_history(user_id, sent_at DESC)")
+                
+                # 5. 用户推送偏好表
+                cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_push_preferences (
+                    user_id TEXT PRIMARY KEY,
+                    enable_push BOOLEAN DEFAULT 1,
+                    daily_limit INTEGER DEFAULT 10,
+                    quiet_hours TEXT,
+                    batch_mode TEXT DEFAULT 'smart',
+                    min_score REAL DEFAULT 0.7,
+                    preferred_time TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                
+                conn.commit()
+                logger.info("✅ 创建意图匹配系统表成功")
+                
+        except Exception as e:
+            logger.error(f"创建意图表失败: {e}")
+            raise
+    
     def get_or_create_user(self, wechat_user_id: str, nickname: Optional[str] = None) -> int:
         """获取或创建用户"""
         try:
@@ -173,6 +314,9 @@ class SQLiteDatabase:
                 # 创建用户专属表
                 table_name = self._get_user_table_name(wechat_user_id)
                 self._create_user_profile_table(table_name)
+                
+                # 创建意图相关表（如果不存在）
+                self._create_intent_tables()
                 
                 logger.info(f"✅ 创建新用户: {wechat_user_id}")
                 return user_id
