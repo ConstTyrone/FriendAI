@@ -311,8 +311,8 @@ Page({
    * 阈值变化（拖动过程中实时更新）
    */
   onThresholdInput(e) {
-    const threshold = parseInt(e.detail.value);
-    console.log('Threshold input:', threshold);
+    const threshold = Math.round(Number(e.detail.value));
+    console.log('Threshold input:', threshold, 'Original value:', e.detail.value);
     this.setData({
       'formData.threshold': threshold
     });
