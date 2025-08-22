@@ -31,7 +31,7 @@
     </view>
 
     <!-- 搜索建议面板 -->
-    <view class="search-panel {{showSearchPanel ? 'show' : ''}}">
+    <view class="search-panel {{showSearchPanel ? 'show' : ''}}" style="{{searchPanelStyle}}">
       <!-- 搜索历史 -->
       <view class="search-section" wx:if="{{searchHistory.length > 0}}">
         <view class="section-header">

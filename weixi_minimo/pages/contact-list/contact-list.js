@@ -31,6 +31,7 @@ Page({
     
     // 智能搜索相关
     showSearchPanel: false,
+    searchPanelStyle: '', // 搜索面板的动态样式
     searchSuggestions: [
       '30岁的程序员',
       '在北京做金融的',
@@ -537,9 +538,13 @@ Page({
    * 搜索面板切换
    */
   onToggleSearchPanel() {
-    this.setData({ 
-      showSearchPanel: !this.data.showSearchPanel 
-    });
+    if (!this.data.showSearchPanel) {
+      this.showSearchPanelWithPosition();
+    } else {
+      this.setData({ 
+        showSearchPanel: false 
+      });
+    }
   },
 
   /**
@@ -547,8 +552,49 @@ Page({
    */
   onSearchFocus() {
     this.setData({ 
-      searchFocused: true,
-      showSearchPanel: true 
+      searchFocused: true
+    });
+    this.showSearchPanelWithPosition();
+  },
+
+  /**
+   * 显示搜索面板并设置正确位置
+   */
+  showSearchPanelWithPosition() {
+    // 获取搜索框位置
+    const query = wx.createSelectorQuery();
+    query.select('.ai-search-header').boundingClientRect();
+    query.exec((res) => {
+      if (res[0]) {
+        const searchHeaderRect = res[0];
+        const panelTop = searchHeaderRect.bottom + 10; // 搜索框底部 + 10px间距
+        
+        // 动态设置搜索面板位置
+        const updateData = {
+          showSearchPanel: true,
+          searchPanelTop: panelTop
+        };
+        
+        this.setData(updateData);
+        
+        // 更新搜索面板的top位置
+        this.updateSearchPanelStyle(panelTop);
+      } else {
+        // 如果获取位置失败，使用默认显示
+        this.setData({ 
+          showSearchPanel: true 
+        });
+      }
+    });
+  },
+
+  /**
+   * 更新搜索面板样式
+   */
+  updateSearchPanelStyle(top) {
+    // 使用setData更新样式
+    this.setData({
+      searchPanelStyle: `top: ${top}px;`
     });
   },
 

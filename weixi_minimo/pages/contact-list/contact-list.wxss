@@ -67,6 +67,8 @@ page.theme-dark {
   border-bottom: 1rpx solid var(--color-border-light);
   box-shadow: var(--shadow-search);
   backdrop-filter: blur(10rpx);
+  position: relative;
+  z-index: 1000;
 }
 
 .search-box-container {
@@ -1172,14 +1174,14 @@ page.theme-dark {
 
 /* 搜索建议面板 */
 .search-panel {
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  top: 0;
   left: 24rpx;
   right: 24rpx;
   background-color: #FFFFFF;
   border-radius: 12rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
-  z-index: 9999;
+  z-index: 99999;
   overflow: hidden;
   opacity: 0;
   transform: translateY(-20rpx);
