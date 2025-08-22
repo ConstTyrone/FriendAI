@@ -545,16 +545,11 @@ class ContactImporter {
     return new Promise((resolve) => {
       wx.showModal({
         title: '从通讯录导入',
-        content: '选择导入方式：\n\n• 单个导入：逐个选择并确认联系人信息\n• 快速批量导入：连续选择多个联系人快速导入',
-        confirmText: '单个导入',
+        content: '将逐个选择并确认联系人信息，确保数据准确性。\n\n点击"开始导入"继续操作。',
+        confirmText: '开始导入',
         cancelText: '取消',
         success: (res) => {
-          if (res.confirm) {
-            resolve(true);
-          } else {
-            // 显示快速批量导入选项
-            this.showBatchImportOption().then(resolve);
-          }
+          resolve(res.confirm);
         },
         fail: () => {
           resolve(false);
@@ -563,30 +558,6 @@ class ContactImporter {
     });
   }
 
-  /**
-   * 显示快速批量导入选项
-   */
-  showBatchImportOption() {
-    return new Promise((resolve) => {
-      wx.showModal({
-        title: '选择导入方式',
-        content: '您想要快速批量导入联系人吗？\n\n快速模式会连续选择多个联系人并自动导入，无需逐个确认。',
-        confirmText: '快速批量导入',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            // 启动快速批量导入
-            this.quickBatchImportFromPhoneBook().then(() => resolve(false));
-          } else {
-            resolve(false);
-          }
-        },
-        fail: () => {
-          resolve(false);
-        }
-      });
-    });
-  }
 
   /**
    * 从手机通讯录选择联系人

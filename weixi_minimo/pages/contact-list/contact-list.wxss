@@ -1179,7 +1179,7 @@ page.theme-dark {
   background-color: #FFFFFF;
   border-radius: 12rpx;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  z-index: 9999;
   overflow: hidden;
   opacity: 0;
   transform: translateY(-20rpx);
