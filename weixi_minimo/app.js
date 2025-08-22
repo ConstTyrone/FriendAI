@@ -336,6 +336,23 @@ App({
           });
           return;
         }
+        
+        // 检查绑定状态
+        const userInfo = authManager.getCurrentUser();
+        if (userInfo && !userInfo.isBound) {
+          console.log('未绑定企微客服，跳转到绑定页面');
+          wx.showModal({
+            title: '需要绑定',
+            content: '请先绑定企业微信客服账号后再使用此功能',
+            showCancel: false,
+            success: () => {
+              wx.navigateTo({
+                url: '/pages/bind-account/bind-account'
+              });
+            }
+          });
+          return;
+        }
       }
       
       originalNavigateTo.call(wx, options);
@@ -362,6 +379,23 @@ App({
           });
           return;
         }
+        
+        // 检查绑定状态
+        const userInfo = authManager.getCurrentUser();
+        if (userInfo && !userInfo.isBound) {
+          console.log('未绑定企微客服，跳转到绑定页面');
+          wx.showModal({
+            title: '需要绑定',
+            content: '请先绑定企业微信客服账号后再使用此功能',
+            showCancel: false,
+            success: () => {
+              wx.navigateTo({
+                url: '/pages/bind-account/bind-account'
+              });
+            }
+          });
+          return;
+        }
       }
       
       originalSwitchTab.call(wx, options);
@@ -377,6 +411,13 @@ App({
         if (!authManager.isLoggedIn()) {
           console.log('未登录，跳转到设置页面');
           options.url = '/pages/settings/settings';
+        } else {
+          // 检查绑定状态
+          const userInfo = authManager.getUserInfo();
+          if (userInfo && !userInfo.isBound) {
+            console.log('未绑定企微客服，跳转到绑定页面');
+            options.url = '/pages/bind-account/bind-account';
+          }
         }
       }
       
@@ -396,7 +437,17 @@ App({
     ];
     
     if (protectedPages.includes(pagePath)) {
-      return authManager.isLoggedIn();
+      if (!authManager.isLoggedIn()) {
+        return false;
+      }
+      
+      // 检查绑定状态
+      const userInfo = authManager.getUserInfo();
+      if (userInfo && !userInfo.isBound) {
+        return false;
+      }
+      
+      return true;
     }
     
     return true;
