@@ -1741,7 +1741,7 @@ async def create_intent(
 
 @app.get("/api/intents")
 async def get_intents(
-    status: Optional[str] = "active",
+    status: Optional[str] = None,
     page: int = 1,
     size: int = 10,
     current_user: str = Depends(verify_user_token)
