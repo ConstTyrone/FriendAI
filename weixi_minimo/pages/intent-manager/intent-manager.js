@@ -146,7 +146,7 @@ Page({
         url: '/api/intents',
         method: 'GET',
         data: {
-          // 不限制状态，获取所有意图
+          // 不传递status参数，后端默认返回所有状态的意图
           page: 1,
           size: 100
         }
