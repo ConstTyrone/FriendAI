@@ -23,8 +23,9 @@ class WeWorkConfig:
     asr_token: str = os.getenv('ASR_TOKEN', 'be3d7dfd4e51401db4c122e2d74b06ba')  # 手动Token（向后兼容）
     asr_url: str = os.getenv('ASR_URL', 'wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1')
     # 阿里云AccessKey配置（用于自动获取Token）
-    aliyun_ak_id: str = os.getenv('ALIYUN_AK_ID')
-    aliyun_ak_secret: str = os.getenv('ALIYUN_AK_SECRET')
+    # 支持多种环境变量命名方式
+    aliyun_ak_id: str = os.getenv('ALIYUN_AK_ID') or os.getenv('accessKeyId')
+    aliyun_ak_secret: str = os.getenv('ALIYUN_AK_SECRET') or os.getenv('accessKeySecret')
     # ffmpeg路径配置
     ffmpeg_path: str = os.getenv('FFMPEG_PATH', r'D:\software\ffmpeg-7.1.1-essentials_build\bin\ffmpeg.exe')  # 使用用户指定的路径
     

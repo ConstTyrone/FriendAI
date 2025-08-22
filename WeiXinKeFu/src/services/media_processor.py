@@ -5,7 +5,7 @@ import base64
 import logging
 import time
 import json
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 from ..config.config import config
 
 logger = logging.getLogger(__name__)
