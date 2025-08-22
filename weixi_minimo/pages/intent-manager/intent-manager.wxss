@@ -205,6 +205,37 @@
   transform: translateY(-2rpx);
 }
 
+/* 暂停状态的意图卡片样式 */
+.intent-card.paused {
+  opacity: 0.6;
+  background: var(--background-color);
+  border: 1rpx solid var(--border-light);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
+}
+
+.intent-card.paused .intent-name {
+  color: var(--text-tertiary);
+}
+
+.intent-card.paused .intent-type {
+  background: var(--border-light);
+  color: var(--text-quaternary);
+  border-color: var(--border-light);
+}
+
+.intent-card.paused .intent-desc {
+  color: var(--text-quaternary);
+}
+
+.intent-card.paused::before {
+  background: var(--text-quaternary);
+}
+
+.intent-card.paused:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
 .intent-header {
   display: flex;
   justify-content: space-between;

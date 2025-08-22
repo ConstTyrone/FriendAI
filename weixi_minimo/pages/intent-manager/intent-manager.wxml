@@ -32,7 +32,7 @@
   
   <!-- 意图列表 -->
   <view wx:if="{{!loading || intents.length > 0}}" class="intent-list">
-    <view wx:for="{{intents}}" wx:key="id" class="intent-card" 
+    <view wx:for="{{intents}}" wx:key="id" class="intent-card {{item.status === 'paused' ? 'paused' : ''}}" 
           bindtap="viewMatches" data-id="{{item.id}}">
       <view class="intent-header">
         <view class="intent-info">

@@ -146,7 +146,7 @@ Page({
         url: '/api/intents',
         method: 'GET',
         data: {
-          status: 'active',
+          // 不限制状态，获取所有意图
           page: 1,
           size: 100
         }
@@ -165,12 +165,31 @@ Page({
           aiFeatures: this.getAIFeatures(intent)
         }));
         
-        // 计算总匹配数
-        const totalMatches = intents.reduce((sum, intent) => sum + (intent.match_count || 0), 0);
+        // 按状态排序：active在前，paused在后，然后按优先级和创建时间排序
+        const sortedIntents = intents.sort((a, b) => {
+          // 首先按状态排序（active在前）
+          if (a.status !== b.status) {
+            if (a.status === 'active') return -1;
+            if (b.status === 'active') return 1;
+            return 0;
+          }
+          
+          // 状态相同时，按优先级排序（高优先级在前）
+          if (a.priority !== b.priority) {
+            return b.priority - a.priority;
+          }
+          
+          // 优先级相同时，按创建时间排序（新创建的在前）
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+        
+        // 计算活跃意图数量和总匹配数
+        const activeIntents = sortedIntents.filter(intent => intent.status === 'active');
+        const totalMatches = sortedIntents.reduce((sum, intent) => sum + (intent.match_count || 0), 0);
         
         this.setData({
-          intents,
-          'stats.activeCount': intents.length,
+          intents: sortedIntents,
+          'stats.activeCount': activeIntents.length,
           'stats.totalMatches': totalMatches
         });
       }
@@ -564,7 +583,31 @@ Page({
         return intent;
       });
       
-      this.setData({ intents });
+      // 重新排序：active在前，paused在后
+      const sortedIntents = intents.sort((a, b) => {
+        // 首先按状态排序（active在前）
+        if (a.status !== b.status) {
+          if (a.status === 'active') return -1;
+          if (b.status === 'active') return 1;
+          return 0;
+        }
+        
+        // 状态相同时，按优先级排序（高优先级在前）
+        if (a.priority !== b.priority) {
+          return b.priority - a.priority;
+        }
+        
+        // 优先级相同时，按创建时间排序（新创建的在前）
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
+      
+      // 更新活跃意图数量统计
+      const activeIntents = sortedIntents.filter(intent => intent.status === 'active');
+      
+      this.setData({ 
+        intents: sortedIntents,
+        'stats.activeCount': activeIntents.length
+      });
     } catch (error) {
       console.error('更新状态失败:', error);
       wx.showToast({
