@@ -4,6 +4,7 @@ import { isValidSearchQuery } from '../../utils/validator';
 import { getStorageSync, setStorageSync, defaultStorage } from '../../utils/storage-utils';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
+import apiClient from '../../utils/api-client';
 import themeManager from '../../utils/theme-manager';
 import debugHelper from '../../utils/debug-helper';
 import contactImporter from '../../utils/contact-importer';
@@ -125,6 +126,53 @@ Page({
       console.log('设置保存完成:', this.data.settings);
     } catch (error) {
       console.error('保存设置失败:', error);
+    }
+  },
+
+  /**
+   * 创建绑定会话并跳转到绑定页面
+   */
+  async createBindingSessionAndNavigate(wechatUserId) {
+    try {
+      console.log('开始创建绑定会话，openid:', wechatUserId);
+      
+      const result = await apiClient.createBindingSession({
+        openid: wechatUserId
+      });
+      
+      console.log('绑定会话创建结果:', result);
+      
+      if (result.success && result.token) {
+        // 创建成功，跳转到绑定页面
+        const bindUrl = `/pages/bind-account/bind-account?token=${result.token}&openid=${wechatUserId}&verifyCode=${result.verify_code || ''}`;
+        
+        wx.showModal({
+          title: '需要绑定',
+          content: '检测到您尚未绑定企业微信客服账号，请先完成绑定后再使用功能',
+          showCancel: false,
+          confirmText: '去绑定',
+          success: () => {
+            console.log('跳转到绑定页面:', bindUrl);
+            wx.navigateTo({
+              url: bindUrl
+            });
+          }
+        });
+      } else {
+        // 创建失败，显示错误信息
+        wx.showModal({
+          title: '绑定会话创建失败',
+          content: result.detail || '无法创建绑定会话，请稍后重试',
+          showCancel: false
+        });
+      }
+    } catch (error) {
+      console.error('创建绑定会话失败:', error);
+      wx.showModal({
+        title: '网络错误',
+        content: '创建绑定会话失败，请检查网络连接后重试',
+        showCancel: false
+      });
     }
   },
 
@@ -547,18 +595,8 @@ Page({
           
           // 检查绑定状态，如果未绑定则立即跳转到绑定页面
           if (data && data.isBound === false) {
-            console.log('用户未绑定微信客服，自动跳转到绑定页面');
-            wx.showModal({
-              title: '需要绑定',
-              content: '检测到您尚未绑定企业微信客服账号，请先完成绑定后再使用功能',
-              showCancel: false,
-              confirmText: '去绑定',
-              success: () => {
-                wx.navigateTo({
-                  url: '/pages/bind-account/bind-account'
-                });
-              }
-            });
+            console.log('用户未绑定微信客服，开始创建绑定会话');
+            this.createBindingSessionAndNavigate(data.wechatUserId);
           } else {
             console.log('用户已绑定或绑定状态未知，继续正常流程');
             this.refreshUserStatus();
