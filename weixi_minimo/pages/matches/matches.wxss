@@ -33,7 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--spacing-lg) + env(safe-area-inset-top)) var(--spacing-lg) var(--spacing-lg);
+  padding: calc(var(--spacing-xl) + env(safe-area-inset-top)) var(--spacing-lg) var(--spacing-lg);
   background: var(--card-background);
   border-bottom: 1rpx solid var(--border-color);
   position: relative;

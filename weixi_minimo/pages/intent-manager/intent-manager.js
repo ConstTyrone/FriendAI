@@ -311,8 +311,10 @@ Page({
    * 阈值变化（拖动过程中实时更新）
    */
   onThresholdInput(e) {
+    const threshold = parseInt(e.detail.value);
+    console.log('Threshold input:', threshold);
     this.setData({
-      'formData.threshold': e.detail.value
+      'formData.threshold': threshold
     });
   },
 
@@ -320,8 +322,10 @@ Page({
    * 阈值变化完成
    */
   onThresholdChange(e) {
+    const threshold = parseInt(e.detail.value);
+    console.log('Threshold change:', threshold);
     this.setData({
-      'formData.threshold': e.detail.value
+      'formData.threshold': threshold
     });
   },
 
