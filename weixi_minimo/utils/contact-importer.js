@@ -891,9 +891,33 @@ class ContactImporter {
       const lines = text.trim().split('\n');
       const contacts = [];
       
+      // 定义需要过滤的提示文字模式
+      const filterPatterns = [
+        /请粘贴联系人数据/,
+        /每行一个联系人/,
+        /姓名.*手机.*公司.*职位/,
+        /格式.*示例/,
+        /支持.*格式/,
+        /导入.*说明/,
+        /^[\s\u3000]*$/,  // 空行或仅包含空格的行
+        /^[：:：。，,；;！!？?""''"'（）()【】\[\]]*$/,  // 仅包含标点符号的行
+      ];
+      
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
+        
+        // 检查是否为提示文字
+        let isPromptText = false;
+        for (const pattern of filterPatterns) {
+          if (pattern.test(line)) {
+            console.log('过滤提示文字:', line);
+            isPromptText = true;
+            break;
+          }
+        }
+        
+        if (isPromptText) continue;
         
         // 尝试解析不同格式
         const contact = this.parseContactLine(line);
@@ -946,8 +970,36 @@ class ContactImporter {
         return null;
       }
       
+      // 验证姓名的有效性
+      const name = parts[0];
+      
+      // 过滤明显的非联系人数据
+      const invalidNamePatterns = [
+        /^[0-9]+$/,  // 纯数字
+        /^[a-zA-Z]{1,2}$/,  // 1-2个英文字母
+        /^[\s\u3000]*$/,  // 仅空格
+        /^[：:：。，,；;！!？?""''"'（）()【】\[\]]+$/,  // 仅标点符号
+        /请.*粘贴/,  // 包含"请...粘贴"
+        /格式.*示例/,  // 包含"格式...示例"
+        /每行.*联系人/,  // 包含"每行...联系人"
+        /支持.*格式/,  // 包含"支持...格式"
+      ];
+      
+      for (const pattern of invalidNamePatterns) {
+        if (pattern.test(name)) {
+          console.log('过滤无效姓名:', name);
+          return null;
+        }
+      }
+      
+      // 姓名长度检查（通常1-20个字符）
+      if (name.length < 1 || name.length > 20) {
+        console.log('姓名长度不合理:', name);
+        return null;
+      }
+      
       const contact = {
-        name: parts[0],
+        name: name,
         phone: parts[1] || '',
         company: parts[2] || '',
         position: parts[3] || '',

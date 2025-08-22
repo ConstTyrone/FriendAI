@@ -264,18 +264,6 @@
     bind:close="onCloseImportProgress"
   />
   
-  <!-- 导入确认弹窗 -->
-  <custom-modal
-    visible="{{showImportModal}}"
-    title="导入联系人"
-    content="将从您的通讯录中选择一个联系人导入到此应用"
-    confirmText="选择联系人"
-    cancelText="取消"
-    confirmType="primary"
-    bind:confirm="onConfirmImport"
-    bind:cancel="onCancelImport"
-    bind:close="onCloseImportModal"
-  />
   
   <!-- 删除确认弹窗 -->
   <custom-modal

@@ -1087,13 +1087,31 @@
   background-color: #3a3a3a;
 }
 
+/* 开关组件样式优化 */
+switch {
+  transform: scale(0.75);
+  margin: 0 -12rpx;
+  flex-shrink: 0;
+}
+
 /* 开关组件深色模式 */
 .theme-dark switch[checked] .wx-switch-input {
-  background-color: #06ae56 !important;
-  border-color: #06ae56 !important;
+  background-color: var(--primary-green) !important;
+  border-color: var(--primary-green) !important;
 }
 
 .theme-dark switch .wx-switch-input {
   background-color: #4a4a4a !important;
   border-color: #4a4a4a !important;
+}
+
+/* 浅色模式开关 */
+switch[checked] .wx-switch-input {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+switch .wx-switch-input {
+  background-color: #e9e9ea !important;
+  border-color: #e9e9ea !important;
 }

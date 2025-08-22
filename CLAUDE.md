@@ -5,11 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Important Instructions
 
 - **Git**: Push all changes to https://github.com/ConstTyrone/FriendAI after completing each task
-- **Testing**: Use test user ID `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` for all tests
+- **Testing**: Use test user ID `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` for all tests  
 - **Documentation**: Refer to `weixin_doc/` folder for WeChat Customer Service documentation
 - **Theme**: Deep dark mode support implemented with ThemeManager - use `themeManager` singleton for all theme operations
 - **Voice**: Advanced voice input with real-time recognition and AI parsing for contact forms
 - **Intent System**: Core AI-powered matching engine is the primary innovation feature
+- **Language**: Respond primarily in Chinese (中文) as indicated in the project documentation
 
 ## Project Overview
 
@@ -98,7 +99,7 @@ python run.py                            # Start server on port 8000
 ```bash
 # Core services (WeiXinKeFu directory)
 cd WeiXinKeFu
-python run.py                            # Start FastAPI server with auto-reload
+python run.py                            # Start FastAPI server with auto-reload (port 3001)
 uvicorn src.core.main:app --reload --host 0.0.0.0 --port 8000  # Alternative start
 
 # Intent system testing
@@ -493,8 +494,14 @@ const colors = themeManager.getThemeColors();
 - `components/custom-tabbar/index.js` - Navigation with intent badge system
 
 ### Configuration
-- `WeiXinKeFu/.env` - Backend environment variables including Qwen API key
-- `weixi_minimo/utils/constants.js` - Frontend configuration
-- `weixi_minimo/app.json` - Mini program pages and components
+- `WeiXinKeFu/.env` - Backend environment variables including Qwen API key (use `.env.example` as template)
+- `weixi_minimo/utils/constants.js` - Frontend configuration (API_CONFIG.BASE_URL points to backend)
+- `weixi_minimo/app.json` - Mini program pages and components registration
 - `weixi_minimo/utils/theme-manager.js` - Theme system configuration and color schemes
 - `weixi_minimo/styles/theme-dark.wxss` - Dark mode global styles
+
+### Project Structure Summary
+- `WeiXinKeFu/` - Python FastAPI backend with AI-powered intent matching system
+- `weixi_minimo/` - WeChat Mini Program frontend with modern UI and theme system
+- `weixin_doc/` - WeChat Customer Service API documentation
+- `docs/` - Project documentation for intent matching implementation

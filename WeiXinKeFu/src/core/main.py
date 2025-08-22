@@ -266,6 +266,57 @@ async def get_sync_status():
             "message": str(e)
         }
 
+# ASR Token状态监控接口
+@app.get("/api/asr/token/status")
+async def get_asr_token_status():
+    """获取ASR Token状态"""
+    try:
+        from ..services.media_processor import asr_processor
+        
+        token_status = asr_processor.get_token_status()
+        
+        return {
+            "status": "success",
+            "data": token_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"获取ASR Token状态失败: {e}")
+        return {
+            "status": "error", 
+            "message": f"获取ASR Token状态失败: {str(e)}"
+        }
+
+@app.post("/api/asr/token/refresh")
+async def refresh_asr_token():
+    """强制刷新ASR Token"""
+    try:
+        from ..services.asr_token_manager import force_refresh_asr_token, get_asr_token_info
+        
+        # 尝试强制刷新
+        refresh_success = force_refresh_asr_token()
+        
+        if refresh_success:
+            # 获取最新状态
+            token_info = get_asr_token_info()
+            return {
+                "status": "success",
+                "message": "ASR Token刷新成功",
+                "data": token_info,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "ASR Token刷新失败，请检查配置和网络连接"
+            }
+    except Exception as e:
+        logger.error(f"刷新ASR Token失败: {e}")
+        return {
+            "status": "error", 
+            "message": f"刷新ASR Token失败: {str(e)}"
+        }
+
 # 添加微信回调的路由，以兼容不同的回调地址
 @app.get("/wechat/callback")
 async def wechat_verify(msg_signature: str, timestamp: str, nonce: str, echostr: str):

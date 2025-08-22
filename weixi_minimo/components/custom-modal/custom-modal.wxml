@@ -1,4 +1,4 @@
-<view class="custom-modal {{visible ? 'visible' : ''}} {{animationClass}}" wx:if="{{visible}}" bind:tap="onMaskTap">
+<view class="custom-modal {{visible ? 'visible' : ''}}" wx:if="{{visible}}" catch:tap="onMaskTap">
   <!-- 遮罩层 -->
   <view class="modal-mask"></view>
   

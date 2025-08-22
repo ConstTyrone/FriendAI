@@ -43,8 +43,7 @@ Component({
   },
 
   data: {
-    // 动画状态
-    animationClass: ''
+    
   },
 
   lifetimes: {
@@ -57,47 +56,17 @@ Component({
     }
   },
 
-  observers: {
-    visible(newVal) {
-      if (newVal) {
-        this.showModal();
-      } else {
-        this.hideModal();
-      }
-    }
-  },
-
   methods: {
-    showModal() {
-      this.setData({
-        animationClass: 'show'
-      });
-    },
-
-    hideModal() {
-      this.setData({
-        animationClass: 'hide'
-      });
-      
-      // 延迟隐藏，等待动画完成
-      setTimeout(() => {
-        this.triggerEvent('close');
-      }, 300);
-    },
-
     onConfirm() {
       this.triggerEvent('confirm');
-      this.hideModal();
     },
 
     onCancel() {
       this.triggerEvent('cancel');
-      this.hideModal();
     },
 
     onClose() {
       this.triggerEvent('close');
-      this.hideModal();
     },
 
     onMaskTap() {
@@ -107,7 +76,9 @@ Component({
 
     onModalTap(e) {
       // 阻止冒泡，防止点击模态框内容时关闭
-      e.stopPropagation();
+      if (e && e.stopPropagation) {
+        e.stopPropagation();
+      }
     }
   }
 });

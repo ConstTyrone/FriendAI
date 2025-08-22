@@ -62,7 +62,6 @@ Page({
     showAddMenu: false,
     
     // 弹窗状态
-    showImportModal: false,
     showDeleteModal: false,
     deleteContactName: '',
     pendingDeleteContact: null,
@@ -869,44 +868,21 @@ Page({
     e.stopPropagation && e.stopPropagation();
   },
 
-  /**
-   * 导入弹窗 - 确认
-   */
-  async onConfirmImport() {
-    this.setData({
-      showImportModal: false
-    });
-    await this.executeImportFromPhoneBook();
-  },
 
-  /**
-   * 导入弹窗 - 取消
-   */
-  onCancelImport() {
-    this.setData({
-      showImportModal: false
-    });
-  },
-
-  /**
-   * 导入弹窗 - 关闭
-   */
-  onCloseImportModal() {
-    this.setData({
-      showImportModal: false
-    });
-  },
 
   /**
    * 删除弹窗 - 确认
    */
   async onConfirmDelete() {
+    console.log('删除弹窗确认按钮点击');
+    
     this.setData({
       showDeleteModal: false
     });
     
     if (this.data.pendingDeleteContact) {
-      await this.executeDeleteContact(this.data.pendingDeleteContact);
+      console.log('执行删除联系人:', this.data.pendingDeleteContact);
+      await this.deleteContact(this.data.pendingDeleteContact.id);
       this.setData({
         pendingDeleteContact: null,
         deleteContactName: ''
@@ -918,6 +894,8 @@ Page({
    * 删除弹窗 - 取消
    */
   onCancelDelete() {
+    console.log('删除弹窗取消按钮点击');
+    
     this.setData({
       showDeleteModal: false,
       pendingDeleteContact: null,
@@ -929,6 +907,8 @@ Page({
    * 删除弹窗 - 关闭
    */
   onCloseDeleteModal() {
+    console.log('删除弹窗关闭按钮点击');
+    
     this.setData({
       showDeleteModal: false,
       pendingDeleteContact: null,
@@ -1213,10 +1193,8 @@ Page({
         return;
       }
       
-      // 显示自定义导入确认弹窗
-      this.setData({
-        showImportModal: true
-      });
+      // 直接执行导入
+      await this.executeImportFromPhoneBook();
 
     } catch (error) {
       console.error('通讯录导入失败:', error);
@@ -1594,6 +1572,7 @@ Page({
         previewText += `${index + 1}. ${contact.name}`;
         if (contact.phone) previewText += ` - ${contact.phone}`;
         if (contact.company) previewText += ` - ${contact.company}`;
+        if (contact.position) previewText += ` - ${contact.position}`;
         previewText += '\n';
       });
       

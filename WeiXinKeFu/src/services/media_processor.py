@@ -318,14 +318,63 @@ class AliyunASRProcessor:
     
     def __init__(self):
         self.appkey = config.asr_appkey
-        self.token = config.asr_token
+        self.manual_token = config.asr_token  # 手动配置的token（向后兼容）
         self.url = config.asr_url
         self._recognition_result = None
         self._recognition_complete = False
         self._recognition_error = None
         self._connection_active = False
         self._intermediate_results = []  # 存储所有中间结果
+        
+        # 导入token管理器
+        try:
+            from .asr_token_manager import get_asr_token, get_asr_token_info
+            self._get_auto_token = get_asr_token
+            self._get_token_info = get_asr_token_info
+            self._token_manager_available = True
+            logger.info("✅ ASR Token自动管理器已加载")
+        except ImportError as e:
+            logger.warning(f"⚠️ ASR Token管理器加载失败: {e}")
+            self._token_manager_available = False
     
+    def _get_best_token(self) -> str:
+        """获取最佳的ASR Token（优先自动获取，否则使用手动配置）"""
+        if self._token_manager_available:
+            try:
+                # 尝试获取自动管理的token
+                auto_token = self._get_auto_token()
+                if auto_token:
+                    logger.info("🔄 使用自动获取的ASR Token")
+                    return auto_token
+                else:
+                    logger.info("⚠️ 自动Token获取失败，使用手动配置的Token")
+            except Exception as e:
+                logger.error(f"获取自动Token时出错: {e}")
+        
+        # fallback到手动配置的token
+        if self.manual_token:
+            logger.info("📝 使用手动配置的ASR Token")
+            return self.manual_token
+        else:
+            logger.error("❌ 没有可用的ASR Token（自动和手动都未配置）")
+            raise ValueError("ASR Token未配置，请设置ALIYUN_AK_ID和ALIYUN_AK_SECRET或ASR_TOKEN")
+    
+    def get_token_status(self) -> Dict[str, Any]:
+        """获取Token状态信息"""
+        status = {
+            "token_manager_available": self._token_manager_available,
+            "manual_token_configured": bool(self.manual_token)
+        }
+        
+        if self._token_manager_available:
+            try:
+                auto_status = self._get_token_info()
+                status.update(auto_status)
+            except Exception as e:
+                status["token_manager_error"] = str(e)
+        
+        return status
+
     def _reset_state(self):
         """重置识别状态"""
         self._recognition_result = None
@@ -437,13 +486,21 @@ class AliyunASRProcessor:
             # 重置识别状态
             self._reset_state()
             
+            # 获取最佳Token
+            try:
+                current_token = self._get_best_token()
+                logger.info(f"🔑 ASR Token获取成功: {current_token[:16]}...{current_token[-8:]}")
+            except Exception as e:
+                logger.error(f"ASR Token获取失败: {e}")
+                return f"[语音识别失败: Token获取失败 - {str(e)}]"
+            
             # 启用NLS SDK调试日志（可选）
             # nls.enableTrace(True)
             
             # 创建识别器
             sr = nls.NlsSpeechRecognizer(
                 url=self.url,
-                token=self.token,
+                token=current_token,  # 使用动态获取的token
                 appkey=self.appkey,
                 on_start=self._on_start,
                 on_result_changed=self._on_result_changed,
