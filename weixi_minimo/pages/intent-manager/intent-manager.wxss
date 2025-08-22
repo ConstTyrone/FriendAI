@@ -323,7 +323,7 @@
 }
 
 .meta-item {
-  font-size: 20rpx;
+  font-size: 24rpx;
   color: var(--text-quaternary);
   display: flex;
   align-items: center;
@@ -585,23 +585,40 @@
   width: 100%;
   height: 72rpx;
   padding: 0 24rpx;
-  background: #F5F5F5;
-  border: 1rpx solid #E5E5E5;
-  border-radius: 6rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D1D5DB;
+  border-radius: 12rpx;
   font-size: 30rpx;
   margin-bottom: 24rpx;
+  box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.intent-name-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 6rpx rgba(102, 126, 234, 0.1), 0 1rpx 3rpx rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 .intent-desc-input {
   width: 100%;
   min-height: 160rpx;
   padding: 20rpx 24rpx;
-  background: #F5F5F5;
-  border: 1rpx solid #E5E5E5;
-  border-radius: 6rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D1D5DB;
+  border-radius: 12rpx;
   font-size: 28rpx;
   line-height: 1.6;
   margin-bottom: 24rpx;
+  box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  resize: none;
+}
+
+.intent-desc-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 6rpx rgba(102, 126, 234, 0.1), 0 1rpx 3rpx rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 .ai-tips {
@@ -728,11 +745,19 @@
   width: 120rpx;
   height: 56rpx;
   padding: 0 16rpx;
-  background: #F5F5F5;
-  border: 1rpx solid #E5E5E5;
-  border-radius: 6rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D1D5DB;
+  border-radius: 8rpx;
   font-size: 28rpx;
   text-align: center;
+  box-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.config-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4rpx rgba(102, 126, 234, 0.1), 0 1rpx 2rpx rgba(0, 0, 0, 0.1);
+  outline: none;
 }
 
 /* 对话框按钮 */
@@ -991,6 +1016,13 @@
   background: #252525;
   color: #ffffff;
   border: 1rpx solid #3a3a3a;
+  box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .intent-name-input:focus,
+.theme-dark .intent-desc-input:focus {
+  border-color: #06ae56;
+  box-shadow: 0 0 0 6rpx rgba(6, 174, 86, 0.15), 0 1rpx 3rpx rgba(0, 0, 0, 0.3);
 }
 
 .theme-dark .intent-name-input::placeholder,
@@ -1056,6 +1088,12 @@
   background: #252525;
   color: #ffffff;
   border: 1rpx solid #3a3a3a;
+  box-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .config-input:focus {
+  border-color: #06ae56;
+  box-shadow: 0 0 0 4rpx rgba(6, 174, 86, 0.15), 0 1rpx 2rpx rgba(0, 0, 0, 0.3);
 }
 
 /* 对话框按钮 */
