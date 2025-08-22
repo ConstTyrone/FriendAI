@@ -310,9 +310,10 @@ App({
     // 需要登录才能访问的页面
     const protectedPages = [
       'pages/contact-list/contact-list',
-      'pages/ai-search/ai-search', 
+      'pages/intent-manager/intent-manager', 
       'pages/contact-detail/contact-detail',
-      'pages/contact-form/contact-form'
+      'pages/contact-form/contact-form',
+      'pages/matches/matches'
     ];
     
     // 重写wx.navigateTo
@@ -431,9 +432,10 @@ App({
   checkPageAccess(pagePath) {
     const protectedPages = [
       'pages/contact-list/contact-list',
-      'pages/ai-search/ai-search',
+      'pages/intent-manager/intent-manager',
       'pages/contact-detail/contact-detail', 
-      'pages/contact-form/contact-form'
+      'pages/contact-form/contact-form',
+      'pages/matches/matches'
     ];
     
     if (protectedPages.includes(pagePath)) {
