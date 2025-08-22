@@ -544,7 +544,25 @@ Page({
       switch (eventType) {
         case 'loginSuccess':
           console.log('监听到登录成功事件:', data);
-          this.refreshUserStatus();
+          
+          // 检查绑定状态，如果未绑定则立即跳转到绑定页面
+          if (data && data.isBound === false) {
+            console.log('用户未绑定微信客服，自动跳转到绑定页面');
+            wx.showModal({
+              title: '需要绑定',
+              content: '检测到您尚未绑定企业微信客服账号，请先完成绑定后再使用功能',
+              showCancel: false,
+              confirmText: '去绑定',
+              success: () => {
+                wx.navigateTo({
+                  url: '/pages/bind-account/bind-account'
+                });
+              }
+            });
+          } else {
+            console.log('用户已绑定或绑定状态未知，继续正常流程');
+            this.refreshUserStatus();
+          }
           break;
           
         case 'logout':
