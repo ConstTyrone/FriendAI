@@ -141,6 +141,7 @@
             <view class="config-control">
               <slider min="50" max="95" value="{{formData.threshold}}" 
                       bindchange="onThresholdChange"
+                      bindinput="onThresholdInput"
                       block-size="20"
                       block-color="{{theme === 'dark' ? '#06ae56' : '#000000'}}"
                       activeColor="{{theme === 'dark' ? '#06ae56' : '#000000'}}"/>

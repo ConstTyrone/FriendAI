@@ -308,7 +308,16 @@ Page({
   },
 
   /**
-   * 阈值变化
+   * 阈值变化（拖动过程中实时更新）
+   */
+  onThresholdInput(e) {
+    this.setData({
+      'formData.threshold': e.detail.value
+    });
+  },
+
+  /**
+   * 阈值变化完成
    */
   onThresholdChange(e) {
     this.setData({
