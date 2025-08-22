@@ -563,57 +563,87 @@ Page({
     const checked = e.detail.value;
     const status = checked ? 'active' : 'paused';
     
+    console.log(`意图状态切换: ID=${intentId}, status=${status}, checked=${checked}`);
+    
     try {
-      await apiClient.request({
+      const response = await apiClient.request({
         url: `/api/intents/${intentId}`,
         method: 'PUT',
         data: { status }
       });
+      
+      console.log('API响应:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'API调用失败');
+      }
       
       wx.showToast({
         title: checked ? '已启用' : '已暂停',
         icon: 'success'
       });
       
-      // 更新本地状态
+      // 先立即更新状态，不重新排序，避免动画冲突
       const intents = this.data.intents.map(intent => {
         if (intent.id === intentId) {
           intent.status = status;
+          console.log(`意图 ${intent.name} 状态已更新为: ${status}`);
         }
         return intent;
       });
       
-      // 重新排序：active在前，paused在后
-      const sortedIntents = intents.sort((a, b) => {
-        // 首先按状态排序（active在前）
-        if (a.status !== b.status) {
-          if (a.status === 'active') return -1;
-          if (b.status === 'active') return 1;
-          return 0;
-        }
-        
-        // 状态相同时，按优先级排序（高优先级在前）
-        if (a.priority !== b.priority) {
-          return b.priority - a.priority;
-        }
-        
-        // 优先级相同时，按创建时间排序（新创建的在前）
-        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-      });
+      this.setData({ intents });
       
-      // 更新活跃意图数量统计
-      const activeIntents = sortedIntents.filter(intent => intent.status === 'active');
+      // 延时重新排序，避免动画冲突
+      setTimeout(() => {
+        console.log('开始重新排序意图列表');
+        
+        // 重新排序：active在前，paused在后
+        const sortedIntents = intents.sort((a, b) => {
+          // 首先按状态排序（active在前）
+          if (a.status !== b.status) {
+            if (a.status === 'active') return -1;
+            if (b.status === 'active') return 1;
+            return 0;
+          }
+          
+          // 状态相同时，按优先级排序（高优先级在前）
+          if (a.priority !== b.priority) {
+            return b.priority - a.priority;
+          }
+          
+          // 优先级相同时，按创建时间排序（新创建的在前）
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        });
+        
+        // 更新活跃意图数量统计
+        const activeIntents = sortedIntents.filter(intent => intent.status === 'active');
+        
+        console.log(`排序完成，活跃意图数量: ${activeIntents.length}，总意图数量: ${sortedIntents.length}`);
+        
+        this.setData({ 
+          intents: sortedIntents,
+          'stats.activeCount': activeIntents.length
+        });
+      }, 300); // 等待switch动画完成后再重新排序
       
-      this.setData({ 
-        intents: sortedIntents,
-        'stats.activeCount': activeIntents.length
-      });
     } catch (error) {
       console.error('更新状态失败:', error);
       wx.showToast({
-        title: '操作失败',
+        title: error.message || '操作失败',
         icon: 'error'
       });
+      
+      // API失败时恢复开关状态
+      const intents = this.data.intents.map(intent => {
+        if (intent.id === intentId) {
+          // 保持原状态不变
+          console.log(`API失败，保持意图 ${intent.name} 原状态: ${intent.status}`);
+        }
+        return intent;
+      });
+      
+      this.setData({ intents });
     }
   },
 

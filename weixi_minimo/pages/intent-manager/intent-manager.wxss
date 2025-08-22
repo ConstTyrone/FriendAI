@@ -177,7 +177,7 @@
   position: relative;
   overflow: hidden;
   transform: translateY(0);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease, order 0.5s ease;
 }
 
 .intent-card::before {
@@ -211,29 +211,56 @@
   background: var(--background-color);
   border: 1rpx solid var(--border-light);
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
+  transition: all 0.4s ease;
 }
 
 .intent-card.paused .intent-name {
   color: var(--text-tertiary);
+  transition: color 0.3s ease;
 }
 
 .intent-card.paused .intent-type {
   background: var(--border-light);
   color: var(--text-quaternary);
   border-color: var(--border-light);
+  transition: all 0.3s ease;
 }
 
 .intent-card.paused .intent-desc {
   color: var(--text-quaternary);
+  transition: color 0.3s ease;
 }
 
 .intent-card.paused::before {
   background: var(--text-quaternary);
+  transition: background 0.3s ease;
 }
 
 .intent-card.paused:hover {
   transform: translateY(-2rpx);
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 意图卡片移动动画 */
+.intent-list {
+  /* 开启flex布局以支持order动画 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 为排序变化添加平滑过渡 */
+@keyframes moveToBottom {
+  0% {
+    order: 0;
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    order: 999;
+    opacity: 0.6;
+  }
 }
 
 .intent-header {
