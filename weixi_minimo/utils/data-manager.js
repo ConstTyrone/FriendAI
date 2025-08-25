@@ -788,6 +788,9 @@ class DataManager {
         // 清除缓存，强制下次重新加载
         this.clearCache();
         
+        // 刷新统计信息
+        await this.refreshStats();
+        
         // 通知监听器
         this.notifyListeners('contact_created', result.profile);
         
@@ -827,6 +830,9 @@ class DataManager {
         
         // 清除缓存，强制下次重新加载
         this.clearCache();
+        
+        // 刷新统计信息
+        await this.refreshStats();
         
         // 通知监听器
         this.notifyListeners('contact_updated', result.profile);

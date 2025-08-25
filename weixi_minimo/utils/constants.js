@@ -40,7 +40,7 @@ export const UI_CONFIG = {
     CONTACT_LIST: 30 * 60 * 1000,    // 联系人列表30分钟
     CONTACT_DETAIL: 15 * 60 * 1000,  // 联系人详情15分钟
     SEARCH_RESULT: 10 * 60 * 1000,   // 搜索结果10分钟
-    STATS: 60 * 60 * 1000,            // 统计信息1小时
+    STATS: 5 * 60 * 1000,             // 统计信息5分钟
     USER_INFO: 24 * 60 * 60 * 1000   // 用户信息24小时
   },
   AUTO_REFRESH_INTERVAL: 30 * 1000, // 30秒
