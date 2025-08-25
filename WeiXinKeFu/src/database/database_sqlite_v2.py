@@ -315,9 +315,6 @@ class SQLiteDatabase:
                 table_name = self._get_user_table_name(wechat_user_id)
                 self._create_user_profile_table(table_name)
                 
-                # 创建意图相关表（如果不存在）
-                self._create_intent_tables()
-                
                 logger.info(f"✅ 创建新用户: {wechat_user_id}")
                 return user_id
                 
