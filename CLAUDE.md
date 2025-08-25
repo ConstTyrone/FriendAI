@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Important Instructions
 
-- **Git**: Push all changes to https://github.com/ConstTyrone/FriendAI after completing each task
+- **Git Repository**: Push all changes to https://github.com/ConstTyrone/FriendAI after completing each task
 - **Testing**: Use test user ID `wm0gZOdQAAv-phiLJWS77wmzQQSOrL1Q` for all tests  
 - **Documentation**: Refer to `weixin_doc/` folder for WeChat Customer Service documentation
-- **Theme**: Deep dark mode support implemented with ThemeManager - use `themeManager` singleton for all theme operations
-- **Voice**: Advanced voice input with real-time recognition and AI parsing for contact forms
-- **Intent System**: Core AI-powered matching engine is the primary innovation feature
+- **Theme System**: Deep dark mode support implemented - use `themeManager` singleton for all theme operations
+- **Voice Input**: Advanced voice input with real-time recognition and AI parsing for contact forms
+- **Intent System**: Core AI-powered matching engine is the primary innovation feature - this is the key differentiator
 - **Language**: Respond primarily in Chinese (中文) as indicated in the project documentation
+- **Current Status**: Modified file `WeiXinKeFu/src/database/database_sqlite_v2.py` - review changes before committing
 
 ## Project Overview
 
@@ -505,3 +506,12 @@ const colors = themeManager.getThemeColors();
 - `weixi_minimo/` - WeChat Mini Program frontend with modern UI and theme system
 - `weixin_doc/` - WeChat Customer Service API documentation
 - `docs/` - Project documentation for intent matching implementation
+
+## Current Development Status
+
+- **Backend**: Fully functional FastAPI service with AI-powered intent matching
+- **Frontend**: Complete WeChat Mini Program with dark mode and voice input
+- **Database**: SQLite v2 with multi-user isolation, ready for production
+- **AI Integration**: Qwen API integration working for profile extraction and matching
+- **Testing**: Comprehensive test suites available for both backend and intent system
+- **Deployment**: Ready for production deployment with proper configuration

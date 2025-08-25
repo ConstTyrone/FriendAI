@@ -732,7 +732,7 @@ class MediaProcessor:
             str: 下载后的本地文件路径，失败返回None
         """
         try:
-            from wework_client import wework_client
+            from .wework_client import wework_client
             
             # 获取access_token
             access_token = wework_client.get_access_token()

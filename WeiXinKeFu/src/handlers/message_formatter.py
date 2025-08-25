@@ -144,7 +144,7 @@ class MessageTextExtractor:
                     with open(file_path, 'rb') as f:
                         pdf_data = f.read()
                     
-                    from media_processor import etl_processor
+                    from ..services.media_processor import etl_processor
                     result = etl_processor.process_pdf_document(pdf_data, filename)
                     
                     # 清理临时文件
