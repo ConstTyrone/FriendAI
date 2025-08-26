@@ -400,12 +400,20 @@ class HybridMatcher:
                 confidence = 0.5
             
             # 3. 综合评分（LLM为主导的权重配置）
+            profile_name = profile.get('profile_name', '未知联系人')
+            intent_name = intent.get('name', '未知意图')
+            
             if scores['llm'] > 0:
                 # 有LLM分数时：向量25% + LLM 75% (LLM更准确，应该占主导)
                 final_score = scores['vector'] * 0.25 + scores['llm'] * 0.75
+                logger.info(f"🧮 混合分数计算: 意图={intent_name} 联系人={profile_name}")
+                logger.info(f"   向量分数: {scores['vector']:.3f} (权重25%)")
+                logger.info(f"   LLM分数: {scores['llm']:.3f} (权重75%)")
+                logger.info(f"   最终混合分数: {scores['vector']:.3f} × 0.25 + {scores['llm']:.3f} × 0.75 = {final_score:.3f}")
             else:
                 # 仅有向量分数
                 final_score = scores['vector']
+                logger.info(f"🧮 仅向量分数: 意图={intent_name} 联系人={profile_name} 分数={final_score:.3f}")
             
             # 不在这里过滤，返回所有结果让调用方决定
             # 即使分数很低也返回，让intent_matcher根据意图阈值判断

@@ -193,9 +193,17 @@ class IntentMatcher:
                 for result in hybrid_results:
                     profile = result['profile']
                     score = result['score']
+                    intent_threshold = intent.get('threshold', 0.7)
+                    profile_name = profile.get('profile_name', '未知联系人')
+                    
+                    # 记录阈值比较过程
+                    logger.info(f"🎯 阈值判断: 意图={intent.get('name')} 联系人={profile_name}")
+                    logger.info(f"   最终混合分数: {score:.3f}")
+                    logger.info(f"   意图阈值: {intent_threshold:.3f}")
+                    logger.info(f"   匹配结果: {score:.3f} {'≥' if score >= intent_threshold else '<'} {intent_threshold:.3f} = {'✅匹配成功' if score >= intent_threshold else '❌不匹配'}")
                     
                     # 只保留达到阈值的匹配
-                    if score >= intent.get('threshold', 0.7):
+                    if score >= intent_threshold:
                         # 保存匹配记录（包含LLM相关信息）
                         match_id = self._save_hybrid_match_record(
                             cursor=cursor,
