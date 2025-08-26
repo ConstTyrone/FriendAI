@@ -133,23 +133,39 @@ def verify_user_token(credentials: HTTPAuthorizationCredentials = Depends(securi
         )
 
 def get_query_user_id(openid: str) -> str:
-    """获取用于查询画像的用户ID（优先使用external_userid）"""
+    """获取用于查询画像的用户ID（统一使用openid）"""
     try:
-        from ..database.binding_db import binding_db
-        
-        if binding_db:
-            binding_info = binding_db.get_user_binding(openid)
-            if binding_info and binding_info.get('bind_status') == 1:
-                external_userid = binding_info.get('external_userid')
-                if external_userid:
-                    logger.info(f"使用绑定的external_userid查询画像: {external_userid}")
-                    return external_userid
-        
-        logger.info(f"用户未绑定或绑定无效，使用openid查询画像: {openid}")
+        # 新架构：所有用户都使用openid作为唯一标识
+        # 数据表统一为 profiles_{openid} 格式
+        # 绑定关系通过映射表维护，不影响数据存储结构
+        logger.info(f"使用openid查询画像: {openid}")
         return openid
     except Exception as e:
         logger.error(f"获取查询用户ID时出错: {e}")
         return openid
+
+def convert_external_userid_to_openid(external_userid: str) -> str:
+    """将external_userid转换为openid（用于微信客服消息处理）"""
+    try:
+        from ..database.binding_db import binding_db
+        
+        if binding_db:
+            # 通过映射表查找对应的openid
+            openid = binding_db.get_openid_by_external_userid(external_userid)
+            if openid:
+                logger.info(f"微信客服消息：external_userid {external_userid} → openid {openid}")
+                return openid
+            else:
+                logger.warning(f"未找到external_userid {external_userid} 对应的openid，可能未绑定")
+                # 如果没有找到映射关系，直接使用external_userid作为openid
+                # 这种情况下会创建 profiles_{external_userid} 表
+                return external_userid
+        else:
+            logger.error("绑定数据库不可用，直接使用external_userid")
+            return external_userid
+    except Exception as e:
+        logger.error(f"转换external_userid到openid时出错: {e}")
+        return external_userid
 
 @app.get("/wework/callback")
 async def wework_verify(msg_signature: str, timestamp: str, nonce: str, echostr: str):

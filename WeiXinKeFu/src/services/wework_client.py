@@ -241,10 +241,14 @@ class WeWorkClient:
         try:
             logger.info(f"🔍 原始微信客服消息结构: {kf_msg}")
             
+            # 获取external_userid并转换为openid
+            external_userid = kf_msg.get("external_userid", "")
+            openid = self._convert_external_userid_to_openid(external_userid)
+            
             # 创建基础消息结构
             converted_msg = {
                 "MsgType": kf_msg.get("msgtype", "unknown"),
-                "FromUserName": kf_msg.get("external_userid", ""),
+                "FromUserName": openid,  # 使用转换后的openid
                 "ToUserName": kf_msg.get("open_kfid", ""),
                 "CreateTime": kf_msg.get("send_time", ""),
             }
@@ -330,7 +334,31 @@ class WeWorkClient:
             logger.error(f"发送文本消息失败: {e}", exc_info=True)
             raise Exception(f"发送文本消息失败: {e}")
     
-   
+    def _convert_external_userid_to_openid(self, external_userid: str) -> str:
+        """将external_userid转换为openid（用于微信客服消息处理）"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            from ..database.binding_db import binding_db
             
+            if binding_db:
+                # 通过映射表查找对应的openid
+                openid = binding_db.get_openid_by_external_userid(external_userid)
+                if openid:
+                    logger.info(f"微信客服消息：external_userid {external_userid} → openid {openid}")
+                    return openid
+                else:
+                    logger.warning(f"未找到external_userid {external_userid} 对应的openid，可能未绑定")
+                    # 如果没有找到映射关系，直接使用external_userid作为openid
+                    # 这种情况下会创建 profiles_{external_userid} 表
+                    return external_userid
+            else:
+                logger.error("绑定数据库不可用，直接使用external_userid")
+                return external_userid
+        except Exception as e:
+            logger.error(f"转换external_userid到openid时出错: {e}")
+            return external_userid
+
 
 wework_client = WeWorkClient(config)
