@@ -332,13 +332,113 @@ Page({
    * 手动绑定微信客服
    */
   onBindWechatService() {
-    const userInfo = authManager.getUserInfo();
+    const userInfo = authManager.getCurrentUser();
     if (userInfo && userInfo.wechatUserId) {
       this.createBindingSessionAndNavigate(userInfo.wechatUserId);
     } else {
       wx.showToast({
         title: '用户信息异常',
         icon: 'error'
+      });
+    }
+  },
+
+  /**
+   * 管理微信客服绑定
+   */
+  onManageWechatBinding() {
+    const userInfo = authManager.getCurrentUser();
+    if (!userInfo || !userInfo.wechatUserId) {
+      wx.showToast({
+        title: '用户信息异常',
+        icon: 'error'
+      });
+      return;
+    }
+
+    wx.showModal({
+      title: '微信客服绑定管理',
+      content: '当前已绑定微信客服。您可以重新绑定到新的客服账号，或者解除当前绑定。',
+      confirmText: '重新绑定',
+      cancelText: '解除绑定',
+      success: (res) => {
+        if (res.confirm) {
+          // 重新绑定
+          this.createBindingSessionAndNavigate(userInfo.wechatUserId);
+        } else if (res.cancel) {
+          // 解除绑定
+          this.showUnbindConfirmation();
+        }
+      }
+    });
+  },
+
+  /**
+   * 显示解绑确认对话框
+   */
+  showUnbindConfirmation() {
+    wx.showModal({
+      title: '确认解除绑定',
+      content: '解除绑定后，您将无法接收微信消息分析服务，但仍可使用小程序功能。确定要解除绑定吗？',
+      confirmText: '确定解除',
+      cancelText: '取消',
+      confirmColor: '#ff4757',
+      success: (res) => {
+        if (res.confirm) {
+          this.performUnbind();
+        }
+      }
+    });
+  },
+
+  /**
+   * 执行解绑操作
+   */
+  async performUnbind() {
+    try {
+      wx.showLoading({
+        title: '解除绑定中...',
+        mask: true
+      });
+
+      const userInfo = authManager.getCurrentUser();
+      
+      // 调用解绑API
+      const result = await apiClient.unbindAccount(userInfo.wechatUserId);
+
+      wx.hideLoading();
+
+      if (result.success) {
+        // 更新用户信息
+        const updatedUserInfo = {
+          ...userInfo,
+          isBound: false,
+          external_userid: null
+        };
+        
+        // 更新认证管理器中的用户信息
+        authManager.updateUserInfo(updatedUserInfo);
+        
+        // 刷新页面状态
+        await this.refreshUserStatus();
+
+        wx.showToast({
+          title: '解绑成功',
+          icon: 'success',
+          duration: 2000
+        });
+      } else {
+        throw new Error(result.detail || '解绑失败');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('解绑失败:', error);
+      
+      wx.showModal({
+        title: '解绑失败',
+        content: error.message || '网络错误，请稍后重试',
+        showCancel: false,
+        confirmText: '知道了'
       });
     }
   },

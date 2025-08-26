@@ -221,6 +221,37 @@ class AuthManager {
   }
 
   /**
+   * 更新用户信息（本地更新）
+   */
+  updateUserInfo(newUserInfo) {
+    try {
+      if (!this.isLoggedIn()) {
+        console.warn('用户未登录，无法更新用户信息');
+        return false;
+      }
+      
+      // 合并新的用户信息
+      this.userInfo = {
+        ...this.userInfo,
+        ...newUserInfo,
+        updateTime: Date.now()
+      };
+      
+      // 保存到本地存储
+      setStorageSync(STORAGE_KEYS.USER_INFO, this.userInfo);
+      
+      // 更新全局状态
+      getApp().globalData.userInfo = this.userInfo;
+      
+      console.log('用户信息已更新:', this.userInfo);
+      return true;
+    } catch (error) {
+      console.error('更新用户信息失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 验证Token有效性
    */
   async validateToken() {

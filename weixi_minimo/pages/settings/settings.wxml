@@ -78,6 +78,14 @@
           <text class="option-arrow">›</text>
         </view>
         
+        <view class="option-item" bind:tap="onManageWechatBinding" wx:if="{{userInfo.isBound}}">
+          <view class="option-content">
+            <text class="option-title">管理微信客服绑定</text>
+            <text class="option-note">重新绑定或解除绑定设置</text>
+          </view>
+          <text class="option-arrow">›</text>
+        </view>
+        
         <view class="option-item" bind:tap="onRefreshUserInfo">
           <view class="option-content">
             <text class="option-title">刷新用户信息</text>
