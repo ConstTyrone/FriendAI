@@ -385,8 +385,8 @@ class AuthManager {
       updatedAt: Date.now()
     };
     
-    // 保存默认资料
-    this.updateUserProfile(defaultProfile);
+    // 直接保存默认资料到存储，避免递归调用
+    setStorageSync(STORAGE_KEYS.USER_PROFILE, defaultProfile);
     return defaultProfile;
   }
 
@@ -400,8 +400,8 @@ class AuthManager {
         return false;
       }
       
-      // 获取当前资料
-      const currentProfile = this.getUserProfile() || {};
+      // 直接从存储获取当前资料，避免递归调用getUserProfile
+      const currentProfile = getStorageSync(STORAGE_KEYS.USER_PROFILE) || {};
       
       // 合并新的资料数据
       const updatedProfile = {
