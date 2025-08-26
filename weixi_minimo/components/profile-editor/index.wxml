@@ -68,7 +68,7 @@
             bind:blur="onDisplayNameBlur"
           />
           <view class="input-counter">
-            <text class="counter-text">{{(profileData.displayName || '').length}}/{{maxDisplayNameLength}}</text>
+            <text class="counter-text">{{displayNameLength}}/{{maxDisplayNameLength}}</text>
           </view>
         </view>
         <view class="error-message" wx:if="{{errors.displayName}}">
@@ -89,7 +89,7 @@
             bind:input="onNicknameInput"
           />
           <view class="input-counter">
-            <text class="counter-text">{{(profileData.nickname || '').length}}/{{maxNicknameLength}}</text>
+            <text class="counter-text">{{nicknameLength}}/{{maxNicknameLength}}</text>
           </view>
         </view>
       </view>
@@ -106,7 +106,7 @@
             bind:input="onBioInput"
           />
           <view class="input-counter">
-            <text class="counter-text">{{(profileData.bio || '').length}}/{{maxBioLength}}</text>
+            <text class="counter-text">{{bioLength}}/{{maxBioLength}}</text>
           </view>
         </view>
       </view>

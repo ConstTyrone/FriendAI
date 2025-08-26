@@ -34,6 +34,10 @@ Component({
     currentAvatarColor: PROFILE_CONFIG.DEFAULT_AVATARS[0].color,
     // 头像文本
     avatarText: 'U',
+    // 字段长度计数
+    displayNameLength: 0,
+    nicknameLength: 0,
+    bioLength: 0,
     // 字段长度限制
     maxDisplayNameLength: PROFILE_CONFIG.MAX_DISPLAY_NAME_LENGTH,
     maxNicknameLength: PROFILE_CONFIG.MAX_NICKNAME_LENGTH,
@@ -65,10 +69,18 @@ Component({
       // 获取头像文本
       const avatarText = this.getAvatarTextFromDisplayName(profileData.displayName);
 
+      // 计算字段长度
+      const displayNameLength = (profileData.displayName || '').length;
+      const nicknameLength = (profileData.nickname || '').length;
+      const bioLength = (profileData.bio || '').length;
+
       this.setData({
         profileData,
         currentAvatarColor,
         avatarText,
+        displayNameLength,
+        nicknameLength,
+        bioLength,
         errors: {}
       });
     },
@@ -104,10 +116,12 @@ Component({
     onDisplayNameInput(e) {
       const value = e.detail.value;
       const avatarText = this.getAvatarTextFromDisplayName(value);
+      const displayNameLength = (value || '').length;
       
       this.setData({
         'profileData.displayName': value,
-        avatarText: avatarText
+        avatarText: avatarText,
+        displayNameLength: displayNameLength
       });
       
       // 清除错误信息
@@ -130,8 +144,11 @@ Component({
      */
     onNicknameInput(e) {
       const value = e.detail.value;
+      const nicknameLength = (value || '').length;
+      
       this.setData({
-        'profileData.nickname': value
+        'profileData.nickname': value,
+        nicknameLength: nicknameLength
       });
     },
 
@@ -140,8 +157,11 @@ Component({
      */
     onBioInput(e) {
       const value = e.detail.value;
+      const bioLength = (value || '').length;
+      
       this.setData({
-        'profileData.bio': value
+        'profileData.bio': value,
+        bioLength: bioLength
       });
     },
 
