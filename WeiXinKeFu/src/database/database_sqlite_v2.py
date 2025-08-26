@@ -88,6 +88,9 @@ class SQLiteDatabase:
                 # 创建意图匹配系统相关表
                 self._create_intent_tables()
                 
+                # 升级数据库结构（添加缺失的列）
+                self._upgrade_database_schema()
+                
         except Exception as e:
             logger.error(f"SQLite数据库初始化失败: {e}")
     
@@ -207,6 +210,10 @@ class SQLiteDatabase:
                     pushed_at TIMESTAMP,
                     push_channel TEXT,
                     
+                    -- 阅读状态
+                    is_read BOOLEAN DEFAULT 0,
+                    read_at TIMESTAMP,
+                    
                     -- 用户反馈
                     user_feedback TEXT,
                     feedback_at TIMESTAMP,
@@ -306,6 +313,33 @@ class SQLiteDatabase:
             except Exception as create_error:
                 logger.error(f"强制创建意图表也失败: {create_error}")
                 raise
+    
+    def _upgrade_database_schema(self):
+        """升级数据库结构，添加缺失的列"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 检查 intent_matches 表是否缺少 is_read 列
+                cursor.execute("PRAGMA table_info(intent_matches)")
+                columns = [row[1] for row in cursor.fetchall()]
+                
+                if 'is_read' not in columns:
+                    logger.info("添加缺失的is_read列到intent_matches表...")
+                    cursor.execute("ALTER TABLE intent_matches ADD COLUMN is_read BOOLEAN DEFAULT 0")
+                    logger.info("✅ 添加is_read列成功")
+                
+                if 'read_at' not in columns:
+                    logger.info("添加缺失的read_at列到intent_matches表...")
+                    cursor.execute("ALTER TABLE intent_matches ADD COLUMN read_at TIMESTAMP")
+                    logger.info("✅ 添加read_at列成功")
+                
+                conn.commit()
+                logger.info("✅ 数据库结构升级完成")
+                
+        except Exception as e:
+            logger.error(f"数据库结构升级失败: {e}")
+            # 升级失败不影响系统正常运行，仅记录错误
     
     def get_or_create_user(self, wechat_user_id: str, nickname: Optional[str] = None) -> int:
         """获取或创建用户"""
