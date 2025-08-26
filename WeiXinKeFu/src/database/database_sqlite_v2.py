@@ -682,6 +682,16 @@ class SQLiteDatabase:
                             profile['tags'] = []
                     else:
                         profile['tags'] = []
+                    
+                    # 解析source_messages字段
+                    if profile.get('source_messages'):
+                        try:
+                            profile['source_messages'] = json.loads(profile['source_messages'])
+                        except:
+                            profile['source_messages'] = []
+                    else:
+                        profile['source_messages'] = []
+                    
                     profiles.append(profile)
                 
                 return profiles, total
