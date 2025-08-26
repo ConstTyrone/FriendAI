@@ -18,9 +18,9 @@
           <text class="user-id-value">{{userInfo.userId}}</text>
         </view>
         <view class="user-bind-status">
-          <text class="bind-status {{userInfo.isBound ? 'bound' : 'unbound'}}">
-            {{userInfo.isBound ? '已绑定微信客服' : '小程序独立模式'}}
-          </text>
+          <view class="bind-status {{userInfo.isBound ? 'bound' : 'unbound'}}">
+            <text class="bind-status-text">{{userInfo.isBound ? '已绑定微信客服' : '小程序独立模式'}}</text>
+          </view>
         </view>
         <text class="login-time">登录时间: {{formatLoginTime(userInfo.loginTime)}}</text>
       </view>
