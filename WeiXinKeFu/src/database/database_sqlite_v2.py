@@ -204,6 +204,8 @@ class SQLiteDatabase:
                     score_details TEXT,
                     matched_conditions TEXT,
                     explanation TEXT,
+                    match_type TEXT DEFAULT 'rule',
+                    extended_info TEXT,
                     
                     -- 推送状态
                     is_pushed BOOLEAN DEFAULT 0,
@@ -222,6 +224,7 @@ class SQLiteDatabase:
                     -- 状态
                     status TEXT DEFAULT 'pending',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     
                     FOREIGN KEY (intent_id) REFERENCES user_intents(id) ON DELETE CASCADE
                 )
@@ -320,22 +323,34 @@ class SQLiteDatabase:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # 检查 intent_matches 表是否缺少 is_read 列
+                # 检查 intent_matches 表的所有缺失列
                 cursor.execute("PRAGMA table_info(intent_matches)")
                 columns = [row[1] for row in cursor.fetchall()]
                 
-                if 'is_read' not in columns:
-                    logger.info("添加缺失的is_read列到intent_matches表...")
-                    cursor.execute("ALTER TABLE intent_matches ADD COLUMN is_read BOOLEAN DEFAULT 0")
-                    logger.info("✅ 添加is_read列成功")
+                # 定义所有需要的列及其定义
+                # 注意：SQLite的ALTER TABLE ADD COLUMN不支持复杂的默认值
+                required_columns = {
+                    'is_read': 'BOOLEAN DEFAULT 0',
+                    'read_at': 'TIMESTAMP',
+                    'match_type': 'TEXT DEFAULT \'rule\'',
+                    'extended_info': 'TEXT',
+                    'updated_at': 'TIMESTAMP'  # SQLite ALTER TABLE不支持CURRENT_TIMESTAMP默认值
+                }
                 
-                if 'read_at' not in columns:
-                    logger.info("添加缺失的read_at列到intent_matches表...")
-                    cursor.execute("ALTER TABLE intent_matches ADD COLUMN read_at TIMESTAMP")
-                    logger.info("✅ 添加read_at列成功")
+                # 添加缺失的列
+                added_columns = []
+                for column_name, column_def in required_columns.items():
+                    if column_name not in columns:
+                        logger.info(f"添加缺失的{column_name}列到intent_matches表...")
+                        cursor.execute(f"ALTER TABLE intent_matches ADD COLUMN {column_name} {column_def}")
+                        added_columns.append(column_name)
+                        logger.info(f"✅ 添加{column_name}列成功")
                 
-                conn.commit()
-                logger.info("✅ 数据库结构升级完成")
+                if added_columns:
+                    conn.commit()
+                    logger.info(f"✅ 数据库结构升级完成，新增列: {', '.join(added_columns)}")
+                else:
+                    logger.info("✅ 数据库结构已是最新，无需升级")
                 
         except Exception as e:
             logger.error(f"数据库结构升级失败: {e}")
