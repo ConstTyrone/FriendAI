@@ -175,9 +175,16 @@ Page({
         // 创建成功，跳转到绑定页面
         const bindUrl = `/pages/bind-account/bind-account?token=${result.token}&openid=${wechatUserId}&verifyCode=${result.verify_code || ''}`;
         
+        // 根据是否为重新绑定显示不同的提示
+        const isRebinding = result.is_rebinding;
+        const title = isRebinding ? '重新绑定企业微信客服' : '绑定企业微信客服';
+        const content = isRebinding 
+          ? '重新绑定将解除当前绑定关系，并绑定到新的客服账号'
+          : '绑定后可以接收微信消息并自动分析联系人信息';
+
         wx.showModal({
-          title: '绑定企业微信客服',
-          content: '绑定后可以接收微信消息并自动分析联系人信息',
+          title: title,
+          content: content,
           showCancel: true,
           cancelText: '取消',
           confirmText: '去绑定',

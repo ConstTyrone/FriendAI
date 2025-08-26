@@ -120,15 +120,12 @@ async def create_binding_session(request: CreateBindingSessionRequest):
                 detail="Missing openid"
             )
         
-        # 检查是否已经绑定
+        # 检查是否已经绑定（允许重新绑定）
         existing_binding = db.get_user_binding(openid)
-        if existing_binding and existing_binding.get('bind_status') == 1:
-            return {
-                "success": False,
-                "message": "用户已绑定",
-                "isBound": True,
-                "external_userid": existing_binding.get('external_userid')
-            }
+        is_rebinding = existing_binding and existing_binding.get('bind_status') == 1
+        
+        if is_rebinding:
+            logger.info(f"用户 {openid} 已绑定，允许重新绑定操作")
         
         # 生成token和验证码
         bind_token = generate_token()
@@ -139,6 +136,8 @@ async def create_binding_session(request: CreateBindingSessionRequest):
             "openid": openid,
             "verify_code": verify_code,
             "status": "pending",
+            "is_rebinding": is_rebinding,
+            "old_external_userid": existing_binding.get('external_userid') if is_rebinding else None,
             "created_at": datetime.now().isoformat()
         }
         
@@ -160,7 +159,9 @@ async def create_binding_session(request: CreateBindingSessionRequest):
             "success": True,
             "token": bind_token,
             "verify_code": verify_code,
-            "expires_in": 300
+            "expires_in": 300,
+            "is_rebinding": is_rebinding,
+            "message": "重新绑定会话已创建" if is_rebinding else "绑定会话已创建"
         }
         
     except HTTPException:
