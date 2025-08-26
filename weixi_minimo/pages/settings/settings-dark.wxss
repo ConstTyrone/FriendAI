@@ -15,8 +15,8 @@
 }
 
 .theme-dark .user-avatar {
-  background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
-  border: 3px solid #333333;
+  /* 保持动态背景颜色，不使用固定的渐变 */
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.3);
 }
 
 .theme-dark .avatar-text {
@@ -27,12 +27,16 @@
   color: #ffffff;
 }
 
-.theme-dark .user-id {
+.theme-dark .user-nickname {
+  color: #cccccc;
+}
+
+.theme-dark .user-bio {
   color: #999999;
 }
 
-.theme-dark .user-id-value {
-  color: #cccccc;
+.theme-dark .edit-button:active {
+  background-color: #3a3a3a;
 }
 
 /* 绑定状态标签 - 深色模式 */

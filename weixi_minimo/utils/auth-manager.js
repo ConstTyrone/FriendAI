@@ -1,4 +1,4 @@
-import { STORAGE_KEYS, EVENT_TYPES } from './constants';
+import { STORAGE_KEYS, EVENT_TYPES, PROFILE_CONFIG } from './constants';
 import { getStorageSync, setStorageSync, removeStorageSync } from './storage-utils';
 import apiClient from './api-client';
 import dataManager from './data-manager';
@@ -145,6 +145,7 @@ class AuthManager {
       removeStorageSync(STORAGE_KEYS.AUTH_TOKEN);
       removeStorageSync(STORAGE_KEYS.WECHAT_USER_ID);
       removeStorageSync(STORAGE_KEYS.USER_INFO);
+      removeStorageSync(STORAGE_KEYS.USER_PROFILE); // 清除个人资料
       
       // 清除内存数据
       this.token = null;
@@ -344,6 +345,147 @@ class AuthManager {
     } catch (error) {
       console.error('获取用户统计失败:', error);
       return null;
+    }
+  }
+
+  /**
+   * 获取用户个人资料
+   */
+  getUserProfile() {
+    try {
+      if (!this.isLoggedIn()) {
+        return null;
+      }
+      
+      const profile = getStorageSync(STORAGE_KEYS.USER_PROFILE);
+      
+      // 如果没有保存的个人资料，创建默认资料
+      if (!profile) {
+        return this.createDefaultProfile();
+      }
+      
+      return profile;
+    } catch (error) {
+      console.error('获取用户资料失败:', error);
+      return this.createDefaultProfile();
+    }
+  }
+
+  /**
+   * 创建默认个人资料
+   */
+  createDefaultProfile() {
+    const defaultProfile = {
+      displayName: this.userInfo?.wechatUserId ? '微信用户' : '用户',
+      nickname: '',
+      avatar: 'default',
+      avatarColor: PROFILE_CONFIG.DEFAULT_AVATARS[0].color,
+      bio: '',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    
+    // 保存默认资料
+    this.updateUserProfile(defaultProfile);
+    return defaultProfile;
+  }
+
+  /**
+   * 更新用户个人资料
+   */
+  updateUserProfile(profileData) {
+    try {
+      if (!this.isLoggedIn()) {
+        console.warn('用户未登录，无法更新个人资料');
+        return false;
+      }
+      
+      // 获取当前资料
+      const currentProfile = this.getUserProfile() || {};
+      
+      // 合并新的资料数据
+      const updatedProfile = {
+        ...currentProfile,
+        ...profileData,
+        updatedAt: Date.now()
+      };
+      
+      // 验证数据长度
+      if (updatedProfile.displayName && updatedProfile.displayName.length > PROFILE_CONFIG.MAX_DISPLAY_NAME_LENGTH) {
+        throw new Error(`显示名称不能超过${PROFILE_CONFIG.MAX_DISPLAY_NAME_LENGTH}个字符`);
+      }
+      
+      if (updatedProfile.nickname && updatedProfile.nickname.length > PROFILE_CONFIG.MAX_NICKNAME_LENGTH) {
+        throw new Error(`昵称不能超过${PROFILE_CONFIG.MAX_NICKNAME_LENGTH}个字符`);
+      }
+      
+      if (updatedProfile.bio && updatedProfile.bio.length > PROFILE_CONFIG.MAX_BIO_LENGTH) {
+        throw new Error(`个人简介不能超过${PROFILE_CONFIG.MAX_BIO_LENGTH}个字符`);
+      }
+      
+      // 保存到本地存储
+      setStorageSync(STORAGE_KEYS.USER_PROFILE, updatedProfile);
+      
+      console.log('用户个人资料已更新:', updatedProfile);
+      return true;
+    } catch (error) {
+      console.error('更新用户个人资料失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取头像信息
+   */
+  getAvatarInfo(avatarId = 'default') {
+    const avatarConfig = PROFILE_CONFIG.DEFAULT_AVATARS.find(a => a.id === avatarId);
+    if (!avatarConfig) {
+      return PROFILE_CONFIG.DEFAULT_AVATARS[0]; // 返回默认头像
+    }
+    return avatarConfig;
+  }
+
+  /**
+   * 获取用户显示名称
+   */
+  getDisplayName() {
+    const profile = this.getUserProfile();
+    if (profile && profile.displayName) {
+      return profile.displayName;
+    }
+    
+    // 回退到微信用户ID的首字母
+    if (this.userInfo?.wechatUserId) {
+      return this.userInfo.wechatUserId.charAt(0).toUpperCase();
+    }
+    
+    return 'U';
+  }
+
+  /**
+   * 获取用户头像颜色
+   */
+  getAvatarColor() {
+    const profile = this.getUserProfile();
+    if (profile && profile.avatar) {
+      const avatarInfo = this.getAvatarInfo(profile.avatar);
+      return avatarInfo.color;
+    }
+    
+    return PROFILE_CONFIG.DEFAULT_AVATARS[0].color;
+  }
+
+  /**
+   * 清除用户个人资料
+   */
+  clearUserProfile() {
+    try {
+      removeStorageSync(STORAGE_KEYS.USER_PROFILE);
+      console.log('用户个人资料已清除');
+      return true;
+    } catch (error) {
+      console.error('清除用户个人资料失败:', error);
+      return false;
     }
   }
 }

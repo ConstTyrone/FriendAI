@@ -14,6 +14,7 @@ Page({
     // 用户状态
     isLoggedIn: false,
     userInfo: null,
+    userProfile: {},
     stats: {},
     
     // 登录表单
@@ -26,9 +27,9 @@ Page({
       darkMode: false
     },
     
-    
     // 对话框状态
     showLogoutDialog: false,
+    showProfileEditor: false,
     
     // 应用信息
     appVersion: '1.0.0'
@@ -235,9 +236,20 @@ Page({
       const isLoggedIn = authManager.isLoggedIn();
       const userInfo = authManager.getCurrentUser();
       
+      // 获取用户个人资料
+      let userProfile = {};
+      if (isLoggedIn) {
+        userProfile = authManager.getUserProfile() || {};
+        // 确保有头像颜色
+        if (!userProfile.avatarColor) {
+          userProfile.avatarColor = authManager.getAvatarColor();
+        }
+      }
+      
       this.setData({
         isLoggedIn,
-        userInfo
+        userInfo,
+        userProfile
       });
       
       // 如果已登录，获取统计信息
@@ -245,7 +257,7 @@ Page({
         await this.loadUserStats();
       }
       
-      console.log('用户状态刷新完成:', { isLoggedIn, userInfo });
+      console.log('用户状态刷新完成:', { isLoggedIn, userInfo, userProfile });
     } catch (error) {
       console.error('刷新用户状态失败:', error);
     }
@@ -964,6 +976,64 @@ Page({
         confirmText: '知道了'
       });
     }
+  },
+
+  /**
+   * 编辑个人资料
+   */
+  onEditProfile() {
+    console.log('打开个人资料编辑器');
+    this.setData({
+      showProfileEditor: true
+    });
+  },
+
+  /**
+   * 保存个人资料
+   */
+  async onProfileSave(e) {
+    try {
+      const { profileData } = e.detail;
+      console.log('保存个人资料:', profileData);
+
+      // 使用 authManager 更新个人资料
+      authManager.updateUserProfile(profileData);
+
+      // 刷新页面显示
+      await this.refreshUserStatus();
+
+      // 关闭编辑器
+      this.setData({
+        showProfileEditor: false
+      });
+
+      // 显示成功提示
+      wx.showToast({
+        title: '个人资料已保存',
+        icon: 'success',
+        duration: 2000
+      });
+
+    } catch (error) {
+      console.error('保存个人资料失败:', error);
+      
+      wx.showModal({
+        title: '保存失败',
+        content: error.message || '保存个人资料时发生错误，请重试',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+    }
+  },
+
+  /**
+   * 取消编辑个人资料
+   */
+  onProfileCancel() {
+    console.log('取消编辑个人资料');
+    this.setData({
+      showProfileEditor: false
+    });
   }
 
 });

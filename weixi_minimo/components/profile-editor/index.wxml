@@ -1,0 +1,115 @@
+<!--个人资料编辑组件-->
+<view class="profile-editor {{visible ? 'visible' : ''}}" wx:if="{{visible}}" catch:tap="onMaskTap">
+  <!-- 遮罩层 -->
+  <view class="editor-mask"></view>
+  
+  <!-- 编辑器内容 -->
+  <view class="editor-content" catch:tap="onContentTap">
+    <!-- 标题栏 -->
+    <view class="editor-header">
+      <view class="header-left">
+        <view class="cancel-button" bind:tap="onCancel">
+          <text class="cancel-text">取消</text>
+        </view>
+      </view>
+      <view class="header-center">
+        <text class="editor-title">编辑个人资料</text>
+      </view>
+      <view class="header-right">
+        <view class="save-button" bind:tap="onSave">
+          <text class="save-text">保存</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 表单内容 -->
+    <view class="editor-body">
+      <!-- 头像选择区域 -->
+      <view class="avatar-section">
+        <text class="section-title">头像</text>
+        <view class="avatar-preview">
+          <view 
+            class="avatar-circle"
+            style="background-color: {{currentAvatarColor}}"
+          >
+            <text class="avatar-text">{{getAvatarText()}}</text>
+          </view>
+          <text class="avatar-hint">点击下方颜色选择头像</text>
+        </view>
+        
+        <!-- 头像颜色选择 -->
+        <view class="avatar-colors">
+          <view 
+            wx:for="{{avatarOptions}}" 
+            wx:key="id"
+            class="color-option {{profileData.avatar === item.id ? 'selected' : ''}}"
+            style="background-color: {{item.color}}"
+            data-avatar="{{item.id}}"
+            bind:tap="onAvatarSelect"
+          >
+            <view class="color-check" wx:if="{{profileData.avatar === item.id}}">
+              <text class="check-icon">✓</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 显示名称 -->
+      <view class="form-section">
+        <text class="section-title">显示名称 <text class="required">*</text></text>
+        <view class="input-wrapper">
+          <input 
+            class="form-input"
+            type="text"
+            placeholder="请输入显示名称"
+            value="{{profileData.displayName}}"
+            maxlength="{{maxDisplayNameLength}}"
+            bind:input="onDisplayNameInput"
+            bind:blur="onDisplayNameBlur"
+          />
+          <view class="input-counter">
+            <text class="counter-text">{{(profileData.displayName || '').length}}/{{maxDisplayNameLength}}</text>
+          </view>
+        </view>
+        <view class="error-message" wx:if="{{errors.displayName}}">
+          <text class="error-text">{{errors.displayName}}</text>
+        </view>
+      </view>
+
+      <!-- 昵称 -->
+      <view class="form-section">
+        <text class="section-title">昵称</text>
+        <view class="input-wrapper">
+          <input 
+            class="form-input"
+            type="text"
+            placeholder="请输入昵称（可选）"
+            value="{{profileData.nickname}}"
+            maxlength="{{maxNicknameLength}}"
+            bind:input="onNicknameInput"
+          />
+          <view class="input-counter">
+            <text class="counter-text">{{(profileData.nickname || '').length}}/{{maxNicknameLength}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 个人简介 -->
+      <view class="form-section">
+        <text class="section-title">个人简介</text>
+        <view class="input-wrapper">
+          <textarea 
+            class="form-textarea"
+            placeholder="介绍一下自己吧（可选）"
+            value="{{profileData.bio}}"
+            maxlength="{{maxBioLength}}"
+            bind:input="onBioInput"
+          />
+          <view class="input-counter">
+            <text class="counter-text">{{(profileData.bio || '').length}}/{{maxBioLength}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

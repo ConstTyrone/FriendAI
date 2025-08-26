@@ -13,6 +13,7 @@
   "themeLocation": "theme.json",
   "usingComponents": {
     "custom-tabbar": "/components/custom-tabbar/index",
+    "profile-editor": "/components/profile-editor/index",
     "t-search": "tdesign-miniprogram/search/search",
     "t-cell": "tdesign-miniprogram/cell/cell",
     "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",

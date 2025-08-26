@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'auth_token',
   WECHAT_USER_ID: 'wechat_user_id',
   USER_INFO: 'user_info',
+  USER_PROFILE: 'user_profile', // 用户个人资料
   CONTACT_CACHE: 'contact_cache',
   SEARCH_HISTORY: 'search_history',
   APP_SETTINGS: 'app_settings'
@@ -47,6 +48,26 @@ export const UI_CONFIG = {
   // 企微客服配置
   CORP_ID: 'ww7b4256dcdcea9b3e', // 企业ID，需要配置
   KF_ID: 'kfc6fac668195f8389e' // 客服账号ID，需要配置
+};
+
+// 用户资料配置
+export const PROFILE_CONFIG = {
+  // 默认头像选项
+  DEFAULT_AVATARS: [
+    { id: 'default', name: '默认', color: '#667eea' },
+    { id: 'avatar1', name: '蓝色', color: '#3b82f6' },
+    { id: 'avatar2', name: '绿色', color: '#10b981' },
+    { id: 'avatar3', name: '紫色', color: '#8b5cf6' },
+    { id: 'avatar4', name: '粉色', color: '#ec4899' },
+    { id: 'avatar5', name: '橙色', color: '#f59e0b' },
+    { id: 'avatar6', name: '红色', color: '#ef4444' },
+    { id: 'avatar7', name: '青色', color: '#06b6d4' },
+    { id: 'avatar8', name: '灰色', color: '#6b7280' }
+  ],
+  // 字段长度限制
+  MAX_DISPLAY_NAME_LENGTH: 20,
+  MAX_NICKNAME_LENGTH: 15,
+  MAX_BIO_LENGTH: 100
 };
 
 export const ERROR_MESSAGES = {

@@ -3,26 +3,27 @@
   <!-- 用户信息区域 -->
   <view class="user-section" wx:if="{{isLoggedIn}}">
     <view class="user-card">
-      <view class="user-avatar">
-        <text class="avatar-text">{{userInfo.wechatUserId ? userInfo.wechatUserId.charAt(0).toUpperCase() : 'U'}}</text>
+      <view class="user-avatar" style="background-color: {{userProfile.avatarColor}}" bind:tap="onEditProfile">
+        <text class="avatar-text">{{userProfile.displayName ? userProfile.displayName.charAt(0).toUpperCase() : 'U'}}</text>
       </view>
       
       <view class="user-info">
-        <text class="user-name">{{userInfo.wechatUserId ? '微信用户' : '未知用户'}}</text>
-        <view class="user-id-wrapper">
-          <text class="user-id">微信ID: </text>
-          <text class="user-id-value">{{userInfo.wechatUserId || 'N/A'}}</text>
-        </view>
-        <view class="user-id-wrapper" wx:if="{{userInfo.userId}}">
-          <text class="user-id">系统ID: </text>
-          <text class="user-id-value">{{userInfo.userId}}</text>
-        </view>
-        <view class="user-bind-status">
-          <view class="bind-status {{userInfo.isBound ? 'bound' : 'unbound'}}">
-            <text class="bind-status-text">{{userInfo.isBound ? '已绑定微信客服' : '小程序独立模式'}}</text>
+        <view class="user-name-row">
+          <text class="user-name">{{userProfile.displayName || '未设置姓名'}}</text>
+          <view class="edit-button" bind:tap="onEditProfile">
+            <t-icon name="edit" size="20rpx" color="#999999" />
           </view>
         </view>
-        <text class="login-time">登录时间: {{formatLoginTime(userInfo.loginTime)}}</text>
+        
+        <view class="user-details">
+          <text class="user-nickname" wx:if="{{userProfile.nickname}}">{{userProfile.nickname}}</text>
+          <text class="user-bio" wx:if="{{userProfile.bio}}">{{userProfile.bio}}</text>
+          <view class="user-bind-status">
+            <view class="bind-status {{userInfo.isBound ? 'bound' : 'unbound'}}">
+              <text class="bind-status-text">{{userInfo.isBound ? '已绑定微信客服' : '小程序独立模式'}}</text>
+            </view>
+          </view>
+        </view>
       </view>
       
       <view class="user-stats">
@@ -255,6 +256,14 @@
     cancel-btn="取消"
     bind:confirm="onConfirmLogout"
     bind:cancel="onCancelLogout"
+  />
+
+  <!-- 个人资料编辑器 -->
+  <profile-editor
+    visible="{{showProfileEditor}}"
+    initial-data="{{userProfile}}"
+    bind:save="onProfileSave"
+    bind:cancel="onProfileCancel"
   />
 
   <!-- 自定义TabBar -->
