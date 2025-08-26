@@ -32,7 +32,7 @@
             class="avatar-circle"
             style="background-color: {{currentAvatarColor}}"
           >
-            <text class="avatar-text">{{getAvatarText()}}</text>
+            <text class="avatar-text">{{avatarText}}</text>
           </view>
           <text class="avatar-hint">点击下方颜色选择头像</text>
         </view>

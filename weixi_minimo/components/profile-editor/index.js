@@ -32,6 +32,8 @@ Component({
     avatarOptions: PROFILE_CONFIG.DEFAULT_AVATARS,
     // 当前头像颜色
     currentAvatarColor: PROFILE_CONFIG.DEFAULT_AVATARS[0].color,
+    // 头像文本
+    avatarText: 'U',
     // 字段长度限制
     maxDisplayNameLength: PROFILE_CONFIG.MAX_DISPLAY_NAME_LENGTH,
     maxNicknameLength: PROFILE_CONFIG.MAX_NICKNAME_LENGTH,
@@ -60,9 +62,13 @@ Component({
       const avatarInfo = PROFILE_CONFIG.DEFAULT_AVATARS.find(a => a.id === profileData.avatar);
       const currentAvatarColor = avatarInfo ? avatarInfo.color : PROFILE_CONFIG.DEFAULT_AVATARS[0].color;
 
+      // 获取头像文本
+      const avatarText = this.getAvatarTextFromDisplayName(profileData.displayName);
+
       this.setData({
         profileData,
         currentAvatarColor,
+        avatarText,
         errors: {}
       });
     },
@@ -70,8 +76,7 @@ Component({
     /**
      * 获取头像文本
      */
-    getAvatarText() {
-      const displayName = this.data.profileData.displayName;
+    getAvatarTextFromDisplayName(displayName) {
       if (displayName && displayName.length > 0) {
         return displayName.charAt(0).toUpperCase();
       }
@@ -98,8 +103,11 @@ Component({
      */
     onDisplayNameInput(e) {
       const value = e.detail.value;
+      const avatarText = this.getAvatarTextFromDisplayName(value);
+      
       this.setData({
-        'profileData.displayName': value
+        'profileData.displayName': value,
+        avatarText: avatarText
       });
       
       // 清除错误信息
