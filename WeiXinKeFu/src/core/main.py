@@ -157,8 +157,8 @@ def get_query_user_id(openid: str) -> str:
         logger.error(f"获取查询用户ID时出错: {e}")
         return openid
 
-def convert_external_userid_to_openid(external_userid: str) -> str:
-    """将external_userid转换为openid（用于微信客服消息处理）"""
+def convert_external_userid_to_openid(external_userid: str) -> Optional[str]:
+    """将external_userid转换为openid（仅限已绑定用户）"""
     try:
         from ..database.binding_db import binding_db
         
@@ -169,16 +169,14 @@ def convert_external_userid_to_openid(external_userid: str) -> str:
                 logger.info(f"微信客服消息：external_userid {external_userid} → openid {openid}")
                 return openid
             else:
-                logger.warning(f"未找到external_userid {external_userid} 对应的openid，可能未绑定")
-                # 如果没有找到映射关系，直接使用external_userid作为openid
-                # 这种情况下会创建 profiles_{external_userid} 表
-                return external_userid
+                logger.warning(f"拒绝处理未绑定用户 {external_userid} 的消息，该用户需要先通过小程序登录并绑定")
+                return None
         else:
-            logger.error("绑定数据库不可用，直接使用external_userid")
-            return external_userid
+            logger.error("绑定数据库不可用，无法验证用户绑定关系，拒绝处理消息")
+            return None
     except Exception as e:
         logger.error(f"转换external_userid到openid时出错: {e}")
-        return external_userid
+        return None
 
 @app.get("/wework/callback")
 async def wework_verify(msg_signature: str, timestamp: str, nonce: str, echostr: str):

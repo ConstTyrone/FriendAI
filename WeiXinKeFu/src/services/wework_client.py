@@ -4,6 +4,7 @@ import base64
 import time
 import requests
 import json
+from typing import Optional
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from ..config.config import config
@@ -245,6 +246,11 @@ class WeWorkClient:
             external_userid = kf_msg.get("external_userid", "")
             openid = self._convert_external_userid_to_openid(external_userid)
             
+            # 检查用户是否已绑定
+            if not openid:
+                logger.warning(f"拒绝处理未绑定用户 {external_userid} 的微信客服消息")
+                return None  # 返回None表示拒绝处理
+            
             # 创建基础消息结构
             converted_msg = {
                 "MsgType": kf_msg.get("msgtype", "unknown"),
@@ -334,8 +340,8 @@ class WeWorkClient:
             logger.error(f"发送文本消息失败: {e}", exc_info=True)
             raise Exception(f"发送文本消息失败: {e}")
     
-    def _convert_external_userid_to_openid(self, external_userid: str) -> str:
-        """将external_userid转换为openid（用于微信客服消息处理）"""
+    def _convert_external_userid_to_openid(self, external_userid: str) -> Optional[str]:
+        """将external_userid转换为openid（仅限已绑定用户）"""
         import logging
         logger = logging.getLogger(__name__)
         
@@ -349,16 +355,14 @@ class WeWorkClient:
                     logger.info(f"微信客服消息：external_userid {external_userid} → openid {openid}")
                     return openid
                 else:
-                    logger.warning(f"未找到external_userid {external_userid} 对应的openid，可能未绑定")
-                    # 如果没有找到映射关系，直接使用external_userid作为openid
-                    # 这种情况下会创建 profiles_{external_userid} 表
-                    return external_userid
+                    logger.warning(f"拒绝处理未绑定用户 {external_userid} 的消息，该用户需要先通过小程序登录并绑定")
+                    return None
             else:
-                logger.error("绑定数据库不可用，直接使用external_userid")
-                return external_userid
+                logger.error("绑定数据库不可用，无法验证用户绑定关系，拒绝处理消息")
+                return None
         except Exception as e:
             logger.error(f"转换external_userid到openid时出错: {e}")
-            return external_userid
+            return None
 
 
 wework_client = WeWorkClient(config)
