@@ -463,6 +463,23 @@ class AuthManager {
   }
 
   /**
+   * 获取头像文字（只取第一个字）
+   */
+  getAvatarText() {
+    const profile = this.getUserProfile();
+    if (profile && profile.displayName && profile.displayName.trim()) {
+      return profile.displayName.trim().charAt(0).toUpperCase();
+    }
+    
+    // 回退到微信用户ID的首字母
+    if (this.userInfo?.wechatUserId) {
+      return this.userInfo.wechatUserId.charAt(0).toUpperCase();
+    }
+    
+    return 'U';
+  }
+
+  /**
    * 获取用户头像颜色
    */
   getAvatarColor() {

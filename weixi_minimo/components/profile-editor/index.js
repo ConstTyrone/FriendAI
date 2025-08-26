@@ -89,8 +89,8 @@ Component({
      * 获取头像文本
      */
     getAvatarTextFromDisplayName(displayName) {
-      if (displayName && displayName.length > 0) {
-        return displayName.charAt(0).toUpperCase();
+      if (displayName && displayName.trim().length > 0) {
+        return displayName.trim().charAt(0).toUpperCase();
       }
       return 'U';
     },
