@@ -7,6 +7,7 @@ import os
 import json
 import sqlite3
 import logging
+import time
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 from contextlib import contextmanager
@@ -129,6 +130,11 @@ class SQLiteDatabase:
                     -- 原始数据
                     raw_message_content TEXT,
                     raw_ai_response TEXT,
+                    
+                    -- 信息来源字段
+                    source VARCHAR(20) DEFAULT 'manual',  -- 'wechat_message' | 'manual' | 'import'
+                    source_messages TEXT,                 -- JSON数组存储原始消息详情
+                    source_timestamp TIMESTAMP,           -- 最后一次从消息更新的时间
                     
                     -- 时间戳
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -352,9 +358,62 @@ class SQLiteDatabase:
                 else:
                     logger.info("✅ 数据库结构已是最新，无需升级")
                 
+                # 升级用户画像表，添加信息来源字段
+                self._upgrade_profile_tables()
+                
         except Exception as e:
             logger.error(f"数据库结构升级失败: {e}")
             # 升级失败不影响系统正常运行，仅记录错误
+    
+    def _upgrade_profile_tables(self):
+        """升级所有用户画像表，添加信息来源字段"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 获取所有用户
+                cursor.execute("SELECT wechat_user_id FROM users")
+                users = cursor.fetchall()
+                
+                for user_row in users:
+                    wechat_user_id = user_row['wechat_user_id']
+                    table_name = self._get_user_table_name(wechat_user_id)
+                    
+                    try:
+                        # 检查表是否存在
+                        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+                        if not cursor.fetchone():
+                            continue
+                        
+                        # 检查表的列结构
+                        cursor.execute(f"PRAGMA table_info({table_name})")
+                        columns = [row[1] for row in cursor.fetchall()]
+                        
+                        # 添加缺失的信息来源字段
+                        source_columns = {
+                            'source': 'VARCHAR(20) DEFAULT \'manual\'',
+                            'source_messages': 'TEXT',
+                            'source_timestamp': 'TIMESTAMP'
+                        }
+                        
+                        added_to_table = []
+                        for column_name, column_def in source_columns.items():
+                            if column_name not in columns:
+                                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_def}")
+                                added_to_table.append(column_name)
+                        
+                        if added_to_table:
+                            logger.info(f"✅ 为表 {table_name} 添加字段: {', '.join(added_to_table)}")
+                        
+                    except Exception as table_error:
+                        logger.error(f"升级表 {table_name} 失败: {table_error}")
+                        continue
+                
+                conn.commit()
+                logger.info("✅ 用户画像表升级完成")
+                
+        except Exception as e:
+            logger.error(f"升级用户画像表失败: {e}")
     
     def get_or_create_user(self, wechat_user_id: str, nickname: Optional[str] = None) -> int:
         """获取或创建用户"""
@@ -404,7 +463,8 @@ class SQLiteDatabase:
         profile_data: Dict[str, Any],
         raw_message: str,
         message_type: str,
-        ai_response: Dict[str, Any]
+        ai_response: Dict[str, Any],
+        original_message: Optional[Dict[str, Any]] = None
     ) -> Optional[int]:
         """保存用户画像到用户专属表"""
         try:
@@ -415,35 +475,104 @@ class SQLiteDatabase:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # 插入或更新用户画像
-                cursor.execute(f'''
-                    INSERT OR REPLACE INTO {table_name} (
-                        profile_name, gender, age, phone, location,
-                        marital_status, education, company, position, asset_level,
-                        personality, tags, ai_summary, source_type, raw_message_content,
-                        raw_ai_response, confidence_score, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                ''', (
-                    profile_data.get('profile_name', profile_data.get('name', '未知')),
-                    profile_data.get('gender'),
-                    profile_data.get('age'),
-                    profile_data.get('phone'),
-                    profile_data.get('location'),
-                    profile_data.get('marital_status'),
-                    profile_data.get('education'),
-                    profile_data.get('company'),
-                    profile_data.get('position'),
-                    profile_data.get('asset_level'),
-                    profile_data.get('personality'),
-                    json.dumps(profile_data.get('tags', []), ensure_ascii=False),  # 将tags转为JSON字符串
-                    ai_response.get('summary', ''),
-                    message_type,
-                    raw_message[:5000],  # 限制长度
-                    json.dumps(ai_response, ensure_ascii=False),
-                    self._calculate_confidence_score(profile_data)
-                ))
+                profile_name = profile_data.get('profile_name', profile_data.get('name', '未知'))
                 
-                profile_id = cursor.lastrowid
+                # 检查是否已存在此联系人
+                cursor.execute(f'SELECT id, source_messages FROM {table_name} WHERE profile_name = ?', (profile_name,))
+                existing_profile = cursor.fetchone()
+                
+                # 处理信息来源数据
+                source = 'wechat_message' if original_message else 'manual'
+                source_messages = []
+                
+                if original_message:
+                    # 创建新的原始消息记录
+                    new_message = {
+                        'id': f"msg_{int(time.time() * 1000)}",
+                        'timestamp': datetime.now().isoformat(),
+                        'message_type': message_type,
+                        'wechat_msg_id': original_message.get('MsgId', ''),
+                        'raw_content': str(original_message)[:1000],  # 限制长度
+                        'processed_content': raw_message[:1000],
+                        'media_url': original_message.get('PicUrl') or original_message.get('MediaId'),
+                        'action': 'updated' if existing_profile else 'created'
+                    }
+                    
+                    if existing_profile:
+                        # 如果联系人已存在，追加到现有消息列表
+                        try:
+                            existing_messages = json.loads(existing_profile['source_messages'] or '[]')
+                            source_messages = existing_messages + [new_message]
+                        except:
+                            source_messages = [new_message]
+                    else:
+                        # 新建联系人
+                        source_messages = [new_message]
+                
+                # 插入或更新用户画像
+                if existing_profile:
+                    # 更新现有联系人
+                    cursor.execute(f'''
+                        UPDATE {table_name} SET
+                            gender = ?, age = ?, phone = ?, location = ?,
+                            marital_status = ?, education = ?, company = ?, position = ?, asset_level = ?,
+                            personality = ?, tags = ?, ai_summary = ?, source_type = ?, raw_message_content = ?,
+                            raw_ai_response = ?, confidence_score = ?, source_messages = ?, source_timestamp = CURRENT_TIMESTAMP,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE profile_name = ?
+                    ''', (
+                        profile_data.get('gender'),
+                        profile_data.get('age'),
+                        profile_data.get('phone'),
+                        profile_data.get('location'),
+                        profile_data.get('marital_status'),
+                        profile_data.get('education'),
+                        profile_data.get('company'),
+                        profile_data.get('position'),
+                        profile_data.get('asset_level'),
+                        profile_data.get('personality'),
+                        json.dumps(profile_data.get('tags', []), ensure_ascii=False),
+                        ai_response.get('summary', ''),
+                        message_type,
+                        raw_message[:5000],
+                        json.dumps(ai_response, ensure_ascii=False),
+                        self._calculate_confidence_score(profile_data),
+                        json.dumps(source_messages, ensure_ascii=False),
+                        profile_name
+                    ))
+                    profile_id = existing_profile['id']
+                else:
+                    # 创建新联系人
+                    cursor.execute(f'''
+                        INSERT INTO {table_name} (
+                            profile_name, gender, age, phone, location,
+                            marital_status, education, company, position, asset_level,
+                            personality, tags, ai_summary, source_type, raw_message_content,
+                            raw_ai_response, confidence_score, source, source_messages, source_timestamp,
+                            updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    ''', (
+                        profile_name,
+                        profile_data.get('gender'),
+                        profile_data.get('age'),
+                        profile_data.get('phone'),
+                        profile_data.get('location'),
+                        profile_data.get('marital_status'),
+                        profile_data.get('education'),
+                        profile_data.get('company'),
+                        profile_data.get('position'),
+                        profile_data.get('asset_level'),
+                        profile_data.get('personality'),
+                        json.dumps(profile_data.get('tags', []), ensure_ascii=False),
+                        ai_response.get('summary', ''),
+                        message_type,
+                        raw_message[:5000],
+                        json.dumps(ai_response, ensure_ascii=False),
+                        self._calculate_confidence_score(profile_data),
+                        source,
+                        json.dumps(source_messages, ensure_ascii=False),
+                    ))
+                    profile_id = cursor.lastrowid
                 
                 # 更新用户统计
                 cursor.execute(f'''
@@ -603,6 +732,14 @@ class SQLiteDatabase:
                             profile['tags'] = []
                     else:
                         profile['tags'] = []
+                    # 解析source_messages字段
+                    if profile.get('source_messages'):
+                        try:
+                            profile['source_messages'] = json.loads(profile['source_messages'])
+                        except:
+                            profile['source_messages'] = []
+                    else:
+                        profile['source_messages'] = []
                     return profile
                 
                 return None

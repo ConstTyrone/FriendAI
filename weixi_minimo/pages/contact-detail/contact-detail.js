@@ -22,7 +22,10 @@ Page({
     showDeleteDialog: false,
     
     // 操作状态
-    actionLoading: false
+    actionLoading: false,
+    
+    // 信息来源展开状态
+    showSourceMessages: false
   },
 
   onLoad(options) {
@@ -468,5 +471,43 @@ Page({
     };
     
     return descMap[type] || descMap.default;
+  },
+
+  /**
+   * 切换信息来源展开状态
+   */
+  onToggleSourceMessages() {
+    this.setData({
+      showSourceMessages: !this.data.showSourceMessages
+    });
+  },
+
+  /**
+   * 格式化信息来源时间
+   */
+  formatSourceTime(timestamp) {
+    if (!timestamp) return '未知时间';
+    try {
+      const date = new Date(timestamp);
+      return formatDate(date, 'MM-DD HH:mm');
+    } catch (error) {
+      console.error('格式化时间失败:', error);
+      return '时间格式错误';
+    }
+  },
+
+  /**
+   * 格式化消息类型
+   */
+  formatMessageType(type) {
+    const typeMap = {
+      'text': '文本',
+      'voice': '语音',
+      'image': '图片',
+      'file': '文件',
+      'chat_record': '聊天记录',
+      'video': '视频'
+    };
+    return typeMap[type] || type || '未知';
   }
 });

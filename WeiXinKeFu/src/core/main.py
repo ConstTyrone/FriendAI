@@ -70,6 +70,16 @@ class UserLoginRequest(BaseModel):
     wechat_user_id: Optional[str] = None  # 兼容旧版本
     code: Optional[str] = None  # 新增：支持微信登录code
 
+class SourceMessage(BaseModel):
+    id: str
+    timestamp: str
+    message_type: str
+    wechat_msg_id: Optional[str] = None
+    raw_content: Optional[str] = None
+    processed_content: Optional[str] = None
+    media_url: Optional[str] = None
+    action: str
+
 class UserProfile(BaseModel):
     id: int
     profile_name: str
@@ -88,6 +98,9 @@ class UserProfile(BaseModel):
     source_type: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    source: Optional[str] = None
+    source_messages: Optional[List[SourceMessage]] = None
+    source_timestamp: Optional[str] = None
 
 class UserProfilesResponse(BaseModel):
     total: int

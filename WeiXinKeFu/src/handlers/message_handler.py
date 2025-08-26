@@ -105,7 +105,8 @@ def process_message(message: Dict[str, Any]) -> None:
                             profile_data=profile,
                             raw_message=text_content,
                             message_type=message_type,
-                            ai_response=profile_data
+                            ai_response=profile_data,
+                            original_message=message  # 传递原始消息
                         )
                         
                         if profile_id:
@@ -239,7 +240,8 @@ def process_message_and_get_result(message: Dict[str, Any]) -> str:
                             profile_data=profile,
                             raw_message=text_content,
                             message_type=message_type,
-                            ai_response=profile_data
+                            ai_response=profile_data,
+                            original_message=message  # 传递原始消息
                         )
                         
                         if profile_id:
