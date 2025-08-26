@@ -1757,7 +1757,7 @@ async def create_intent(
 
 @app.get("/api/intents")
 async def get_intents(
-    status: Optional[str] = None,
+    intent_status: Optional[str] = None,
     page: int = 1,
     size: int = 10,
     current_user: str = Depends(verify_user_token)
@@ -1777,13 +1777,13 @@ async def get_intents(
         # 查询意图
         offset = (page - 1) * size
         
-        if status:
+        if intent_status:
             cursor.execute("""
                 SELECT * FROM user_intents 
                 WHERE user_id = ? AND status = ?
                 ORDER BY priority DESC, created_at DESC
                 LIMIT ? OFFSET ?
-            """, (query_user_id, status, size, offset))
+            """, (query_user_id, intent_status, size, offset))
         else:
             cursor.execute("""
                 SELECT * FROM user_intents 
@@ -1815,10 +1815,10 @@ async def get_intents(
             intents.append(intent)
         
         # 获取总数
-        if status:
+        if intent_status:
             cursor.execute(
                 "SELECT COUNT(*) FROM user_intents WHERE user_id = ? AND status = ?",
-                (query_user_id, status)
+                (query_user_id, intent_status)
             )
         else:
             cursor.execute(
