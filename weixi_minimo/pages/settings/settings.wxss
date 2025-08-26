@@ -72,6 +72,27 @@
   flex: 1;
 }
 
+.user-bind-status {
+  margin-top: 8rpx;
+}
+
+.bind-status {
+  font-size: 22rpx;
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  display: inline-block;
+}
+
+.bind-status.bound {
+  color: #34C759;
+  background: rgba(52, 199, 89, 0.1);
+}
+
+.bind-status.unbound {
+  color: #FF9500;
+  background: rgba(255, 149, 0, 0.1);
+}
+
 .login-time {
   display: block;
   font-size: 24rpx;

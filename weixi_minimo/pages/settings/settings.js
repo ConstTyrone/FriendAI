@@ -130,6 +130,35 @@ Page({
   },
 
   /**
+   * 显示可选绑定对话框
+   */
+  showOptionalBindingDialog(wechatUserId) {
+    wx.showModal({
+      title: '选择使用模式',
+      content: '您可以绑定企业微信客服获得消息自动分析功能，也可以直接使用小程序手动管理联系人。',
+      confirmText: '绑定客服',
+      cancelText: '直接使用',
+      success: (res) => {
+        if (res.confirm) {
+          // 用户选择绑定
+          this.createBindingSessionAndNavigate(wechatUserId);
+        } else {
+          // 用户选择跳过绑定，直接使用小程序功能
+          console.log('用户选择直接使用小程序，跳过绑定');
+          this.refreshUserStatus();
+          
+          // 显示提示信息
+          wx.showToast({
+            title: '欢迎使用！',
+            icon: 'success',
+            duration: 2000
+          });
+        }
+      }
+    });
+  },
+
+  /**
    * 创建绑定会话并跳转到绑定页面
    */
   async createBindingSessionAndNavigate(wechatUserId) {
@@ -147,15 +176,21 @@ Page({
         const bindUrl = `/pages/bind-account/bind-account?token=${result.token}&openid=${wechatUserId}&verifyCode=${result.verify_code || ''}`;
         
         wx.showModal({
-          title: '需要绑定',
-          content: '检测到您尚未绑定企业微信客服账号，请先完成绑定后再使用功能',
-          showCancel: false,
+          title: '绑定企业微信客服',
+          content: '绑定后可以接收微信消息并自动分析联系人信息',
+          showCancel: true,
+          cancelText: '取消',
           confirmText: '去绑定',
-          success: () => {
-            console.log('跳转到绑定页面:', bindUrl);
-            wx.navigateTo({
-              url: bindUrl
-            });
+          success: (res) => {
+            if (res.confirm) {
+              console.log('跳转到绑定页面:', bindUrl);
+              wx.navigateTo({
+                url: bindUrl
+              });
+            } else {
+              // 用户取消绑定，直接使用小程序
+              this.refreshUserStatus();
+            }
           }
         });
       } else {
@@ -163,15 +198,31 @@ Page({
         wx.showModal({
           title: '绑定会话创建失败',
           content: result.detail || '无法创建绑定会话，请稍后重试',
-          showCancel: false
+          showCancel: true,
+          cancelText: '直接使用',
+          confirmText: '重试',
+          success: (res) => {
+            if (!res.confirm) {
+              // 用户选择直接使用
+              this.refreshUserStatus();
+            }
+          }
         });
       }
     } catch (error) {
       console.error('创建绑定会话失败:', error);
       wx.showModal({
         title: '网络错误',
-        content: '创建绑定会话失败，请检查网络连接后重试',
-        showCancel: false
+        content: '创建绑定会话失败，您仍可以直接使用小程序功能',
+        showCancel: true,
+        cancelText: '直接使用',
+        confirmText: '重试',
+        success: (res) => {
+          if (!res.confirm) {
+            // 用户选择直接使用
+            this.refreshUserStatus();
+          }
+        }
       });
     }
   },
@@ -276,6 +327,21 @@ Page({
     }
   },
 
+
+  /**
+   * 手动绑定微信客服
+   */
+  onBindWechatService() {
+    const userInfo = authManager.getUserInfo();
+    if (userInfo && userInfo.wechatUserId) {
+      this.createBindingSessionAndNavigate(userInfo.wechatUserId);
+    } else {
+      wx.showToast({
+        title: '用户信息异常',
+        icon: 'error'
+      });
+    }
+  },
 
   /**
    * 刷新用户信息
@@ -593,10 +659,10 @@ Page({
         case 'loginSuccess':
           console.log('监听到登录成功事件:', data);
           
-          // 检查绑定状态，如果未绑定则立即跳转到绑定页面
+          // 检查绑定状态，提供可选绑定
           if (data && data.isBound === false) {
-            console.log('用户未绑定微信客服，开始创建绑定会话');
-            this.createBindingSessionAndNavigate(data.wechatUserId);
+            console.log('用户未绑定微信客服，提供可选绑定');
+            this.showOptionalBindingDialog(data.wechatUserId);
           } else {
             console.log('用户已绑定或绑定状态未知，继续正常流程');
             this.refreshUserStatus();
