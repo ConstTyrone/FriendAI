@@ -85,6 +85,9 @@ class SQLiteDatabase:
                 conn.commit()
                 logger.info("✅ SQLite主数据库初始化成功")
                 
+                # 创建意图匹配系统相关表
+                self._create_intent_tables()
+                
         except Exception as e:
             logger.error(f"SQLite数据库初始化失败: {e}")
     
@@ -279,6 +282,30 @@ class SQLiteDatabase:
         except Exception as e:
             logger.error(f"创建意图表失败: {e}")
             raise
+    
+    def ensure_intent_tables_exist(self):
+        """确保意图表存在，如果不存在则创建"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                # 检查 user_intents 表是否存在
+                cursor.execute("""
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='user_intents'
+                """)
+                if not cursor.fetchone():
+                    logger.info("意图表不存在，正在创建...")
+                    self._create_intent_tables()
+                    logger.info("✅ 意图表创建完成")
+        except Exception as e:
+            logger.error(f"检查/创建意图表失败: {e}")
+            # 如果检查失败，尝试重新创建
+            try:
+                self._create_intent_tables()
+                logger.info("✅ 强制重新创建意图表成功")
+            except Exception as create_error:
+                logger.error(f"强制创建意图表也失败: {create_error}")
+                raise
     
     def get_or_create_user(self, wechat_user_id: str, nickname: Optional[str] = None) -> int:
         """获取或创建用户"""

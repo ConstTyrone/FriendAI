@@ -734,6 +734,9 @@ async def get_match_notifications(
 ):
     """获取匹配通知（供小程序轮询）"""
     try:
+        # 确保意图表存在
+        db.ensure_intent_tables_exist()
+        
         query_user_id = get_query_user_id(current_user)
         
         conn = sqlite3.connect(db.db_path)
@@ -1697,6 +1700,9 @@ async def create_intent(
         import json
         import sqlite3
         
+        # 确保意图表存在
+        db.ensure_intent_tables_exist()
+        
         # 验证必填字段
         if not request.name or not request.name.strip():
             raise HTTPException(
@@ -1766,6 +1772,9 @@ async def get_intents(
     try:
         import json
         import sqlite3
+        
+        # 确保意图表存在
+        db.ensure_intent_tables_exist()
         
         # 获取用户ID
         query_user_id = get_query_user_id(current_user)
