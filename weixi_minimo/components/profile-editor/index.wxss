@@ -1,5 +1,6 @@
-/* 个人资料编辑器样式 */
+/* 个人资料编辑器 - 现代化重设计 */
 
+/* ===== 弹窗容器 ===== */
 .profile-editor {
   position: fixed;
   top: 0;
@@ -9,7 +10,7 @@
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s ease;
+  transition: opacity 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .profile-editor.visible {
@@ -17,172 +18,190 @@
   visibility: visible;
 }
 
-/* 遮罩层 */
+/* ===== 遮罩层 ===== */
 .editor-mask {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8rpx);
 }
 
-/* 编辑器内容 */
+/* ===== 主内容区 ===== */
 .editor-content {
   position: absolute;
-  top: 10%;
-  left: 5%;
-  width: 90%;
-  height: 80%;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-height: 90vh;
   background: #ffffff;
-  border-radius: 16rpx;
+  border-radius: 32rpx 32rpx 0 0;
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  transform: scale(0.9);
-  transition: transform 0.3s ease;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .profile-editor.visible .editor-content {
-  transform: scale(1);
+  transform: translateY(0);
 }
 
-/* 标题栏 */
+/* ===== 标题栏 ===== */
 .editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 32rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-  background: #fafafa;
+  border-bottom: 1rpx solid #f5f5f5;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 100;
 }
 
-.header-left,
-.header-right {
-  width: 120rpx;
+.header-action {
+  min-width: 80rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
 }
 
-.header-center {
+.header-action:active {
+  background-color: #f5f5f5;
+}
+
+.header-title {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.cancel-button,
-.save-button {
-  padding: 12rpx 24rpx;
-  border-radius: 8rpx;
-  text-align: center;
-}
-
-.cancel-button {
-  background: transparent;
-}
-
-.save-button {
-  background: #1890ff;
-}
-
-.cancel-text {
-  font-size: 28rpx;
-  color: #666666;
-}
-
-.save-text {
-  font-size: 28rpx;
-  color: #ffffff;
+.action-text {
+  font-size: 30rpx;
   font-weight: 500;
 }
 
-.editor-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333333;
+.action-text.cancel {
+  color: #8a8a8a;
 }
 
-/* 编辑器主体 */
+.action-text.save {
+  color: #007AFF;
+}
+
+.title-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+/* ===== 内容滚动区 ===== */
 .editor-body {
   flex: 1;
-  padding: 32rpx;
   overflow-y: auto;
+  padding: 32rpx;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 区域标题 */
-.section-title {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #333333;
-  margin-bottom: 16rpx;
-}
-
-.required {
-  color: #ff4d4f;
-}
-
-/* 头像选择区域 */
+/* ===== 头像选择区域 ===== */
 .avatar-section {
-  margin-bottom: 40rpx;
+  margin-bottom: 48rpx;
 }
 
-.avatar-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.section-header {
   margin-bottom: 24rpx;
 }
 
-.avatar-circle {
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.avatar-container {
+  display: flex;
+  align-items: center;
+  gap: 32rpx;
+}
+
+/* 头像预览 */
+.avatar-preview {
+  flex-shrink: 0;
+}
+
+.avatar-display {
   width: 120rpx;
   height: 120rpx;
-  border-radius: 50%;
+  border-radius: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
 }
 
-.avatar-text {
-  font-size: 48rpx;
-  font-weight: 600;
+.avatar-letter {
+  font-size: 52rpx;
+  font-weight: 700;
   color: #ffffff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
-.avatar-hint {
-  font-size: 24rpx;
-  color: #999999;
+/* 颜色选择器 */
+.color-palette {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx;
 }
 
-/* 头像颜色选择 */
-.avatar-colors {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  justify-content: center;
-}
-
-.color-option {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
+.color-item {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
-.color-option:active {
+.color-item:active {
   transform: scale(0.95);
 }
 
-.color-option.selected {
+.color-item.active {
   transform: scale(1.1);
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.2);
 }
 
-.color-check {
+.color-item.active::after {
+  content: '';
+  position: absolute;
+  top: -6rpx;
+  left: -6rpx;
+  right: -6rpx;
+  bottom: -6rpx;
+  border: 4rpx solid #007AFF;
+  border-radius: 50rpx;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.color-indicator {
   position: absolute;
   top: 0;
   left: 0;
@@ -192,128 +211,209 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.3);
 }
 
-.check-icon {
+.indicator-icon {
   font-size: 32rpx;
   color: #ffffff;
   font-weight: bold;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
 }
 
-/* 表单区域 */
-.form-section {
-  margin-bottom: 32rpx;
+/* ===== 表单字段 ===== */
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
 }
 
-.input-wrapper {
-  position: relative;
+.field-group {
+  display: flex;
+  flex-direction: column;
 }
 
-.form-input {
-  width: 100%;
-  padding: 20rpx 24rpx;
-  border: 2rpx solid #e8e8e8;
-  border-radius: 12rpx;
+/* 字段标题 */
+.field-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.field-label {
   font-size: 30rpx;
-  color: #333333;
-  background: #ffffff;
-  box-sizing: border-box;
+  font-weight: 600;
+  color: #1d1d1f;
 }
 
-.form-input:focus {
-  border-color: #1890ff;
-  outline: none;
-}
-
-.form-textarea {
-  width: 100%;
-  min-height: 120rpx;
-  padding: 20rpx 24rpx;
-  border: 2rpx solid #e8e8e8;
-  border-radius: 12rpx;
-  font-size: 30rpx;
-  color: #333333;
-  background: #ffffff;
-  box-sizing: border-box;
-  resize: none;
-}
-
-.form-textarea:focus {
-  border-color: #1890ff;
-  outline: none;
-}
-
-/* 字符计数 */
-.input-counter {
-  position: absolute;
-  right: 24rpx;
-  bottom: 20rpx;
-  pointer-events: none;
-}
-
-.counter-text {
+.field-required {
   font-size: 24rpx;
-  color: #999999;
+  color: #ff3b30;
+  font-weight: 500;
+}
+
+.field-optional {
+  font-size: 26rpx;
+  color: #8a8a8a;
+  font-weight: 400;
+}
+
+/* 输入控件 */
+.field-input {
+  margin-bottom: 8rpx;
+}
+
+.input-control,
+.textarea-control {
+  width: 100%;
+  padding: 24rpx 20rpx;
+  background: #f8f8f8;
+  border: 2rpx solid transparent;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  color: #1d1d1f;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.input-control:focus,
+.textarea-control:focus {
+  background: #ffffff;
+  border-color: #007AFF;
+  outline: none;
+  box-shadow: 0 0 0 6rpx rgba(0, 122, 255, 0.1);
+}
+
+.input-control::placeholder,
+.textarea-control::placeholder {
+  color: #c7c7cc;
+}
+
+.textarea-control {
+  min-height: 120rpx;
+  resize: none;
+  line-height: 1.5;
+}
+
+/* 字段底部 */
+.field-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 32rpx;
+}
+
+.char-count {
+  font-size: 24rpx;
+  color: #8a8a8a;
+  font-weight: 400;
 }
 
 /* 错误信息 */
-.error-message {
+.field-error {
   margin-top: 8rpx;
 }
 
-.error-text {
-  font-size: 24rpx;
-  color: #ff4d4f;
+.error-message {
+  font-size: 26rpx;
+  color: #ff3b30;
+  font-weight: 500;
 }
 
-/* 深色模式支持 */
+/* ===== 深色模式适配 ===== */
 .theme-dark .editor-content {
-  background: #2d2d2d;
-  border: 1rpx solid #3a3a3a;
+  background: #1c1c1e;
+  border-top: 1rpx solid #2c2c2e;
 }
 
 .theme-dark .editor-header {
-  background: #252525;
-  border-bottom-color: #3a3a3a;
+  background: #1c1c1e;
+  border-bottom-color: #2c2c2e;
 }
 
-.theme-dark .editor-title {
+.theme-dark .header-action:active {
+  background-color: #2c2c2e;
+}
+
+.theme-dark .title-text {
   color: #ffffff;
 }
 
-.theme-dark .cancel-text {
-  color: #cccccc;
+.theme-dark .action-text.cancel {
+  color: #8e8e93;
 }
 
 .theme-dark .section-title {
   color: #ffffff;
 }
 
-.theme-dark .avatar-hint {
-  color: #999999;
-}
-
-.theme-dark .form-input,
-.theme-dark .form-textarea {
-  background: #3a3a3a;
-  border-color: #4a4a4a;
+.theme-dark .field-label {
   color: #ffffff;
 }
 
-.theme-dark .form-input:focus,
-.theme-dark .form-textarea:focus {
-  border-color: #1890ff;
+.theme-dark .field-optional {
+  color: #8e8e93;
 }
 
-.theme-dark .counter-text {
-  color: #999999;
+.theme-dark .input-control,
+.theme-dark .textarea-control {
+  background: #2c2c2e;
+  color: #ffffff;
+  border-color: transparent;
 }
 
-/* 响应式调整 */
+.theme-dark .input-control:focus,
+.theme-dark .textarea-control:focus {
+  background: #3a3a3c;
+  border-color: #007AFF;
+  box-shadow: 0 0 0 6rpx rgba(0, 122, 255, 0.2);
+}
+
+.theme-dark .input-control::placeholder,
+.theme-dark .textarea-control::placeholder {
+  color: #636366;
+}
+
+.theme-dark .char-count {
+  color: #8e8e93;
+}
+
+/* ===== 响应式适配 ===== */
+@media (max-width: 375px) {
+  .avatar-container {
+    gap: 24rpx;
+  }
+  
+  .avatar-display {
+    width: 100rpx;
+    height: 100rpx;
+  }
+  
+  .avatar-letter {
+    font-size: 44rpx;
+  }
+  
+  .color-item {
+    width: 70rpx;
+    height: 70rpx;
+  }
+  
+  .color-palette {
+    gap: 16rpx;
+  }
+}
+
 @media (max-height: 600px) {
   .editor-content {
-    top: 5%;
-    height: 90%;
+    max-height: 95vh;
+  }
+  
+  .editor-body {
+    padding: 24rpx;
+  }
+  
+  .form-fields {
+    gap: 24rpx;
   }
 }
