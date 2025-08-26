@@ -175,16 +175,9 @@ Page({
         // 创建成功，跳转到绑定页面
         const bindUrl = `/pages/bind-account/bind-account?token=${result.token}&openid=${wechatUserId}&verifyCode=${result.verify_code || ''}`;
         
-        // 根据是否为重新绑定显示不同的提示
-        const isRebinding = result.is_rebinding;
-        const title = isRebinding ? '重新绑定企业微信客服' : '绑定企业微信客服';
-        const content = isRebinding 
-          ? '重新绑定将解除当前绑定关系，并绑定到新的客服账号'
-          : '绑定后可以接收微信消息并自动分析联系人信息';
-
         wx.showModal({
-          title: title,
-          content: content,
+          title: '绑定企业微信客服',
+          content: '绑定后可以接收微信消息并自动分析联系人信息',
           showCancel: true,
           cancelText: '取消',
           confirmText: '去绑定',
@@ -364,39 +357,20 @@ Page({
     }
 
     wx.showModal({
-      title: '微信客服绑定管理',
-      content: '当前已绑定微信客服。您可以重新绑定到新的客服账号，或者解除当前绑定。',
-      confirmText: '重新绑定',
-      cancelText: '解除绑定',
-      success: (res) => {
-        if (res.confirm) {
-          // 重新绑定
-          this.createBindingSessionAndNavigate(userInfo.wechatUserId);
-        } else if (res.cancel) {
-          // 解除绑定
-          this.showUnbindConfirmation();
-        }
-      }
-    });
-  },
-
-  /**
-   * 显示解绑确认对话框
-   */
-  showUnbindConfirmation() {
-    wx.showModal({
-      title: '确认解除绑定',
-      content: '解除绑定后，您将无法接收微信消息分析服务，但仍可使用小程序功能。确定要解除绑定吗？',
-      confirmText: '确定解除',
+      title: '解除微信客服绑定',
+      content: '解除绑定后，您将无法接收微信消息分析服务，但仍可使用小程序功能。如需重新绑定，请在解除后使用"绑定微信客服"功能。',
+      confirmText: '解除绑定',
       cancelText: '取消',
       confirmColor: '#ff4757',
       success: (res) => {
         if (res.confirm) {
+          // 解除绑定
           this.performUnbind();
         }
       }
     });
   },
+
 
   /**
    * 执行解绑操作
