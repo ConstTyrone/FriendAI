@@ -270,6 +270,13 @@ Component({
       if (visible) {
         this.initData();
       }
+    },
+    // 监听显示名称变化，实时更新头像文字
+    'profileData.displayName': function(displayName) {
+      const avatarText = this.getAvatarTextFromDisplayName(displayName);
+      if (this.data.avatarText !== avatarText) {
+        this.setData({ avatarText });
+      }
     }
   }
 });
