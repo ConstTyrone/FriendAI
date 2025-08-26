@@ -240,10 +240,10 @@ Page({
       let userProfile = {};
       if (isLoggedIn) {
         userProfile = authManager.getUserProfile() || {};
-        // 确保有头像颜色
-        if (!userProfile.avatarColor) {
-          userProfile.avatarColor = authManager.getAvatarColor();
-        }
+        // 始终更新头像颜色，确保与最新选择的头像匹配
+        userProfile.avatarColor = authManager.getAvatarColor();
+        console.log('refreshUserStatus - 用户资料:', userProfile);
+        console.log('refreshUserStatus - 头像颜色:', userProfile.avatarColor);
       }
       
       this.setData({
@@ -997,7 +997,15 @@ Page({
       console.log('保存个人资料:', profileData);
 
       // 使用 authManager 更新个人资料
-      authManager.updateUserProfile(profileData);
+      const updateResult = authManager.updateUserProfile(profileData);
+      console.log('个人资料更新结果:', updateResult);
+
+      // 获取更新后的资料验证
+      const updatedProfile = authManager.getUserProfile();
+      console.log('更新后的个人资料:', updatedProfile);
+      
+      const avatarColor = authManager.getAvatarColor();
+      console.log('计算的头像颜色:', avatarColor);
 
       // 刷新页面显示
       await this.refreshUserStatus();
