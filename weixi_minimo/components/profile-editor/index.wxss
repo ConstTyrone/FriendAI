@@ -269,7 +269,7 @@
 .input-control,
 .textarea-control {
   width: 100%;
-  padding: 32rpx 24rpx;
+  padding: 28rpx 20rpx;
   background: #f8f8f8;
   border: 2rpx solid transparent;
   border-radius: 16rpx;
@@ -277,8 +277,8 @@
   color: #1d1d1f;
   box-sizing: border-box;
   transition: all 0.2s ease;
-  min-height: 88rpx;
-  line-height: 1.4;
+  min-height: 96rpx;
+  line-height: 1.5;
 }
 
 .input-control:focus,

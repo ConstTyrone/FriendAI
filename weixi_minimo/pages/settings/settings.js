@@ -242,8 +242,11 @@ Page({
         userProfile = authManager.getUserProfile() || {};
         // 始终更新头像颜色，确保与最新选择的头像匹配
         userProfile.avatarColor = authManager.getAvatarColor();
+        // 计算头像文字
+        userProfile.avatarText = authManager.getDisplayName();
         console.log('refreshUserStatus - 用户资料:', userProfile);
         console.log('refreshUserStatus - 头像颜色:', userProfile.avatarColor);
+        console.log('refreshUserStatus - 头像文字:', userProfile.avatarText);
       }
       
       this.setData({

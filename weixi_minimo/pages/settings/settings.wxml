@@ -4,7 +4,7 @@
   <view class="user-section" wx:if="{{isLoggedIn}}">
     <view class="user-card">
       <view class="user-avatar" style="background-color: {{userProfile.avatarColor}}" bind:tap="onEditProfile">
-        <text class="avatar-text">{{userProfile.displayName ? userProfile.displayName.charAt(0).toUpperCase() : 'U'}}</text>
+        <text class="avatar-text">{{userProfile.avatarText || 'U'}}</text>
       </view>
       
       <view class="user-info">
