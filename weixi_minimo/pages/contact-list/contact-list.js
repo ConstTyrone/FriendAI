@@ -102,7 +102,7 @@ Page({
     console.log('联系人列表页面显示');
     console.log('当前showAddMenu状态:', this.data.showAddMenu);
     
-    // 每次显示时刷新数据
+    // 每次显示时强制刷新数据（绕过缓存）
     this.refreshData();
     
     // 加载搜索历史
@@ -1060,6 +1060,21 @@ Page({
           
         case 'searchPerformed':
           console.log('搜索执行:', data);
+          break;
+          
+        case 'dataUpdated':
+          console.log('数据更新事件:', data);
+          if (data?.type === 'auto_refresh') {
+            // 显示新数据提示
+            wx.showToast({
+              title: `发现 ${data.updateCount || 1} 个新联系人`,
+              icon: 'success',
+              duration: 2000
+            });
+            
+            // 自动刷新页面数据
+            this.loadInitialData(true);
+          }
           break;
       }
     };

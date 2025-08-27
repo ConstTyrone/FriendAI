@@ -18,6 +18,11 @@
   <view class="detail-content" wx:if="{{contactInfo && !loading && !error}}">
     <!-- 头部信息 -->
     <view class="header-section">
+      <!-- 右上角电话按钮 -->
+      <view class="header-phone-btn" wx:if="{{contactInfo.phone}}" bind:tap="onCallPhone">
+        <text class="phone-icon">📞</text>
+      </view>
+      
       <view class="header-avatar">
         <text class="avatar-text">{{contactInfo.initial}}</text>
       </view>
@@ -35,14 +40,8 @@
 
     <!-- 快速操作 -->
     <view class="quick-actions">
-      <view class="action-button" bind:tap="onCallPhone" wx:if="{{contactInfo.phone}}">
-        <text class="action-label">电话</text>
-      </view>
       <view class="action-button" bind:tap="onCopyWechatId" wx:if="{{contactInfo.wechat_id}}">
         <text class="action-label">微信</text>
-      </view>
-      <view class="action-button" bind:tap="onAddNote">
-        <text class="action-label">备注</text>
       </view>
     </view>
 
@@ -50,10 +49,9 @@
     <view class="info-section">
       <text class="section-title">基本信息</text>
       <view class="info-list">
-        <view class="info-item" wx:if="{{contactInfo.phone}}" bind:tap="onCallPhone">
+        <view class="info-item" wx:if="{{contactInfo.phone}}">
           <text class="info-label">电话</text>
           <text class="info-value">{{formatPhone(contactInfo.phone)}}</text>
-          <text class="info-arrow">›</text>
         </view>
         
         <view class="info-item" wx:if="{{contactInfo.wechat_id}}" bind:tap="onCopyWechatId">

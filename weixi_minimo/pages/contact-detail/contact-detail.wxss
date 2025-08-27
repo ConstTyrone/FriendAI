@@ -226,6 +226,7 @@
 
 /* 头部信息 */
 .header-section {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -241,6 +242,32 @@
 .header-section:hover {
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
   transform: translateY(-2rpx);
+}
+
+/* 头部电话按钮 */
+.header-phone-btn {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  width: 72rpx;
+  height: 72rpx;
+  background: #000000;
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.header-phone-btn:active {
+  opacity: 0.8;
+  transform: scale(0.95);
+}
+
+.phone-icon {
+  font-size: 32rpx;
+  color: #FFFFFF;
 }
 
 .header-avatar {
@@ -763,6 +790,11 @@ t-tag {
 
 .theme-dark .header-position {
   color: #666666;
+}
+
+.theme-dark .header-phone-btn {
+  background-color: #06ae56;
+  box-shadow: 0 4rpx 12rpx rgba(6, 174, 86, 0.3);
 }
 
 .theme-dark .action-button {

@@ -111,9 +111,9 @@ class CacheManager {
     // 根据缓存类型返回不同的过期时间
     switch (level) {
       case 'CONTACT_LIST':
-        return UI_CONFIG.CACHE_LEVELS?.CONTACT_LIST || 30 * 60 * 1000;
+        return UI_CONFIG.CACHE_LEVELS?.CONTACT_LIST || 5 * 60 * 1000;
       case 'CONTACT_DETAIL':
-        return UI_CONFIG.CACHE_LEVELS?.CONTACT_DETAIL || 15 * 60 * 1000;
+        return UI_CONFIG.CACHE_LEVELS?.CONTACT_DETAIL || 3 * 60 * 1000;
       case 'SEARCH_RESULT':
         return UI_CONFIG.CACHE_LEVELS?.SEARCH_RESULT || 10 * 60 * 1000;
       case 'STATS':

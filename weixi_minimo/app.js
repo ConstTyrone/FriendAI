@@ -60,6 +60,9 @@ App({
     dataManager.startMemoryCleanup();
     dataManager.setAppActive(true);
     
+    // 启动自动数据刷新
+    dataManager.startAutoRefresh();
+    
     // 如果已登录，调整轮询频率为活跃状态
     if (this.globalData.isLoggedIn) {
       notificationManager.adjustPollingInterval(this.getPollingInterval());
@@ -77,6 +80,9 @@ App({
     
     // 暂停内存清理
     dataManager.setAppActive(false);
+    
+    // 停止自动数据刷新
+    dataManager.stopAutoRefresh();
     
     // 调整轮询频率为后台状态
     if (this.globalData.isLoggedIn) {

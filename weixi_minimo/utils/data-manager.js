@@ -17,6 +17,8 @@ class DataManager {
     this.maxMapSize = 500;  // Map最大容量限制
     this.memoryCleanupTimer = null; // 内存清理定时器
     this.isAppActive = true; // 应用是否活跃
+    this.autoRefreshTimer = null; // 自动刷新定时器
+    this.autoRefreshInterval = 30000; // 自动刷新间隔（30秒）
     
     // 初始化时加载缓存数据
     this.loadFromCache();
@@ -1115,6 +1117,91 @@ class DataManager {
     this.contactsMap = tempMap;
     
     console.log('强制垃圾回收完成');
+  }
+  
+  /**
+   * 启动自动刷新
+   */
+  startAutoRefresh() {
+    if (this.autoRefreshTimer) {
+      console.log('自动刷新已在运行');
+      return; // 已经在运行
+    }
+    
+    console.log('启动自动数据刷新，间隔：30秒');
+    
+    this.autoRefreshTimer = setInterval(async () => {
+      try {
+        // 只在应用活跃时进行检查
+        if (!this.isAppActive) {
+          return;
+        }
+        
+        // 检查是否有数据更新
+        const updateResult = await this.checkUpdates();
+        
+        if (updateResult.has_updates) {
+          console.log('检测到数据更新，刷新联系人列表');
+          
+          // 清除缓存并获取新数据
+          this.clearCache();
+          await this.getContacts({ forceRefresh: true });
+          
+          // 通知所有监听器数据已更新
+          this.notifyListeners('contactsUpdated', this.contacts);
+          this.notifyListeners('dataUpdated', { 
+            type: 'auto_refresh',
+            timestamp: Date.now(),
+            updateCount: updateResult.update_count || 1
+          });
+        }
+      } catch (error) {
+        console.error('自动刷新检查失败:', error);
+        // 失败时不影响定时器继续运行
+      }
+    }, this.autoRefreshInterval);
+  }
+  
+  /**
+   * 停止自动刷新
+   */
+  stopAutoRefresh() {
+    if (this.autoRefreshTimer) {
+      clearInterval(this.autoRefreshTimer);
+      this.autoRefreshTimer = null;
+      console.log('停止自动数据刷新');
+    }
+  }
+  
+  /**
+   * 设置自动刷新间隔
+   * @param {number} interval 间隔时间（毫秒）
+   */
+  setAutoRefreshInterval(interval) {
+    if (interval < 10000) {
+      console.warn('自动刷新间隔不能少于10秒');
+      return;
+    }
+    
+    this.autoRefreshInterval = interval;
+    console.log(`自动刷新间隔已设置为 ${interval / 1000} 秒`);
+    
+    // 如果正在运行，重启以应用新间隔
+    if (this.autoRefreshTimer) {
+      this.stopAutoRefresh();
+      this.startAutoRefresh();
+    }
+  }
+  
+  /**
+   * 获取自动刷新状态
+   */
+  getAutoRefreshStatus() {
+    return {
+      isRunning: !!this.autoRefreshTimer,
+      interval: this.autoRefreshInterval,
+      intervalSeconds: this.autoRefreshInterval / 1000
+    };
   }
 }
 
