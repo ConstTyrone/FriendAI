@@ -236,6 +236,146 @@ class ScoringAnalytics:
             logger.error(f"记录评分数据失败: {e}")
             return 0
     
+    async def record_scoring_event(self, event: Dict) -> bool:
+        """
+        记录评分事件（用于反馈API）
+        
+        Args:
+            event: 评分事件数据字典
+                
+        Returns:
+            是否记录成功
+        """
+        try:
+            # 如果有用户反馈，更新反馈
+            if event.get('user_feedback'):
+                return self.update_feedback(
+                    event['user_id'],
+                    event['intent_id'], 
+                    event['profile_id'],
+                    event['user_feedback']
+                )
+            return True
+            
+        except Exception as e:
+            logger.error(f"记录评分事件失败: {e}")
+            return False
+    
+    async def get_user_feedback_count(self, user_id: str) -> int:
+        """
+        获取用户反馈数量
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            反馈数量
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM scoring_records
+                WHERE user_id = ? AND user_feedback IS NOT NULL
+            """, (user_id,))
+            
+            count = cursor.fetchone()[0] if cursor.fetchone() else 0
+            conn.close()
+            
+            return count
+            
+        except Exception as e:
+            logger.error(f"获取反馈数量失败: {e}")
+            return 0
+            
+    async def calculate_calibration(self, user_id: str) -> Optional[Dict]:
+        """
+        计算校准参数
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            校准参数字典
+        """
+        try:
+            # 获取反馈分离度
+            separation = await self.get_feedback_separation(user_id)
+            
+            if separation and separation.get('separation', 0) > 0.2:
+                # 计算校准参数
+                calibration = {
+                    'enabled': True,
+                    'boost_factor': min(0.2, separation['positive_ratio'] * 0.3),
+                    'penalty_factor': min(0.2, separation['negative_ratio'] * 0.3),
+                    'separation_threshold': separation['separation'],
+                    'confidence_boost': 1.1 if separation['separation'] > 0.3 else 1.0
+                }
+                
+                logger.info(f"计算校准参数: {calibration}")
+                return calibration
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"计算校准失败: {e}")
+            return None
+    
+    async def get_feedback_separation(self, user_id: str) -> Optional[Dict]:
+        """
+        获取反馈分离度
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            分离度统计
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 查询正面和负面反馈的平均分数
+            cursor.execute("""
+                SELECT 
+                    AVG(CASE WHEN user_feedback = 'positive' THEN final_score END) as positive_avg,
+                    AVG(CASE WHEN user_feedback = 'negative' THEN final_score END) as negative_avg,
+                    COUNT(CASE WHEN user_feedback = 'positive' THEN 1 END) as positive_count,
+                    COUNT(CASE WHEN user_feedback = 'negative' THEN 1 END) as negative_count,
+                    COUNT(*) as total_count
+                FROM scoring_records
+                WHERE user_id = ? AND user_feedback IS NOT NULL
+            """, (user_id,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result and result[4] > 0:
+                positive_avg = result[0] or 0
+                negative_avg = result[1] or 0
+                positive_count = result[2]
+                negative_count = result[3]
+                total_count = result[4]
+                
+                separation = {
+                    'positive_avg': positive_avg,
+                    'negative_avg': negative_avg,
+                    'separation': abs(positive_avg - negative_avg),
+                    'positive_ratio': positive_count / total_count if total_count > 0 else 0,
+                    'negative_ratio': negative_count / total_count if total_count > 0 else 0,
+                    'total_feedback': total_count
+                }
+                
+                return separation
+                
+            return None
+            
+        except Exception as e:
+            logger.error(f"获取反馈分离度失败: {e}")
+            return None
+    
     def update_feedback(
         self,
         user_id: str,
