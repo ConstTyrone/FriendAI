@@ -390,7 +390,7 @@ Page({
           matchId,
           oldFeedback,
           newFeedback,
-          userId: authManager.getUserInfo()?.openid
+          userId: authManager.getUserProfile()?.openid
         });
       } else {
         // 如果失败，恢复原状态
