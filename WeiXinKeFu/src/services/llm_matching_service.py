@@ -1,6 +1,7 @@
 """
 LLM意图匹配判断服务
 使用大语言模型进行深度语义理解和精确匹配判断
+支持数据收集、自适应校准和A/B测试
 """
 
 import json
@@ -8,6 +9,7 @@ import asyncio
 import hashlib
 import logging
 import requests
+import random
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -45,7 +47,7 @@ class MatchJudgment:
 class LLMMatchingService:
     """LLM意图匹配服务"""
     
-    def __init__(self, qwen_api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None):
+    def __init__(self, qwen_api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None, user_id: str = None):
         """
         初始化LLM匹配服务
         
@@ -53,10 +55,12 @@ class LLMMatchingService:
             qwen_api_key: 通义千问API密钥
             db_path: 数据库路径
             api_endpoint: API端点（可选）
+            user_id: 用户ID（用于数据收集）
         """
         self.api_key = qwen_api_key
         self.db_path = db_path
         self.api_endpoint = api_endpoint or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        self.user_id = user_id
         self.cache = {}  # 内存缓存
         self.cache_ttl = timedelta(hours=24)  # 缓存有效期
         
@@ -71,7 +75,31 @@ class LLMMatchingService:
             'Content-Type': 'application/json'
         }
         
-        logger.info(f"✅ LLM匹配服务初始化成功 (使用HTTP请求方式)")
+        # 初始化配置和分析服务
+        try:
+            from ..config.scoring_config import scoring_config_manager
+            self.config_manager = scoring_config_manager
+            self.config = self.config_manager.get_config()
+            logger.info(f"✅ 加载评分配置: 策略={self.config.strategy}")
+        except Exception as e:
+            logger.warning(f"无法加载配置管理器: {e}，使用默认配置")
+            self.config_manager = None
+            self.config = None
+        
+        # 初始化数据分析服务
+        try:
+            from .scoring_analytics import scoring_analytics
+            self.analytics = scoring_analytics if self.config and self.config.enable_analytics else None
+            logger.info(f"✅ 数据分析服务: {'已启用' if self.analytics else '已禁用'}")
+        except Exception as e:
+            logger.warning(f"无法加载数据分析服务: {e}")
+            self.analytics = None
+        
+        # 校准参数缓存
+        self.calibration_params = None
+        self.calibration_update_time = None
+        
+        logger.info(f"✅ LLM匹配服务初始化成功 (数据飞轮模式)")
         logger.info(f"   API端点: {self.api_endpoint}")
     
     async def judge_match(
@@ -82,7 +110,7 @@ class LLMMatchingService:
         use_cache: bool = True
     ) -> MatchJudgment:
         """
-        使用LLM判断意图与联系人是否匹配
+        使用LLM判断意图与联系人是否匹配（支持数据飞轮）
         
         Args:
             intent: 意图信息
@@ -105,23 +133,53 @@ class LLMMatchingService:
                 return cached_result
         
         try:
+            # 获取当前策略（支持A/B测试）
+            strategy = self._get_current_strategy()
+            
             # 构建prompt
-            prompt = self._build_judgment_prompt(intent, profile, context)
+            prompt = self._build_judgment_prompt(intent, profile, context, strategy)
             
             # 调用LLM
             response = await self._call_llm(prompt)
             
             # 记录LLM原始响应
-            logger.info(f"🤖 LLM原始响应:\n{response}")
+            logger.info(f"🤖 LLM原始响应 (策略={strategy}):\n{response}")
             
             # 解析响应
             judgment = self._parse_judgment(response)
             
+            # 应用自适应校准
+            if self.config and self.config.enable_calibration:
+                original_score = judgment.match_score
+                judgment = await self._apply_calibration(judgment, intent, profile)
+                if judgment.match_score != original_score:
+                    logger.info(f"🔧 校准调整: {original_score:.3f} → {judgment.match_score:.3f}")
+            
             # 记录解析结果
-            logger.info(f"📊 LLM解析结果: 分数={judgment.match_score:.3f}, 置信度={judgment.confidence:.3f}, 是否匹配={judgment.is_match}")
+            logger.info(f"📊 LLM最终结果: 分数={judgment.match_score:.3f}, 置信度={judgment.confidence:.3f}, 是否匹配={judgment.is_match}")
             
             # 计算处理时间
             judgment.processing_time = (datetime.now() - start_time).total_seconds()
+            judgment.strategy_used = strategy
+            
+            # 记录到数据分析服务
+            if self.analytics and self.user_id:
+                try:
+                    self.analytics.record_scoring(
+                        user_id=self.user_id,
+                        intent=intent,
+                        profile=profile,
+                        llm_score=judgment.match_score,
+                        final_score=judgment.match_score,
+                        confidence=judgment.confidence,
+                        matched_aspects=judgment.matched_aspects,
+                        missing_aspects=judgment.missing_aspects,
+                        explanation=judgment.explanation,
+                        strategy=strategy,
+                        processing_time=judgment.processing_time
+                    )
+                except Exception as e:
+                    logger.warning(f"记录评分数据失败: {e}")
             
             # 存入缓存
             if use_cache:
@@ -246,103 +304,64 @@ class LLMMatchingService:
         self,
         intent: Dict,
         profile: Dict,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
+        strategy: Optional[str] = None
     ) -> str:
-        """构建判断prompt - 优化版分步评分法"""
+        """构建判断prompt - 支持多策略"""
         
         # 提取意图信息
-        intent_info = f"""
-意图名称：{intent.get('name', '未命名')}
-意图类型：{intent.get('type', '未分类')}
-意图描述：{intent.get('description', '无描述')}
-优先级：{intent.get('priority', 5)}/10
-"""
+        intent_desc = intent.get('description', '无描述')
+        intent_name = intent.get('name', '未命名')
         
-        # 提取条件信息 - 优化版：更清晰地展示条件
+        # 提取条件信息（如果有）
+        conditions_text = ""
         conditions = intent.get('conditions', {})
         if conditions:
             required = conditions.get('required', [])
             preferred = conditions.get('preferred', [])
-            keywords = conditions.get('keywords', [])
             
-            conditions_info = ""
-            
-            # 必需条件 - 关键！满足这些条件应该给高分
             if required:
-                conditions_info += "【必需条件】（满足这些应给A级或B级）：\n"
+                conditions_text += "\n必要条件："
                 for req in required:
                     if isinstance(req, dict):
                         field = req.get('field', '')
                         value = req.get('value', '')
-                        operator = req.get('operator', 'eq')
-                        if operator == 'eq':
-                            conditions_info += f"  - {field}必须是：{value}\n"
-                        elif operator == 'contains':
-                            conditions_info += f"  - {field}必须包含：{value}\n"
-                        elif operator == 'in':
-                            conditions_info += f"  - {field}必须在以下范围：{value}\n"
-                        else:
-                            conditions_info += f"  - {field} {operator} {value}\n"
+                        conditions_text += f"\n- {field}: {value}"
                     else:
-                        conditions_info += f"  - {req}\n"
+                        conditions_text += f"\n- {req}"
             
-            # 偏好条件 - 加分项
             if preferred:
-                conditions_info += "【偏好条件】（满足这些可加分）：\n"
+                conditions_text += "\n偏好条件："
                 for pref in preferred:
                     if isinstance(pref, dict):
                         field = pref.get('field', '')
                         value = pref.get('value', '')
-                        conditions_info += f"  - {field}最好是：{value}\n"
+                        conditions_text += f"\n- {field}: {value}"
                     else:
-                        conditions_info += f"  - {pref}\n"
-            
-            # 关键词
-            if keywords:
-                conditions_info += f"【关键词】：{', '.join(keywords)}\n"
-                
-            if not conditions_info:
-                conditions_info = "无特定条件"
-        else:
-            conditions_info = "无特定条件"
+                        conditions_text += f"\n- {pref}"
         
-        # 提取联系人信息 - 优化版：结构化展示关键字段
-        profile_info = f"""
-姓名：{profile.get('profile_name', profile.get('name', '未知'))}
-微信ID：{profile.get('wechat_id', '未知')}
-电话：{profile.get('phone', '未知')}
-"""
+        # 提取联系人信息
+        profile_text = f"姓名：{profile.get('profile_name', profile.get('name', '未知'))}"
         
-        # 基本信息 - 改进：单独提取关键字段而非JSON
+        # 基本信息
         basic_info = profile.get('basic_info', {})
         if basic_info:
-            # 明确提取并展示关键字段，便于LLM理解和匹配
-            if basic_info.get('gender'):
-                profile_info += f"性别：{basic_info['gender']}\n"
-            if basic_info.get('age'):
-                profile_info += f"年龄：{basic_info['age']}\n"
-            if basic_info.get('location'):
-                profile_info += f"所在地：{basic_info['location']}\n"
-            if basic_info.get('education'):
-                profile_info += f"学历/学校：{basic_info['education']}\n"
-            if basic_info.get('company'):
-                profile_info += f"公司：{basic_info['company']}\n"
-            if basic_info.get('position'):
-                profile_info += f"职位：{basic_info['position']}\n"
-            if basic_info.get('marital_status'):
-                profile_info += f"婚育状况：{basic_info['marital_status']}\n"
-            if basic_info.get('asset_level'):
-                profile_info += f"资产水平：{basic_info['asset_level']}\n"
-            if basic_info.get('personality'):
-                profile_info += f"性格特征：{basic_info['personality']}\n"
-            
-            # 其他未列出的字段
-            other_fields = {k: v for k, v in basic_info.items() 
-                          if k not in ['gender', 'age', 'location', 'education', 
-                                     'company', 'position', 'marital_status', 
-                                     'asset_level', 'personality'] and v}
-            if other_fields:
-                profile_info += f"其他信息：{json.dumps(other_fields, ensure_ascii=False)}\n"
+            for key, value in basic_info.items():
+                if value:
+                    # 将字段名转换为中文（如果需要）
+                    field_name_map = {
+                        'gender': '性别',
+                        'age': '年龄',
+                        'location': '所在地',
+                        'education': '学历/学校',
+                        'company': '公司',
+                        'position': '职位',
+                        'marital_status': '婚育',
+                        'asset_level': '资产水平',
+                        'personality': '性格'
+                    }
+                    field_name = field_name_map.get(key, key)
+                    profile_text += f"\n{field_name}：{value}"
         
         # 标签
         tags = profile.get('tags', [])
@@ -353,193 +372,49 @@ class LLMMatchingService:
                 except:
                     pass
             if isinstance(tags, list) and tags:
-                profile_info += f"标签：{', '.join(str(t) for t in tags)}\n"
+                profile_text += f"\n标签：{', '.join(str(t) for t in tags)}"
         
         # AI摘要（如果有）
         if profile.get('ai_summary'):
-            profile_info += f"AI摘要：{profile['ai_summary']}\n"
+            profile_text += f"\nAI摘要：{profile['ai_summary']}"
         
-        # 最近活动
-        activities = profile.get('recent_activities', [])
-        if activities and isinstance(activities, list):
-            profile_info += f"最近活动：{json.dumps(activities[:3], ensure_ascii=False, indent=2)}\n"
-        
-        # 构建完整prompt - 分步评分法
-        prompt = f"""你是一个智能的商务匹配专家，擅长发现人才潜力和合作机会。你的目标是帮助用户发现有价值的联系人。
+        # 根据策略获取prompt模板
+        if strategy and self.config_manager:
+            prompt_template = self.config_manager.get_prompt_template(strategy)
+        else:
+            # 使用默认极简模板
+            prompt_template = """请评估以下用户与意图的匹配程度：
 
-## 🎯 核心任务
-使用【两步评分法】分析意图和联系人的匹配度。
+【意图需求】
+{intent_description}{conditions}
 
-## 📚 评分示例（Few-shot Learning）
-
-### ✅ 示例1 - A级匹配（精确匹配）
-意图：招聘北京大学学生
-联系人：张三，学历/学校：北京大学
-分析：学校名称完全一致，精确匹配条件要求
-级别：A级（精确匹配）
-分数：0.92
-
-### ❌ 反例1 - C级（同类不同值）
-意图：招聘北京大学学生
-联系人：李四，学历/学校：南开大学
-分析：都是985高校但不是北京大学，属于中度相似
-级别：C级（中度相似）
-分数：0.65
-
-### ❌ 反例2 - C级（同类不同值）
-意图：招聘北京大学学生
-联系人：王五，学历/学校：哈尔滨工业大学
-分析：都是985高校但不是北京大学，属于中度相似
-级别：C级（中度相似）
-分数：0.64
-
-### ✅ 示例2 - A级匹配（职位精确匹配）
-意图：寻找AI工程师
-联系人：赵六，职位：AI算法工程师
-分析：职位名称高度一致，精确匹配需求
-级别：A级（精确匹配）
-分数：0.95
-
-### 示例3 - B级匹配（高度相似）
-意图：招聘北京大学学生
-联系人：钱七，学历/学校：清华大学
-分析：都是顶级985高校，层次相当，可互换性强
-级别：B级（高度相似）
-分数：0.78
-
-### 示例4 - D级匹配（低度相关）
-意图：招聘北京大学学生
-联系人：孙八，学历/学校：北京理工大学（211）
-分析：都在北京的大学，但层次差距明显
-级别：D级（低度相关）
-分数：0.55
-
-## 📋 两步评分法
-
-### 🎯 精确匹配检查（最重要）
-**核心原则**：精确度决定级别，字面值匹配优先！
-
-#### 第一步：判断匹配精确度
-
-##### 1. **精确匹配**（字面值完全相同）
-检查条件要求与联系人属性是否**完全一致**：
-- "北京大学" = "北京大学" → ✓ 精确匹配 → A级
-- "北京大学" = "北大" → ✓ 精确匹配（同义词）→ A级
-- "北京大学" ≠ "清华大学" → ✗ 不是精确匹配
-- "北京大学" ≠ "南开大学" → ✗ 不是精确匹配
-
-##### 2. **高度相似**（同层次、可互换）
-属于同一顶级类别，有较强替代性：
-- 要求"北京大学" vs "清华大学" → 都是顶级985 → B级
-- 要求"AI工程师" vs "算法工程师" → 职能高度相近 → B级
-- 要求"投资总监" vs "投资经理" → 同领域高级职位 → B级
-
-##### 3. **中度相似**（同类别、有差距）
-属于同一大类但具体差异较大：
-- 要求"北京大学" vs "南开大学" → 都是985但层次不同 → C级
-- 要求"北京大学" vs "哈工大" → 都是985但层次不同 → C级
-- 要求"985大学" vs "211大学" → 都是重点但级别不同 → C级
-
-##### 4. **低度相关**（领域相关、差异明显）
-- 要求"北京大学" vs "普通一本" → 都是大学但差距大 → D级
-- 要求"技术岗" vs "产品岗" → 都是互联网岗位 → D级
-
-##### 5. **间接或无关**
-- 本人不匹配但可能有人脉 → E级
-- 完全无关 → F级
-
-### 第二步：基于精确度判断级别
-根据条件匹配的**精确度**判断级别（注意：不是"满足"就行，要看精确度）：
-- **A级 - 精确匹配**：条件与属性字面值完全相同（北京大学=北京大学）
-- **B级 - 高度相似**：同层次可互换（北京大学≈清华大学）
-- **C级 - 中度相似**：同类别但有差距（北京大学≈南开大学/哈工大）
-- **D级 - 低度相关**：领域相关但差异大（985大学≈211大学）
-- **E级 - 间接价值**：本人不匹配但可能有人脉资源
-- **F级 - 基本无关**：完全不相关（慎用）
-
-### 第二步：在级别范围内给出精确分数
-- **A级分数范围**：0.85-1.00（示例：0.88, 0.92, 0.95）
-- **B级分数范围**：0.70-0.84（示例：0.72, 0.78, 0.82）
-- **C级分数范围**：0.60-0.69（示例：0.62, 0.65, 0.68）
-- **D级分数范围**：0.50-0.59（示例：0.52, 0.55, 0.58）
-- **E级分数范围**：0.40-0.49（示例：0.42, 0.45, 0.48）
-- **F级分数范围**：0.00-0.39（仅在确实完全无关时使用）
-
-## 意图信息
-{intent_info}
-
-### 匹配条件
-{conditions_info}
-
-## 联系人信息
+【用户信息】
 {profile_info}
 
-## 🎯 评分指导原则
+请给出0-1之间的匹配分数，并提供简短的理由。
 
-### 1. 级别判断要点（重要性排序）
-- **精确匹配最重要**：字面值完全相同才是A级（北京大学=北京大学）
-- **区分相似度层次**：相似不等于相同（南开≠北京大学，应给C级）
-- **避免过度泛化**：不能因为都是"大学"就认为匹配
-- **正确理解层次**：顶级985（清北）> 其他985 > 211 > 普通一本
+评分指导：
+- 高度匹配（0.7-1.0）：核心需求基本满足
+- 中度匹配（0.4-0.7）：部分符合或有潜在价值  
+- 低度匹配（0-0.4）：相关性较弱
 
-### 2. 分数细化原则
-- 在确定级别后，根据匹配程度在该级别范围内调整
-- 同一级别内，匹配点越多分数越高
-- 考虑意图优先级，高优先级意图可适当提高分数
-- 有特殊优势（如同城、直接经验）可接近级别上限
-
-### 3. 常见场景参考
-- 行业相关+职位相近 → B级或以上
-- 行业相关但职位不同 → C级
-- 行业不同但技能相关 → D级
-- 仅地域接近 → D级或E级
-- 可能认识目标人群 → E级
-
-## 输出格式
-请严格按照以下JSON格式返回结果：
+输出JSON格式：
 {{
-    "match_level": "B",
-    "match_score": 0.78,
-    "confidence": 0.85,
+    "match_score": 0.75,
+    "confidence": 0.8,
     "is_match": true,
-    "matched_aspects": ["行业背景相关", "有管理经验", "地域合适"],
-    "missing_aspects": ["非直接技术岗位"],
-    "explanation": "该联系人在电商行业有丰富经验，虽然不是纯技术背景，但其管理经验和行业理解对技术团队很有价值。同城优势便于深入合作。建议进一步了解其技术团队管理经验。",
-    "suggestions": "可以先约见面聊，了解其对技术的理解程度和团队资源。即使本人不完全匹配，其行业人脉也可能带来价值。"
-}}
-
-## ⚠️ 必须遵守的规则
-1. **先确定级别，再给分数**：必须在match_level字段明确标注级别（A/B/C/D/E/F）
-2. **分数必须在对应级别范围内**：例如B级必须在0.70-0.84之间
-3. **默认倾向高分**：不确定时选择更高的级别和分数
-4. **is_match判断**：D级及以上（>=0.50）都应设为true
-5. **解释要积极正面**：多强调价值和可能性
-
-## 🎯 自检清单
-评分前请确认：
-1. 是否检查了条件匹配情况？
-2. 满足必需条件的是否给了A级或B级？
-3. 是否先判断了级别再给分数？
-4. 分数是否在对应级别范围内？
-5. 解释是否积极且具有建设性？
-
-## ⚠️ 特别提醒 - 避免过拟合
-- **精确匹配才给A级**：北京大学=北京大学（A级），南开大学≠北京大学（C级）
-- **正确区分相似度**：清华与北大是B级（顶级985），南开/哈工大与北大是C级（其他985）
-- **不要过度泛化**：不能因为都是"985大学"就给高分，要看具体学校名称
-- **理解同义词**："北京大学"="北大"="PKU"（这些是同义词，都算精确匹配）
-
-## 🎯 评分检查清单
-评分前请检查：
-1. 条件要求的学校名称与联系人学校名称是否**完全相同**？
-2. 如果不同，是否属于同一层次（如都是顶级985）？
-3. 是否正确区分了精确匹配（A）、高度相似（B）、中度相似（C）？
-
-**核心原则：字面值相同才是精确匹配，相似但不同要降级！**"""
+    "matched_aspects": ["符合的方面"],
+    "missing_aspects": ["不符合的方面"],
+    "explanation": "简短解释",
+    "suggestions": "建议"
+}}"""
         
-        # 添加上下文信息
-        if context:
-            prompt += f"\n\n## 额外上下文\n{json.dumps(context, ensure_ascii=False, indent=2)}"
+        # 格式化prompt
+        prompt = prompt_template.format(
+            intent_description=intent_desc,
+            conditions=conditions_text,
+            profile_info=profile_text
+        )
         
         return prompt
     
@@ -604,7 +479,7 @@ class LLMMatchingService:
             raise
     
     def _parse_judgment(self, response: str) -> MatchJudgment:
-        """解析LLM响应 - 增强版，支持分步评分法和验证"""
+        """解析LLM响应 - 极简版本"""
         try:
             # 尝试提取JSON
             import re
@@ -614,23 +489,22 @@ class LLMMatchingService:
             else:
                 raise ValueError("响应中没有找到JSON")
             
-            # 获取匹配级别和分数
-            match_level = data.get('match_level', '')
+            # 获取分数
             raw_score = float(data.get('match_score', 0))
             
-            # 验证分数是否在对应级别范围内
-            validated_score = self._validate_score_range(match_level, raw_score)
+            # 基本范围验证（确保在0-1之间）
+            validated_score = max(0.0, min(1.0, raw_score))
             
             # 如果分数被调整，记录日志
             if validated_score != raw_score:
-                logger.warning(f"⚠️ LLM分数超出级别范围 - 级别:{match_level}, 原始分数:{raw_score:.3f}, 调整为:{validated_score:.3f}")
+                logger.warning(f"⚠️ LLM分数超出范围 - 原始分数:{raw_score:.3f}, 调整为:{validated_score:.3f}")
             else:
-                logger.info(f"✅ LLM评分验证通过 - 级别:{match_level}, 分数:{validated_score:.3f}")
+                logger.info(f"✅ LLM评分有效 - 分数:{validated_score:.3f}")
             
             return MatchJudgment(
                 match_score=validated_score,
                 confidence=float(data.get('confidence', 0.8)),  # 默认置信度0.8
-                is_match=bool(data.get('is_match', False)) or validated_score >= 0.50,  # D级及以上为匹配
+                is_match=bool(data.get('is_match', False)) or validated_score >= 0.50,  # 0.5及以上为匹配
                 matched_aspects=data.get('matched_aspects', []),
                 missing_aspects=data.get('missing_aspects', []),
                 explanation=data.get('explanation', ''),
@@ -650,6 +524,126 @@ class LLMMatchingService:
                 explanation=f"解析失败，使用默认评分: {response[:200]}...",
                 strategy_used='llm'
             )
+    
+    def _get_current_strategy(self) -> str:
+        """
+        获取当前应该使用的策略（支持A/B测试）
+        
+        Returns:
+            策略名称
+        """
+        if self.config_manager:
+            return self.config_manager.get_ab_test_strategy()
+        return "minimal"
+    
+    async def _apply_calibration(
+        self,
+        judgment: MatchJudgment,
+        intent: Dict,
+        profile: Dict
+    ) -> MatchJudgment:
+        """
+        应用自适应校准
+        
+        Args:
+            judgment: 原始判断结果
+            intent: 意图信息
+            profile: 联系人信息
+            
+        Returns:
+            校准后的判断结果
+        """
+        if not self.analytics or not self.user_id:
+            return judgment
+        
+        try:
+            # 获取或更新校准参数
+            now = datetime.now()
+            if (not self.calibration_params or 
+                not self.calibration_update_time or
+                now - self.calibration_update_time > timedelta(hours=1)):
+                
+                # 获取最新校准参数
+                self.calibration_params = self.analytics.calculate_calibration_params(
+                    self.user_id,
+                    min_feedback_count=self.config.calibration.get('min_feedback_count', 10)
+                )
+                self.calibration_update_time = now
+                logger.info(f"🔧 更新校准参数: {self.calibration_params}")
+            
+            # 应用校准
+            calibrated_score = judgment.match_score
+            
+            # 根据置信度调整
+            if judgment.confidence < self.calibration_params.get('confidence_threshold', 0.7):
+                # 低置信度，向中间值靠拢
+                calibrated_score = calibrated_score * 0.8 + 0.5 * 0.2
+            
+            # 根据分离度调整
+            separation_factor = self.calibration_params.get('separation_factor', 1.0)
+            if separation_factor != 1.0:
+                # 增强正负反馈的区分度
+                if calibrated_score > 0.5:
+                    calibrated_score = 0.5 + (calibrated_score - 0.5) * separation_factor
+                else:
+                    calibrated_score = 0.5 - (0.5 - calibrated_score) * separation_factor
+            
+            # 确保在有效范围内
+            calibrated_score = max(0.0, min(1.0, calibrated_score))
+            
+            # 更新判断结果
+            judgment.match_score = calibrated_score
+            judgment.is_match = calibrated_score >= self.config.thresholds.get('match_threshold', 0.5)
+            
+            return judgment
+            
+        except Exception as e:
+            logger.warning(f"应用校准失败: {e}")
+            return judgment
+    
+    def update_feedback(
+        self,
+        intent_id: int,
+        profile_id: int,
+        feedback: str
+    ) -> bool:
+        """
+        更新用户反馈（用于数据飞轮）
+        
+        Args:
+            intent_id: 意图ID
+            profile_id: 联系人ID
+            feedback: 反馈类型 (positive/negative/neutral/ignored)
+            
+        Returns:
+            是否成功
+        """
+        if self.analytics and self.user_id:
+            return self.analytics.update_feedback(
+                self.user_id, intent_id, profile_id, feedback
+            )
+        return False
+    
+    def get_performance_stats(self, days: int = 7) -> Dict:
+        """
+        获取性能统计（用于监控和优化）
+        
+        Args:
+            days: 统计天数
+            
+        Returns:
+            性能统计数据
+        """
+        if self.analytics:
+            return {
+                'score_distribution': self.analytics.get_score_distribution(
+                    user_id=self.user_id,
+                    days=days
+                ),
+                'intent_performance': self.analytics.get_intent_type_performance(days),
+                'quality_metrics': self.analytics.get_quality_metrics(days)
+            }
+        return {}
     
     def _validate_score_range(self, match_level: str, score: float) -> float:
         """
@@ -834,8 +828,8 @@ class LLMMatchingService:
 # 全局实例（延迟初始化）
 llm_matching_service = None
 
-def init_llm_matching_service(api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None):
-    """初始化全局LLM匹配服务"""
+def init_llm_matching_service(api_key: str, db_path: str = "user_profiles.db", api_endpoint: str = None, user_id: str = None):
+    """初始化全局LLM匹配服务（支持数据飞轮）"""
     global llm_matching_service
-    llm_matching_service = LLMMatchingService(api_key, db_path, api_endpoint)
+    llm_matching_service = LLMMatchingService(api_key, db_path, api_endpoint, user_id)
     return llm_matching_service
