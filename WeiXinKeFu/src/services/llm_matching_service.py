@@ -258,7 +258,7 @@ class LLMMatchingService:
 优先级：{intent.get('priority', 5)}/10
 """
         
-        # 提取条件信息
+        # 提取条件信息 - 优化版：更清晰地展示条件
         conditions = intent.get('conditions', {})
         if conditions:
             required = conditions.get('required', [])
@@ -266,35 +266,102 @@ class LLMMatchingService:
             keywords = conditions.get('keywords', [])
             
             conditions_info = ""
+            
+            # 必需条件 - 关键！满足这些条件应该给高分
             if required:
-                conditions_info += f"必需条件：{json.dumps(required, ensure_ascii=False, indent=2)}\n"
+                conditions_info += "【必需条件】（满足这些应给A级或B级）：\n"
+                for req in required:
+                    if isinstance(req, dict):
+                        field = req.get('field', '')
+                        value = req.get('value', '')
+                        operator = req.get('operator', 'eq')
+                        if operator == 'eq':
+                            conditions_info += f"  - {field}必须是：{value}\n"
+                        elif operator == 'contains':
+                            conditions_info += f"  - {field}必须包含：{value}\n"
+                        elif operator == 'in':
+                            conditions_info += f"  - {field}必须在以下范围：{value}\n"
+                        else:
+                            conditions_info += f"  - {field} {operator} {value}\n"
+                    else:
+                        conditions_info += f"  - {req}\n"
+            
+            # 偏好条件 - 加分项
             if preferred:
-                conditions_info += f"偏好条件：{json.dumps(preferred, ensure_ascii=False, indent=2)}\n"
+                conditions_info += "【偏好条件】（满足这些可加分）：\n"
+                for pref in preferred:
+                    if isinstance(pref, dict):
+                        field = pref.get('field', '')
+                        value = pref.get('value', '')
+                        conditions_info += f"  - {field}最好是：{value}\n"
+                    else:
+                        conditions_info += f"  - {pref}\n"
+            
+            # 关键词
             if keywords:
-                conditions_info += f"关键词：{', '.join(keywords)}\n"
+                conditions_info += f"【关键词】：{', '.join(keywords)}\n"
+                
+            if not conditions_info:
+                conditions_info = "无特定条件"
         else:
             conditions_info = "无特定条件"
         
-        # 提取联系人信息
+        # 提取联系人信息 - 优化版：结构化展示关键字段
         profile_info = f"""
 姓名：{profile.get('profile_name', profile.get('name', '未知'))}
 微信ID：{profile.get('wechat_id', '未知')}
 电话：{profile.get('phone', '未知')}
 """
         
-        # 基本信息
+        # 基本信息 - 改进：单独提取关键字段而非JSON
         basic_info = profile.get('basic_info', {})
         if basic_info:
-            profile_info += f"基本信息：{json.dumps(basic_info, ensure_ascii=False, indent=2)}\n"
+            # 明确提取并展示关键字段，便于LLM理解和匹配
+            if basic_info.get('gender'):
+                profile_info += f"性别：{basic_info['gender']}\n"
+            if basic_info.get('age'):
+                profile_info += f"年龄：{basic_info['age']}\n"
+            if basic_info.get('location'):
+                profile_info += f"所在地：{basic_info['location']}\n"
+            if basic_info.get('education'):
+                profile_info += f"学历/学校：{basic_info['education']}\n"
+            if basic_info.get('company'):
+                profile_info += f"公司：{basic_info['company']}\n"
+            if basic_info.get('position'):
+                profile_info += f"职位：{basic_info['position']}\n"
+            if basic_info.get('marital_status'):
+                profile_info += f"婚育状况：{basic_info['marital_status']}\n"
+            if basic_info.get('asset_level'):
+                profile_info += f"资产水平：{basic_info['asset_level']}\n"
+            if basic_info.get('personality'):
+                profile_info += f"性格特征：{basic_info['personality']}\n"
+            
+            # 其他未列出的字段
+            other_fields = {k: v for k, v in basic_info.items() 
+                          if k not in ['gender', 'age', 'location', 'education', 
+                                     'company', 'position', 'marital_status', 
+                                     'asset_level', 'personality'] and v}
+            if other_fields:
+                profile_info += f"其他信息：{json.dumps(other_fields, ensure_ascii=False)}\n"
         
         # 标签
         tags = profile.get('tags', [])
         if tags:
-            profile_info += f"标签：{', '.join(tags)}\n"
+            if isinstance(tags, str):
+                try:
+                    tags = json.loads(tags)
+                except:
+                    pass
+            if isinstance(tags, list) and tags:
+                profile_info += f"标签：{', '.join(str(t) for t in tags)}\n"
+        
+        # AI摘要（如果有）
+        if profile.get('ai_summary'):
+            profile_info += f"AI摘要：{profile['ai_summary']}\n"
         
         # 最近活动
         activities = profile.get('recent_activities', [])
-        if activities:
+        if activities and isinstance(activities, list):
             profile_info += f"最近活动：{json.dumps(activities[:3], ensure_ascii=False, indent=2)}\n"
         
         # 构建完整prompt - 分步评分法
@@ -305,51 +372,77 @@ class LLMMatchingService:
 
 ## 📚 评分示例（Few-shot Learning）
 
-### 示例1 - A级匹配
-意图：寻找AI技术合伙人，要求有技术背景
-联系人：张三，AI算法工程师，5年经验，同城
-分析：技术背景完全匹配，经验丰富，地理位置便利
+### 示例1 - A级匹配（条件完全满足）
+意图：招聘北京大学学生
+联系人：张三，北京大学计算机系大三学生
+分析：完全满足"北京大学学生"这一核心条件
 级别：A级（完美匹配）
 分数：0.92
 
-### 示例2 - B级匹配  
+### 示例2 - A级匹配（技能匹配）
+意图：寻找AI技术合伙人，要求有技术背景
+联系人：李四，AI算法工程师，5年经验，同城
+分析：技术背景完全匹配，经验丰富，地理位置便利
+级别：A级（完美匹配）
+分数：0.95
+
+### 示例3 - B级匹配  
 意图：寻找电商运营人才
-联系人：李四，市场经理，有电商推广经验
+联系人：王五，市场经理，有电商推广经验
 分析：有相关经验但非专职运营，值得深入了解
 级别：B级（高度匹配）
 分数：0.78
 
-### 示例3 - C级匹配
+### 示例4 - C级匹配
 意图：寻找投资人
-联系人：王五，企业高管，有投资意向但非专业投资人
+联系人：赵六，企业高管，有投资意向但非专业投资人
 分析：有资金实力和投资意向，可以探索合作
 级别：C级（良好匹配）
 分数：0.65
 
-### 示例4 - D级匹配
+### 示例5 - D级匹配
 意图：寻找技术顾问
-联系人：赵六，产品经理，了解技术但非技术专家
+联系人：钱七，产品经理，了解技术但非技术专家
 分析：有一定技术理解但专业度不够，可作为备选
 级别：D级（潜在匹配）
 分数：0.55
 
-### 示例5 - E级匹配
+### 示例6 - E级匹配
 意图：寻找销售总监
-联系人：钱七，HR总监，可能认识销售人才
+联系人：孙八，HR总监，可能认识销售人才
 分析：本人不匹配但可能有人脉资源
 级别：E级（间接价值）
 分数：0.45
 
 ## 📋 两步评分法
 
-### 第一步：判断匹配级别
-请先判断这个匹配属于以下哪个级别：
-- **A级 - 完美匹配**：多个核心维度都高度吻合，直接命中需求
-- **B级 - 高度匹配**：主要需求满足，有明显合作价值
-- **C级 - 良好匹配**：部分需求满足，值得深入探索
-- **D级 - 潜在匹配**：有一定相关性，可能存在合作机会
-- **E级 - 间接价值**：本人匹配度低但可能有人脉或资源价值
-- **F级 - 基本无关**：几乎没有匹配点（慎用此级别）
+### 🔍 条件匹配检查（优先执行）
+**重要**：先检查联系人是否满足意图的必需条件，这是判断级别的核心依据！
+
+#### 条件匹配规则：
+1. **完全满足所有必需条件** → 直接判定为A级
+   - 例如：要求"北京大学学生"，联系人学历正是"北京大学" → A级
+   - 例如：要求"AI工程师"，联系人职位是"AI算法工程师" → A级
+
+2. **满足主要必需条件** → 判定为B级
+   - 例如：要求"技术背景"，联系人是"产品经理"但有技术经验 → B级
+   - 例如：要求"投资人"，联系人是"企业高管"有投资意向 → B级
+
+3. **部分满足或领域相关** → 判定为C级
+   - 例如：要求"销售经验"，联系人是"市场经理" → C级
+   - 例如：要求"北京"，联系人在"上海"但可远程 → C级
+
+4. **间接满足或有潜力** → 判定为D级或E级
+   - 例如：要求特定人才，联系人可能认识相关人才 → E级
+
+### 第一步：基于条件匹配判断级别
+根据上述条件匹配结果，判断匹配级别：
+- **A级 - 完美匹配**：所有必需条件都满足
+- **B级 - 高度匹配**：主要必需条件满足
+- **C级 - 良好匹配**：部分条件满足或领域相关
+- **D级 - 潜在匹配**：有一定相关性或发展潜力
+- **E级 - 间接价值**：本人不匹配但可能有人脉资源
+- **F级 - 基本无关**：几乎没有匹配点（仅在确实完全无关时使用）
 
 ### 第二步：在级别范围内给出精确分数
 - **A级分数范围**：0.85-1.00（示例：0.88, 0.92, 0.95）
@@ -370,11 +463,11 @@ class LLMMatchingService:
 
 ## 🎯 评分指导原则
 
-### 1. 级别判断要点
-- **优先看积极面**：先找匹配点，再看不足
-- **宽松理解条件**：大部分条件是"加分项"而非"必须项"
-- **考虑潜在价值**：间接联系、未来潜力都很重要
-- **避免过于严格**：不确定时，倾向于更高的级别
+### 1. 级别判断要点（重要性排序）
+- **条件匹配优先**：首先检查是否满足必需条件，这决定基础级别
+- **直接满足>间接相关**：直接满足条件应得高分，间接相关才考虑降级
+- **积极理解匹配**：例如"北京大学"既满足"北京大学学生"也满足"高学历"
+- **避免过度贬低**：有明确匹配点就不应该给E级或F级
 
 ### 2. 分数细化原则
 - 在确定级别后，根据匹配程度在该级别范围内调整
@@ -411,13 +504,18 @@ class LLMMatchingService:
 
 ## 🎯 自检清单
 评分前请确认：
-1. 是否先判断了级别？
-2. 分数是否在级别范围内？
-3. 是否考虑了所有可能的价值点？
-4. 解释是否积极且具有建设性？
-4. 分数是否至少在0.6以上（除非完全无关）？
+1. 是否检查了条件匹配情况？
+2. 满足必需条件的是否给了A级或B级？
+3. 是否先判断了级别再给分数？
+4. 分数是否在对应级别范围内？
+5. 解释是否积极且具有建设性？
 
-**记住：宁可高估也不要低估，错过机会比多一次接触的代价更大！**"""
+## ⚠️ 特别提醒
+- **条件直接满足必须高分**：如要求"北京大学学生"而联系人正是北京大学学生，必须给A级（0.85+）
+- **避免误判为间接价值**：有明确匹配点的不应该给E级或F级
+- **理解条件的多种表述**：例如"北京大学"="北京大学学生"="北大"="PKU"
+
+**核心原则：满足条件是硬性匹配，应该得高分；不满足才考虑降级或间接价值！**"""
         
         # 添加上下文信息
         if context:
