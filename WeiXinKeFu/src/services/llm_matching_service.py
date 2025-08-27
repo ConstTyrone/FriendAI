@@ -343,22 +343,50 @@ class LLMMatchingService:
         # 提取联系人信息
         profile_text = f"姓名：{profile.get('profile_name', profile.get('name', '未知'))}"
         
-        # 基本信息
+        # 重要：先从profile顶层读取字段（与vector_service保持一致）
+        # 这些字段可能直接存在profile中，而不是在basic_info里
+        if profile.get('education'):
+            profile_text += f"\n学历/学校：{profile['education']}"
+        if profile.get('school'):
+            profile_text += f"\n学校：{profile['school']}"
+        if profile.get('gender'):
+            profile_text += f"\n性别：{profile['gender']}"
+        if profile.get('age'):
+            profile_text += f"\n年龄：{profile['age']}"
+        if profile.get('company'):
+            profile_text += f"\n公司：{profile['company']}"
+        if profile.get('position'):
+            profile_text += f"\n职位：{profile['position']}"
+        if profile.get('industry'):
+            profile_text += f"\n行业：{profile['industry']}"
+        if profile.get('location'):
+            profile_text += f"\n所在地：{profile['location']}"
+        if profile.get('marital_status'):
+            profile_text += f"\n婚育：{profile['marital_status']}"
+        if profile.get('asset_level'):
+            profile_text += f"\n资产水平：{profile['asset_level']}"
+        if profile.get('personality'):
+            profile_text += f"\n性格：{profile['personality']}"
+        
+        # 然后从basic_info补充（如果有的话，避免重复）
         basic_info = profile.get('basic_info', {})
         if basic_info:
+            # 已经处理过的字段集合
+            processed_fields = {
+                'education', 'school', 'gender', 'age', 'company', 
+                'position', 'industry', 'location', 'marital_status', 
+                'asset_level', 'personality'
+            }
+            
             for key, value in basic_info.items():
-                if value:
+                if value and key not in processed_fields:
                     # 将字段名转换为中文（如果需要）
                     field_name_map = {
-                        'gender': '性别',
-                        'age': '年龄',
-                        'location': '所在地',
-                        'education': '学历/学校',
-                        'company': '公司',
-                        'position': '职位',
-                        'marital_status': '婚育',
-                        'asset_level': '资产水平',
-                        'personality': '性格'
+                        'phone': '电话',
+                        'email': '邮箱',
+                        'wechat': '微信',
+                        'hobby': '爱好',
+                        'skill': '技能'
                     }
                     field_name = field_name_map.get(key, key)
                     profile_text += f"\n{field_name}：{value}"
