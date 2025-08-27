@@ -70,6 +70,37 @@
           <text class="match-type-text">{{item.matchTypeDisplay}}</text>
         </view>
       </view>
+      
+      <!-- 反馈按钮区域 -->
+      <view class="feedback-section">
+        <text class="feedback-label">这个匹配怎么样？</text>
+        <view class="feedback-buttons">
+          <button 
+            class="feedback-btn positive {{item.user_feedback === 'positive' ? 'active' : ''}}" 
+            bindtap="submitFeedback" 
+            data-match-id="{{item.id}}" 
+            data-feedback="positive">
+            <text class="feedback-icon">👍</text>
+            <text class="feedback-text">好匹配</text>
+          </button>
+          <button 
+            class="feedback-btn negative {{item.user_feedback === 'negative' ? 'active' : ''}}" 
+            bindtap="submitFeedback" 
+            data-match-id="{{item.id}}" 
+            data-feedback="negative">
+            <text class="feedback-icon">👎</text>
+            <text class="feedback-text">不准确</text>
+          </button>
+          <button 
+            class="feedback-btn ignored {{item.user_feedback === 'ignored' ? 'active' : ''}}" 
+            bindtap="submitFeedback" 
+            data-match-id="{{item.id}}" 
+            data-feedback="ignored">
+            <text class="feedback-icon">⏭</text>
+            <text class="feedback-text">忽略</text>
+          </button>
+        </view>
+      </view>
     </view>
     
     <!-- 重新匹配按钮（列表末尾） -->

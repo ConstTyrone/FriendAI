@@ -698,3 +698,130 @@
 .theme-dark .loading-text {
   color: #999999;
 }
+
+/* ===== 反馈按钮样式 ===== */
+.feedback-section {
+  padding: var(--spacing-md);
+  border-top: 1rpx solid var(--border-color);
+  background: var(--card-background);
+}
+
+.feedback-label {
+  font-size: 24rpx;
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-sm);
+  display: block;
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: space-between;
+}
+
+.feedback-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  background: var(--background-color);
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+  font-size: 0;
+  line-height: 1;
+}
+
+.feedback-btn .feedback-icon {
+  font-size: 32rpx;
+  line-height: 1;
+  display: block;
+}
+
+.feedback-btn .feedback-text {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.feedback-btn:active {
+  transform: scale(0.95);
+}
+
+/* 反馈按钮状态 */
+.feedback-btn.positive.active {
+  background: rgba(6, 174, 86, 0.1);
+  border-color: var(--primary-green);
+}
+
+.feedback-btn.positive.active .feedback-text {
+  color: var(--primary-green);
+}
+
+.feedback-btn.negative.active {
+  background: rgba(255, 77, 79, 0.1);
+  border-color: #ff4d4f;
+}
+
+.feedback-btn.negative.active .feedback-text {
+  color: #ff4d4f;
+}
+
+.feedback-btn.ignored.active {
+  background: rgba(153, 153, 153, 0.1);
+  border-color: #999999;
+}
+
+.feedback-btn.ignored.active .feedback-text {
+  color: #999999;
+}
+
+/* 深色模式反馈按钮 */
+.theme-dark .feedback-section {
+  background: #2d2d2d;
+  border-top-color: #3a3a3a;
+}
+
+.theme-dark .feedback-label {
+  color: #999999;
+}
+
+.theme-dark .feedback-btn {
+  background: #252525;
+  border-color: #3a3a3a;
+}
+
+.theme-dark .feedback-btn .feedback-text {
+  color: #999999;
+}
+
+.theme-dark .feedback-btn.positive.active {
+  background: rgba(6, 174, 86, 0.15);
+  border-color: #06ae56;
+}
+
+.theme-dark .feedback-btn.positive.active .feedback-text {
+  color: #06ae56;
+}
+
+.theme-dark .feedback-btn.negative.active {
+  background: rgba(255, 77, 79, 0.15);
+  border-color: #ff4d4f;
+}
+
+.theme-dark .feedback-btn.negative.active .feedback-text {
+  color: #ff4d4f;
+}
+
+.theme-dark .feedback-btn.ignored.active {
+  background: rgba(153, 153, 153, 0.15);
+  border-color: #999999;
+}
+
+.theme-dark .feedback-btn.ignored.active .feedback-text {
+  color: #999999;
+}

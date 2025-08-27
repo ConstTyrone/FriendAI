@@ -2287,6 +2287,122 @@ async def get_matches(
             detail=f"获取匹配结果失败: {str(e)}"
         )
 
+@app.put("/api/matches/{match_id}/feedback")
+async def update_match_feedback(
+    match_id: int,
+    feedback_data: dict,
+    current_user: str = Depends(verify_user_token)
+):
+    """更新匹配结果的用户反馈"""
+    try:
+        import json
+        import sqlite3
+        from datetime import datetime
+        
+        # 获取用户ID
+        query_user_id = get_query_user_id(current_user)
+        
+        # 验证反馈值
+        feedback_value = feedback_data.get("feedback")
+        if feedback_value not in ["positive", "negative", "ignored", None]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="反馈值必须是: positive, negative, ignored 或 null"
+            )
+        
+        # 连接数据库
+        conn = sqlite3.connect(db.db_path)
+        cursor = conn.cursor()
+        
+        # 验证匹配记录属于该用户
+        cursor.execute("""
+            SELECT m.*, i.user_id, i.name as intent_name, i.conditions
+            FROM intent_matches m
+            JOIN user_intents i ON m.intent_id = i.id
+            WHERE m.id = ? AND i.user_id = ?
+        """, (match_id, query_user_id))
+        
+        match_row = cursor.fetchone()
+        if not match_row:
+            conn.close()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="匹配记录不存在"
+            )
+        
+        # 获取匹配记录详情
+        columns = [desc[0] for desc in cursor.description]
+        match_data = dict(zip(columns, match_row))
+        
+        # 获取旧反馈值
+        old_feedback = match_data.get('user_feedback')
+        
+        # 更新反馈
+        cursor.execute("""
+            UPDATE intent_matches
+            SET user_feedback = ?, feedback_time = ?
+            WHERE id = ?
+        """, (feedback_value, datetime.now().isoformat(), match_id))
+        
+        conn.commit()
+        
+        # 记录到数据分析系统
+        try:
+            from src.services.scoring_analytics import scoring_analytics
+            
+            # 准备评分事件数据
+            scoring_event = {
+                "user_id": query_user_id,
+                "intent_id": match_data['intent_id'],
+                "profile_id": match_data['profile_id'],
+                "match_score": match_data['match_score'],
+                "score_details": json.loads(match_data.get('score_details', '{}')),
+                "user_feedback": feedback_value,
+                "old_feedback": old_feedback,
+                "intent_name": match_data['intent_name'],
+                "conditions": json.loads(match_data.get('conditions', '{}')),
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # 记录评分事件
+            await scoring_analytics.record_scoring_event(scoring_event)
+            
+            # 如果积累了足够反馈，触发校准
+            feedback_count = await scoring_analytics.get_user_feedback_count(query_user_id)
+            if feedback_count >= 10 and feedback_count % 5 == 0:  # 每5个反馈触发一次校准
+                calibration_params = await scoring_analytics.calculate_calibration(query_user_id)
+                if calibration_params:
+                    logger.info(f"用户 {query_user_id} 触发自动校准: {calibration_params}")
+                    # 这里可以自动应用校准参数
+                    from src.config.scoring_config import scoring_config_manager
+                    scoring_config_manager.update_config({
+                        'calibration': calibration_params
+                    })
+        except Exception as e:
+            # 分析系统错误不影响反馈更新
+            logger.warning(f"记录到分析系统失败: {e}")
+        
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": f"反馈已更新为: {feedback_value or '无'}",
+            "data": {
+                "matchId": match_id,
+                "feedback": feedback_value,
+                "oldFeedback": old_feedback
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新反馈失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"更新反馈失败: {str(e)}"
+        )
+
 # ========== AI增强功能API ==========
 
 @app.post("/api/ai/vectorize-intent/{intent_id}")

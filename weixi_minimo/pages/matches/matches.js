@@ -328,6 +328,96 @@ Page({
   },
 
   /**
+   * 提交反馈
+   */
+  async submitFeedback(e) {
+    const { matchId, feedback } = e.currentTarget.dataset;
+    
+    if (!matchId) {
+      wx.showToast({
+        title: '无效的匹配ID',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 获取当前匹配项的旧反馈
+    const matchIndex = this.data.matches.findIndex(item => item.id === matchId);
+    if (matchIndex === -1) {
+      wx.showToast({
+        title: '找不到匹配项',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const oldFeedback = this.data.matches[matchIndex].user_feedback;
+
+    // 如果点击相同的反馈，则取消反馈
+    const newFeedback = oldFeedback === feedback ? null : feedback;
+
+    // 立即更新UI，提供即时反馈
+    const updatedMatches = [...this.data.matches];
+    updatedMatches[matchIndex].user_feedback = newFeedback;
+    this.setData({ matches: updatedMatches });
+
+    try {
+      // 调用API更新反馈
+      const result = await apiClient.request({
+        url: `/matches/${matchId}/feedback`,
+        method: 'PUT',
+        data: {
+          feedback: newFeedback
+        }
+      });
+
+      if (result.success) {
+        // 显示轻量级反馈提示
+        const message = newFeedback ? 
+          (newFeedback === 'positive' ? '👍 已标记为好匹配' :
+           newFeedback === 'negative' ? '👎 已标记为不准确' :
+           '⏭ 已忽略') :
+          '已取消反馈';
+          
+        wx.showToast({
+          title: message,
+          icon: 'none',
+          duration: 1500
+        });
+
+        // 记录分析事件
+        console.log('反馈提交成功:', {
+          matchId,
+          oldFeedback,
+          newFeedback,
+          userId: authManager.getUserInfo()?.openid
+        });
+      } else {
+        // 如果失败，恢复原状态
+        updatedMatches[matchIndex].user_feedback = oldFeedback;
+        this.setData({ matches: updatedMatches });
+        
+        wx.showToast({
+          title: result.message || '反馈提交失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      console.error('提交反馈失败:', error);
+      
+      // 恢复原状态
+      const revertMatches = [...this.data.matches];
+      revertMatches[matchIndex].user_feedback = oldFeedback;
+      this.setData({ matches: revertMatches });
+      
+      wx.showToast({
+        title: '网络错误，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
    * 返回
    */
   onBack() {
