@@ -2351,16 +2351,35 @@ async def update_match_feedback(
             from src.services.scoring_analytics import scoring_analytics
             
             # 准备评分事件数据
+            # 安全地解析JSON字段
+            score_details = match_data.get('score_details')
+            if score_details and isinstance(score_details, str):
+                try:
+                    score_details = json.loads(score_details)
+                except:
+                    score_details = {}
+            else:
+                score_details = {}
+                
+            conditions = match_data.get('conditions')
+            if conditions and isinstance(conditions, str):
+                try:
+                    conditions = json.loads(conditions)
+                except:
+                    conditions = {}
+            else:
+                conditions = {}
+            
             scoring_event = {
                 "user_id": query_user_id,
                 "intent_id": match_data['intent_id'],
                 "profile_id": match_data['profile_id'],
-                "match_score": match_data['match_score'],
-                "score_details": json.loads(match_data.get('score_details', '{}')),
+                "match_score": match_data.get('match_score', 0),
+                "score_details": score_details,
                 "user_feedback": feedback_value,
                 "old_feedback": old_feedback,
-                "intent_name": match_data['intent_name'],
-                "conditions": json.loads(match_data.get('conditions', '{}')),
+                "intent_name": match_data.get('intent_name', ''),
+                "conditions": conditions,
                 "timestamp": datetime.now().isoformat()
             }
             
