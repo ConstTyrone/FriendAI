@@ -61,12 +61,12 @@ class ScoringRecord:
 class ScoringAnalytics:
     """评分分析服务"""
     
-    def __init__(self, db_path: str = "scoring_analytics.db"):
+    def __init__(self, db_path: str = "user_profiles.db"):
         """
         初始化评分分析服务
         
         Args:
-            db_path: 数据库路径
+            db_path: 数据库路径（默认使用主数据库）
         """
         self.db_path = db_path
         self._init_database()
