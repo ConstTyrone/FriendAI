@@ -2337,12 +2337,12 @@ async def update_match_feedback(
         # 获取旧反馈值
         old_feedback = match_data.get('user_feedback')
         
-        # 更新反馈
+        # 更新反馈（使用已有的feedback_at列）
         cursor.execute("""
             UPDATE intent_matches
-            SET user_feedback = ?, feedback_time = ?
+            SET user_feedback = ?, feedback_at = ?
             WHERE id = ?
-        """, (feedback_value, datetime.now().isoformat(), match_id))
+        """, (feedback_value, datetime.now().isoformat() if feedback_value else None, match_id))
         
         conn.commit()
         
