@@ -103,12 +103,24 @@ class ScoringAnalytics:
                     prompt_tokens INTEGER DEFAULT 0,
                     response_tokens INTEGER DEFAULT 0,
                     created_at TEXT NOT NULL,
-                    updated_at TEXT,
-                    
-                    INDEX idx_user_intent (user_id, intent_id),
-                    INDEX idx_feedback (user_feedback),
-                    INDEX idx_created (created_at)
+                    updated_at TEXT
                 )
+            """)
+            
+            # 创建索引
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_user_intent 
+                ON scoring_records (user_id, intent_id)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_feedback 
+                ON scoring_records (user_feedback)
+            """)
+            
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_created 
+                ON scoring_records (created_at)
             """)
             
             # 创建A/B测试表

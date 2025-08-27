@@ -364,7 +364,7 @@ Page({
     try {
       // 调用API更新反馈
       const result = await apiClient.request({
-        url: `/matches/${matchId}/feedback`,
+        url: `/api/matches/${matchId}/feedback`,
         method: 'PUT',
         data: {
           feedback: newFeedback
