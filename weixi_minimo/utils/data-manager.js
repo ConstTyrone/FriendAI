@@ -1654,7 +1654,7 @@ class DataManager {
       message: 'Mock关系详情数据',
       data: mockRelationshipDetail
     };
-  },
+  }
 
   /**
    * 获取Mock模式的关系数据
