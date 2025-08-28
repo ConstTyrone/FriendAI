@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   background: var(--td-bg-color-page);
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
 }
 
 /* 页面头部样式 */
@@ -17,8 +19,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24rpx;
+  padding: 20rpx 24rpx;
   height: 88rpx;
+  padding-top: 40rpx; /* 增加顶部边距 */
 }
 
 .header-left {

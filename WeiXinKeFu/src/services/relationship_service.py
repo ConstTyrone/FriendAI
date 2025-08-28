@@ -438,6 +438,45 @@ class RelationshipService:
             logger.error(f"获取联系人关系失败: {e}")
             return []
     
+    def get_all_relationships(self, user_id: str) -> List[Dict]:
+        """
+        获取用户的所有关系
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            关系列表
+        """
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT * FROM relationships
+                    WHERE user_id = ? 
+                    AND status != 'deleted'
+                    ORDER BY confidence_score DESC, created_at DESC
+                """, (user_id,))
+                
+                relationships = []
+                for row in cursor.fetchall():
+                    rel = dict(row)
+                    # 解析JSON字段
+                    if rel.get('evidence'):
+                        try:
+                            rel['evidence'] = json.loads(rel['evidence'])
+                        except:
+                            rel['evidence'] = {}
+                            
+                    relationships.append(rel)
+                    
+                return relationships
+                
+        except Exception as e:
+            logger.error(f"获取所有关系失败: {e}")
+            return []
+    
     def confirm_relationship(self, user_id: str, relationship_id: int, confirmed: bool = True) -> bool:
         """
         确认或否认一个关系

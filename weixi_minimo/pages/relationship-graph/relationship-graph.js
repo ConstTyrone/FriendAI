@@ -139,7 +139,7 @@ Page({
       
       return new Promise((resolve) => {
         wx.request({
-          url: 'https://weixin.dataelem.com/api/contacts',
+          url: 'https://weixin.dataelem.com/api/profiles',
           method: 'GET',
           header: {
             'Authorization': `Bearer ${token}`,
@@ -147,18 +147,18 @@ Page({
           },
           data: {
             page: 1,
-            pageSize: 1000
+            page_size: 1000
           },
           success: (res) => {
             console.log('联系人API响应:', res);
             
             if (res.statusCode === 200 && res.data && res.data.success) {
-              const profiles = (res.data.contacts || []).map(contact => ({
-                id: contact.id,
-                name: contact.profile_name || contact.name || '未知',
-                company: contact.company || '',
-                position: contact.position || '',
-                avatar: contact.avatar || ''
+              const profiles = (res.data.profiles || res.data.contacts || []).map(profile => ({
+                id: profile.id,
+                name: profile.profile_name || profile.name || '未知',
+                company: profile.basic_info?.company || profile.company || '',
+                position: profile.basic_info?.position || profile.position || '',
+                avatar: profile.avatar || ''
               }));
               
               console.log('处理后的联系人数据:', profiles);

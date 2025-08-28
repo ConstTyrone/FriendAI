@@ -2931,6 +2931,34 @@ async def get_relationships_stats(
         )
 
 
+@app.get("/api/relationships")
+async def get_all_relationships(
+    current_user: str = Depends(verify_user_token)
+):
+    """获取用户的所有关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取所有关系
+        relationships = relationship_service.get_all_relationships(query_user_id)
+        
+        return {
+            "success": True,
+            "relationships": relationships,
+            "total": len(relationships)
+        }
+        
+    except Exception as e:
+        logger.error(f"获取所有关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取所有关系失败: {str(e)}"
+        )
+
+
 @app.post("/api/relationships/{relationship_id}/confirm")
 async def confirm_relationship(
     relationship_id: int,
