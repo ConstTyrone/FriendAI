@@ -53,6 +53,13 @@ class ThemeManager {
   }
 
   /**
+   * 获取当前主题（别名方法）
+   */
+  getCurrentTheme() {
+    return this.currentTheme;
+  }
+
+  /**
    * 设置主题
    */
   setTheme(theme) {

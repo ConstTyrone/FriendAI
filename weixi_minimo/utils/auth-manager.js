@@ -177,6 +177,13 @@ class AuthManager {
   }
 
   /**
+   * 检查登录状态（别名方法）
+   */
+  checkLoginStatus() {
+    return this.isLoggedIn();
+  }
+
+  /**
    * 获取当前用户信息
    */
   getCurrentUser() {

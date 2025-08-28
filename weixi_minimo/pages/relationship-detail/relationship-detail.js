@@ -139,11 +139,14 @@ Page({
    * 处理关系数据
    */
   processRelationshipData(rawRelationship) {
-    // 提取联系人信息
-    const sourceName = rawRelationship.sourceProfile?.profile_name || '未知联系人';
-    const targetName = rawRelationship.targetProfile?.profile_name || '未知联系人';
-    const sourceCompany = rawRelationship.sourceProfile?.company || '未知公司';
-    const targetCompany = rawRelationship.targetProfile?.company || '未知公司';
+    // 提取联系人信息，添加防护措施
+    const sourceProfile = rawRelationship.sourceProfile || rawRelationship.source_profile || {};
+    const targetProfile = rawRelationship.targetProfile || rawRelationship.target_profile || {};
+    
+    const sourceName = sourceProfile.profile_name || sourceProfile.name || rawRelationship.source_profile_name || '未知联系人';
+    const targetName = targetProfile.profile_name || targetProfile.name || rawRelationship.target_profile_name || '未知联系人';
+    const sourceCompany = sourceProfile.company || '未知公司';
+    const targetCompany = targetProfile.company || '未知公司';
     
     // 生成首字母
     const sourceInitial = this.getNameInitial(sourceName);
