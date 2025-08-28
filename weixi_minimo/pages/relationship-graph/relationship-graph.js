@@ -97,10 +97,19 @@ Page({
         this.loadRelationships()
       ]);
       
-      // 如果有关系数据则过滤，否则显示所有联系人
-      const profilesWithRelationships = relationships.length > 0 
-        ? this.filterProfilesWithRelationships(profiles, relationships)
-        : profiles;
+      // 根据是否有中心节点决定显示逻辑
+      let profilesWithRelationships;
+      if (this.data.centerNodeId) {
+        // 有中心节点时：显示中心节点和所有相关联系人
+        profilesWithRelationships = relationships.length > 0 
+          ? this.getRelatedProfiles(profiles, relationships, this.data.centerNodeId)
+          : profiles.filter(p => p.id === this.data.centerNodeId);
+      } else {
+        // 无中心节点时：显示所有有关系的联系人，如果没有关系则显示所有联系人
+        profilesWithRelationships = relationships.length > 0 
+          ? this.filterProfilesWithRelationships(profiles, relationships)
+          : profiles;
+      }
       
       this.setData({
         profiles: profilesWithRelationships,
@@ -199,9 +208,16 @@ Page({
         return [];
       }
       
+      // 如果指定了中心节点ID，获取特定联系人的关系；否则获取所有关系
+      const apiUrl = this.data.centerNodeId 
+        ? `https://weixin.dataelem.com/api/relationships/${this.data.centerNodeId}`
+        : 'https://weixin.dataelem.com/api/relationships';
+      
+      console.log('关系API URL:', apiUrl);
+      
       return new Promise((resolve) => {
         wx.request({
-          url: 'https://weixin.dataelem.com/api/relationships',
+          url: apiUrl,
           method: 'GET',
           header: {
             'Authorization': `Bearer ${token}`,
@@ -223,23 +239,36 @@ Page({
                 status: rel.status || 'discovered',
                 evidence_fields: rel.evidence_fields || '',
                 discovered_at: rel.discovered_at || new Date().toISOString(),
-                updated_at: rel.updated_at || new Date().toISOString()
+                updated_at: rel.updated_at || new Date().toISOString(),
+                // 保存完整的profile信息
+                sourceProfile: rel.sourceProfile,
+                targetProfile: rel.targetProfile
               }));
               
               console.log('处理后的关系数据:', relationships);
               resolve(relationships);
             } else {
               console.warn('关系API响应格式错误:', res.data);
-              // 如果没有关系数据，返回模拟数据用于演示
-              const mockRelationships = this.generateMockRelationships();
-              resolve(mockRelationships);
+              // 如果是特定联系人查询但没有数据，返回空数组
+              if (this.data.centerNodeId) {
+                resolve([]);
+              } else {
+                // 全局查询失败时返回模拟数据用于演示
+                const mockRelationships = this.generateMockRelationships();
+                resolve(mockRelationships);
+              }
             }
           },
           fail: (error) => {
             console.error('关系API请求失败:', error);
-            // 失败时返回模拟数据用于演示
-            const mockRelationships = this.generateMockRelationships();
-            resolve(mockRelationships);
+            // 如果是特定联系人查询失败，返回空数组
+            if (this.data.centerNodeId) {
+              resolve([]);
+            } else {
+              // 全局查询失败时返回模拟数据用于演示
+              const mockRelationships = this.generateMockRelationships();
+              resolve(mockRelationships);
+            }
           }
         });
       });
@@ -300,6 +329,26 @@ Page({
     
     // 过滤联系人
     return profiles.filter(profile => profileIds.has(profile.id));
+  },
+  
+  /**
+   * 获取与中心节点相关的联系人
+   */
+  getRelatedProfiles(profiles, relationships, centerNodeId) {
+    const relatedIds = new Set();
+    relatedIds.add(centerNodeId); // 包含中心节点本身
+    
+    // 收集与中心节点相关的所有联系人ID
+    relationships.forEach(rel => {
+      if (rel.source_profile_id === centerNodeId) {
+        relatedIds.add(rel.target_profile_id);
+      } else if (rel.target_profile_id === centerNodeId) {
+        relatedIds.add(rel.source_profile_id);
+      }
+    });
+    
+    // 过滤联系人
+    return profiles.filter(profile => relatedIds.has(profile.id));
   },
   
   /**
@@ -409,6 +458,8 @@ Page({
     const contact = this.data.profiles.find(p => p.id === contactId);
     if (contact) {
       showToast(`已设置 ${contact.name} 为中心节点`);
+      // 重新加载该节点的关系数据
+      this.loadData();
     }
   },
   
@@ -432,6 +483,8 @@ Page({
     const contact = this.data.profiles.find(p => p.id === centerNodeId);
     if (contact) {
       showToast(`已设置 ${contact.name} 为中心节点`);
+      // 重新加载该节点的关系数据
+      this.loadData();
     }
   },
   
