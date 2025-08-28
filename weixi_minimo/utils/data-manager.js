@@ -695,7 +695,7 @@ class DataManager {
   }
 
   /**
-   * 清除所有缓存
+   * 清除所有缓存（包括关系数据缓存）
    */
   clearCache() {
     this.contacts = [];
@@ -705,10 +705,104 @@ class DataManager {
     this.stats = {};
     this.lastUpdateTime = null;
     
+    // 清除基础缓存
     cacheManager.clear('contacts');
     cacheManager.clear('stats');
     cacheManager.clear('search_history');
     cacheManager.clear('last_update_time');
+    
+    // 清除所有关系相关缓存
+    // 由于关系缓存键包含ID，我们通过clearAll来清除所有关系缓存
+    const stats = cacheManager.getStats();
+    if (stats.memoryItems > 0 || stats.storageItems > 0) {
+      // 获取所有缓存键并清除关系相关的
+      try {
+        const res = wx.getStorageInfoSync();
+        res.keys.forEach(key => {
+          if (key.startsWith('cache_relationships_') || 
+              key.startsWith('cache_relationship_detail_') || 
+              key.startsWith('cache_relationship_stats_')) {
+            wx.removeStorageSync(key);
+          }
+        });
+        console.log('已清除所有关系相关缓存');
+      } catch (error) {
+        console.error('清除关系缓存失败:', error);
+      }
+    }
+  }
+
+  /**
+   * 智能缓存失效策略 - 当联系人更新时清除相关关系缓存
+   * @param {string} contactId - 联系人ID
+   */
+  invalidateRelatedRelationshipCache(contactId) {
+    try {
+      // 清除该联系人的关系缓存
+      cacheManager.clearRelationshipCache(contactId);
+      
+      // 清除可能关联的其他联系人的关系缓存
+      // 这里可以根据具体业务逻辑优化，比如只清除有实际关系的联系人缓存
+      console.log(`已清除联系人 ${contactId} 相关的关系缓存`);
+    } catch (error) {
+      console.error('智能缓存失效失败:', error);
+    }
+  }
+
+  /**
+   * 预加载关系数据
+   * @param {string} contactId - 联系人ID
+   * @param {number} priority - 优先级 (1-10, 10最高)
+   */
+  async preloadRelationshipData(contactId, priority = 5) {
+    try {
+      // 检查是否已有缓存
+      const cached = cacheManager.getRelationships(contactId);
+      if (cached !== null) {
+        console.log(`关系数据已缓存，跳过预加载: ${contactId}`);
+        return;
+      }
+      
+      console.log(`预加载关系数据: ${contactId}, 优先级: ${priority}`);
+      
+      // 异步预加载，不阻塞主流程
+      setTimeout(async () => {
+        try {
+          await this.getContactRelationships(contactId);
+          console.log(`关系数据预加载完成: ${contactId}`);
+        } catch (error) {
+          console.error(`关系数据预加载失败: ${contactId}`, error);
+        }
+      }, priority > 7 ? 0 : 1000); // 高优先级立即执行，否则延迟1秒
+      
+    } catch (error) {
+      console.error('预加载关系数据失败:', error);
+    }
+  }
+
+  /**
+   * 批量预加载关系数据
+   * @param {Array} contactIds - 联系人ID数组
+   */
+  async batchPreloadRelationshipData(contactIds) {
+    console.log(`批量预加载关系数据: ${contactIds.length} 个联系人`);
+    
+    const promises = contactIds.map((contactId, index) => {
+      // 分批执行，避免同时发起太多请求
+      const delay = Math.floor(index / 3) * 500; // 每3个一批，间隔500ms
+      return new Promise(resolve => {
+        setTimeout(() => {
+          this.preloadRelationshipData(contactId, 3).finally(resolve);
+        }, delay);
+      });
+    });
+    
+    try {
+      await Promise.all(promises);
+      console.log('批量预加载完成');
+    } catch (error) {
+      console.error('批量预加载失败:', error);
+    }
   }
 
   /**
@@ -829,6 +923,9 @@ class DataManager {
             this.contactsMap.set(profileId, result.profile);
           }
         }
+        
+        // 智能缓存失效 - 清除相关关系缓存
+        this.invalidateRelatedRelationshipCache(profileId);
         
         // 清除缓存，强制下次重新加载
         this.clearCache();
@@ -1207,25 +1304,49 @@ class DataManager {
   // ============ 关系管理相关方法 ============
   
   /**
-   * 获取联系人的关系列表
-   * @param {number} contactId - 联系人ID
+   * 获取联系人关系（优化版本 - 支持智能缓存）
+   * @param {string} contactId - 联系人ID
+   * @param {boolean} forceRefresh - 是否强制刷新
    * @returns {Promise<Object>} API响应
    */
-  async getContactRelationships(contactId) {
+  async getContactRelationships(contactId, forceRefresh = false) {
     try {
-      console.log('获取联系人关系:', contactId);
+      console.log('获取联系人关系:', contactId, forceRefresh ? '(强制刷新)' : '');
       
       // Mock模式下返回模拟数据
       if (this.isMockMode) {
         return this.getMockRelationships(contactId);
       }
       
+      // 如果不是强制刷新，先检查缓存
+      if (!forceRefresh) {
+        const cachedData = cacheManager.getRelationships(contactId);
+        if (cachedData !== null) {
+          console.log('使用缓存的关系数据:', contactId);
+          return cachedData;
+        }
+      }
+      
+      // 从API获取数据
       const response = await apiClient.get(`/api/relationships/${contactId}`);
-      console.log('获取关系数据成功:', response);
+      console.log('从API获取关系数据成功:', response);
+      
+      // 缓存数据
+      if (response && response.success) {
+        cacheManager.setRelationships(contactId, response);
+        console.log('关系数据已缓存');
+      }
       
       return response;
     } catch (error) {
       console.error('获取关系数据失败:', error);
+      
+      // 先尝试使用过期的缓存数据
+      const expiredCachedData = cacheManager.getRelationships(contactId);
+      if (expiredCachedData !== null) {
+        console.log('使用过期缓存的关系数据（降级策略）');
+        return expiredCachedData;
+      }
       
       // 网络错误时返回模拟数据
       if (error.message.includes('网络') || error.message.includes('Network')) {
@@ -1258,6 +1379,9 @@ class DataManager {
       const response = await apiClient.post(`/api/relationships/${relationshipId}/confirm`);
       console.log('确认关系成功:', response);
       
+      // 清除相关缓存
+      cacheManager.clearRelationshipDetailCache(relationshipId);
+      
       // 通知监听器
       this.notifyListeners('relationship_confirmed', { relationshipId });
       
@@ -1288,6 +1412,9 @@ class DataManager {
       
       const response = await apiClient.post(`/api/relationships/${relationshipId}/ignore`);
       console.log('忽略关系成功:', response);
+      
+      // 清除相关缓存
+      cacheManager.clearRelationshipDetailCache(relationshipId);
       
       // 通知监听器
       this.notifyListeners('relationship_ignored', { relationshipId });
@@ -1325,6 +1452,9 @@ class DataManager {
       });
       console.log('批量确认成功:', response);
       
+      // 批量清除相关缓存
+      cacheManager.batchClearRelationshipCache(relationshipIds);
+      
       // 通知监听器
       this.notifyListeners('relationships_batch_confirmed', { relationshipIds });
       
@@ -1361,6 +1491,9 @@ class DataManager {
       });
       console.log('批量忽略成功:', response);
       
+      // 批量清除相关缓存
+      cacheManager.batchClearRelationshipCache(relationshipIds);
+      
       // 通知监听器
       this.notifyListeners('relationships_batch_ignored', { relationshipIds });
       
@@ -1395,6 +1528,9 @@ class DataManager {
       const response = await apiClient.post(`/api/relationships/${contactId}/reanalyze`);
       console.log('重新分析成功:', response);
       
+      // 清除该联系人的关系缓存，强制重新获取
+      cacheManager.clearRelationshipCache(contactId);
+      
       // 通知监听器
       this.notifyListeners('relationships_reanalyzed', { contactId });
       
@@ -1406,25 +1542,49 @@ class DataManager {
   }
   
   /**
-   * 获取关系详情
-   * @param {number} relationshipId - 关系ID
+   * 获取关系详情（优化版本 - 支持智能缓存）
+   * @param {string} relationshipId - 关系ID
+   * @param {boolean} forceRefresh - 是否强制刷新
    * @returns {Promise<Object>} API响应
    */
-  async getRelationshipDetail(relationshipId) {
+  async getRelationshipDetail(relationshipId, forceRefresh = false) {
     try {
-      console.log('获取关系详情:', relationshipId);
+      console.log('获取关系详情:', relationshipId, forceRefresh ? '(强制刷新)' : '');
       
       // Mock模式下返回模拟数据
       if (this.isMockMode) {
         return this.getMockRelationshipDetail(relationshipId);
       }
       
+      // 如果不是强制刷新，先检查缓存
+      if (!forceRefresh) {
+        const cachedData = cacheManager.getRelationshipDetail(relationshipId);
+        if (cachedData !== null) {
+          console.log('使用缓存的关系详情数据:', relationshipId);
+          return cachedData;
+        }
+      }
+      
+      // 从API获取数据
       const response = await apiClient.get(`/api/relationships/detail/${relationshipId}`);
-      console.log('获取关系详情成功:', response);
+      console.log('从API获取关系详情成功:', response);
+      
+      // 缓存数据
+      if (response && response.success) {
+        cacheManager.setRelationshipDetail(relationshipId, response);
+        console.log('关系详情数据已缓存');
+      }
       
       return response;
     } catch (error) {
       console.error('获取关系详情失败:', error);
+      
+      // 先尝试使用过期的缓存数据
+      const expiredCachedData = cacheManager.getRelationshipDetail(relationshipId);
+      if (expiredCachedData !== null) {
+        console.log('使用过期缓存的关系详情（降级策略）');
+        return expiredCachedData;
+      }
       
       // 网络错误时返回模拟数据
       if (error.message.includes('网络') || error.message.includes('Network')) {

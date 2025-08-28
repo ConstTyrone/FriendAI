@@ -38,11 +38,14 @@ export const UI_CONFIG = {
   CACHE_EXPIRE_TIME: 30 * 60 * 1000, // 30分钟基础缓存
   // 分级缓存配置
   CACHE_LEVELS: {
-    CONTACT_LIST: 30 * 60 * 1000,    // 联系人列表30分钟
-    CONTACT_DETAIL: 15 * 60 * 1000,  // 联系人详情15分钟
-    SEARCH_RESULT: 10 * 60 * 1000,   // 搜索结果10分钟
-    STATS: 5 * 60 * 1000,             // 统计信息5分钟
-    USER_INFO: 24 * 60 * 60 * 1000   // 用户信息24小时
+    CONTACT_LIST: 30 * 60 * 1000,           // 联系人列表30分钟
+    CONTACT_DETAIL: 15 * 60 * 1000,         // 联系人详情15分钟
+    SEARCH_RESULT: 10 * 60 * 1000,          // 搜索结果10分钟
+    STATS: 5 * 60 * 1000,                   // 统计信息5分钟
+    USER_INFO: 24 * 60 * 60 * 1000,         // 用户信息24小时
+    RELATIONSHIPS: 20 * 60 * 1000,          // 关系数据20分钟
+    RELATIONSHIP_DETAIL: 15 * 60 * 1000,    // 关系详情15分钟
+    RELATIONSHIP_STATS: 10 * 60 * 1000      // 关系统计10分钟
   },
   AUTO_REFRESH_INTERVAL: 30 * 1000, // 30秒
   // 企微客服配置

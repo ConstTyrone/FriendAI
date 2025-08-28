@@ -89,6 +89,63 @@
       </view>
     </view>
 
+    <!-- 关系信息 -->
+    <view class="info-section relationship-section">
+      <view class="section-header" bind:tap="onViewAllRelationships">
+        <text class="section-title">关系发现</text>
+        <view class="section-action">
+          <text class="action-text" wx:if="{{relationshipStats.total > 0}}">查看全部 ({{relationshipStats.total}})</text>
+          <text class="action-text" wx:else>暂无关系</text>
+          <text class="action-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 关系统计 -->
+      <view class="relationship-stats" wx:if="{{relationshipStats.total > 0}}">
+        <view class="stat-item">
+          <text class="stat-number">{{relationshipStats.confirmed}}</text>
+          <text class="stat-label">已确认</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{relationshipStats.discovered}}</text>
+          <text class="stat-label">待确认</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{relationshipStats.total}}</text>
+          <text class="stat-label">总关系</text>
+        </view>
+      </view>
+
+      <!-- 关系预览 -->
+      <view class="relationship-preview" wx:if="{{recentRelationships.length > 0}}">
+        <view wx:for="{{recentRelationships}}" wx:key="id" class="relationship-preview-item" bind:tap="onViewRelationshipDetail" data-relationship-id="{{item.id}}">
+          <view class="preview-avatar">
+            <text class="preview-avatar-text">{{item.otherInitial}}</text>
+          </view>
+          <view class="preview-info">
+            <text class="preview-name">{{item.otherName}}</text>
+            <text class="preview-relation">{{item.relationshipLabel}}</text>
+          </view>
+          <view class="preview-status {{item.status}}">
+            <text class="status-text">{{item.statusLabel}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="relationship-empty" wx:if="{{relationshipStats.total === 0}}">
+        <view class="empty-icon">
+          <text class="icon-text">🔗</text>
+        </view>
+        <text class="empty-desc">暂未发现相关关系，系统会持续分析</text>
+        <view class="empty-action" bind:tap="onAnalyzeRelationships">
+          <text class="action-text">立即分析</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 时间信息 -->
     <view class="time-info">
       <text class="time-text">创建于 {{formatDate(contactInfo.created_at)}}</text>
@@ -98,6 +155,12 @@
 
   <!-- 底部操作栏 -->
   <view class="bottom-bar" wx:if="{{contactInfo && !loading && !error}}">
+    <view class="bar-button" bind:tap="onViewAllRelationships">
+      <text class="bar-text">关系</text>
+      <view class="button-badge" wx:if="{{relationshipStats.discovered > 0}}">
+        <text class="badge-text">{{relationshipStats.discovered}}</text>
+      </view>
+    </view>
     <view class="bar-button" bind:tap="onEditContact">
       <text class="bar-text">编辑</text>
     </view>

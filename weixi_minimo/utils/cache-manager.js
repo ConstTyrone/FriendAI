@@ -120,6 +120,12 @@ class CacheManager {
         return UI_CONFIG.CACHE_LEVELS?.STATS || 60 * 60 * 1000;
       case 'USER_INFO':
         return UI_CONFIG.CACHE_LEVELS?.USER_INFO || 24 * 60 * 60 * 1000;
+      case 'RELATIONSHIPS':
+        return UI_CONFIG.CACHE_LEVELS?.RELATIONSHIPS || 20 * 60 * 1000;
+      case 'RELATIONSHIP_DETAIL':
+        return UI_CONFIG.CACHE_LEVELS?.RELATIONSHIP_DETAIL || 15 * 60 * 1000;
+      case 'RELATIONSHIP_STATS':
+        return UI_CONFIG.CACHE_LEVELS?.RELATIONSHIP_STATS || 10 * 60 * 1000;
       default:
         return UI_CONFIG.CACHE_EXPIRE_TIME || 30 * 60 * 1000;
     }
@@ -229,6 +235,114 @@ class CacheManager {
     }
     
     return stats;
+  }
+
+  /**
+   * 关系数据缓存管理方法
+   */
+
+  /**
+   * 生成关系数据缓存键
+   * @param {string} contactId - 联系人ID
+   * @returns {string} 缓存键
+   */
+  getRelationshipsCacheKey(contactId) {
+    return `relationships_${contactId}`;
+  }
+
+  /**
+   * 生成关系详情缓存键
+   * @param {string} relationshipId - 关系ID
+   * @returns {string} 缓存键
+   */
+  getRelationshipDetailCacheKey(relationshipId) {
+    return `relationship_detail_${relationshipId}`;
+  }
+
+  /**
+   * 生成关系统计缓存键
+   * @param {string} contactId - 联系人ID
+   * @returns {string} 缓存键
+   */
+  getRelationshipStatsCacheKey(contactId) {
+    return `relationship_stats_${contactId}`;
+  }
+
+  /**
+   * 设置关系数据缓存
+   * @param {string} contactId - 联系人ID
+   * @param {Object} relationshipsData - 关系数据
+   */
+  setRelationships(contactId, relationshipsData) {
+    const cacheKey = this.getRelationshipsCacheKey(contactId);
+    this.set(cacheKey, relationshipsData, 'RELATIONSHIPS');
+  }
+
+  /**
+   * 获取关系数据缓存
+   * @param {string} contactId - 联系人ID
+   * @returns {Object|null} 关系数据或null
+   */
+  getRelationships(contactId) {
+    const cacheKey = this.getRelationshipsCacheKey(contactId);
+    return this.get(cacheKey, null);
+  }
+
+  /**
+   * 设置关系详情缓存
+   * @param {string} relationshipId - 关系ID
+   * @param {Object} detailData - 关系详情数据
+   */
+  setRelationshipDetail(relationshipId, detailData) {
+    const cacheKey = this.getRelationshipDetailCacheKey(relationshipId);
+    this.set(cacheKey, detailData, 'RELATIONSHIP_DETAIL');
+  }
+
+  /**
+   * 获取关系详情缓存
+   * @param {string} relationshipId - 关系ID
+   * @returns {Object|null} 关系详情数据或null
+   */
+  getRelationshipDetail(relationshipId) {
+    const cacheKey = this.getRelationshipDetailCacheKey(relationshipId);
+    return this.get(cacheKey, null);
+  }
+
+  /**
+   * 清除联系人的所有关系缓存
+   * @param {string} contactId - 联系人ID
+   */
+  clearRelationshipCache(contactId) {
+    const relationshipsKey = this.getRelationshipsCacheKey(contactId);
+    const statsKey = this.getRelationshipStatsCacheKey(contactId);
+    
+    this.clear(relationshipsKey);
+    this.clear(statsKey);
+    
+    console.log(`已清除联系人 ${contactId} 的关系缓存`);
+  }
+
+  /**
+   * 清除特定关系的详情缓存
+   * @param {string} relationshipId - 关系ID
+   */
+  clearRelationshipDetailCache(relationshipId) {
+    const detailKey = this.getRelationshipDetailCacheKey(relationshipId);
+    this.clear(detailKey);
+    
+    console.log(`已清除关系 ${relationshipId} 的详情缓存`);
+  }
+
+  /**
+   * 批量清除关系缓存
+   * @param {Array} relationshipIds - 关系ID数组
+   */
+  batchClearRelationshipCache(relationshipIds) {
+    relationshipIds.forEach(id => {
+      this.clearRelationshipDetailCache(id);
+    });
+    
+    console.log(`批量清除了 ${relationshipIds.length} 个关系的缓存`);
   }
 
   /**

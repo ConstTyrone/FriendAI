@@ -25,7 +25,16 @@ Page({
     actionLoading: false,
     
     // 信息来源展开状态
-    showSourceMessages: false
+    showSourceMessages: false,
+    
+    // 关系相关数据
+    relationshipStats: {
+      total: 0,
+      confirmed: 0,
+      discovered: 0
+    },
+    recentRelationships: [], // 最近关系预览（最多显示3个）
+    relationshipsLoading: false
   },
 
   onLoad(options) {
@@ -128,8 +137,9 @@ Page({
         throw new Error('联系人不存在或已被删除');
       }
       
-      // 同时加载互动记录
+      // 同时加载互动记录和关系数据
       await this.loadInteractions();
+      await this.loadRelationships();
       
       // 调试：打印联系人详情
       console.log('联系人详情数据:', contactInfo);
@@ -511,5 +521,206 @@ Page({
       'video': '视频'
     };
     return typeMap[type] || type || '未知';
+  },
+
+  // ========== 关系相关方法 ==========
+
+  /**
+   * 加载关系数据
+   */
+  async loadRelationships() {
+    try {
+      console.log('开始加载关系数据:', this.data.contactId);
+      
+      this.setData({ relationshipsLoading: true });
+      
+      // 获取关系数据
+      const response = await dataManager.getContactRelationships(this.data.contactId);
+      
+      if (response && response.success && response.data) {
+        const relationships = response.data;
+        console.log('关系数据加载成功:', relationships);
+        
+        // 计算统计信息
+        const stats = {
+          total: relationships.length,
+          confirmed: relationships.filter(rel => rel.status === 'confirmed').length,
+          discovered: relationships.filter(rel => rel.status === 'discovered').length
+        };
+        
+        // 处理关系预览数据（最多显示3个最近的）
+        const recentRelationships = this.processRelationshipsPreview(relationships.slice(0, 3));
+        
+        this.setData({
+          relationshipStats: stats,
+          recentRelationships,
+          relationshipsLoading: false
+        });
+        
+        console.log('关系统计信息:', stats);
+      } else {
+        // 没有关系数据
+        this.setData({
+          relationshipStats: { total: 0, confirmed: 0, discovered: 0 },
+          recentRelationships: [],
+          relationshipsLoading: false
+        });
+      }
+      
+    } catch (error) {
+      console.error('加载关系数据失败:', error);
+      
+      // 设置默认值
+      this.setData({
+        relationshipStats: { total: 0, confirmed: 0, discovered: 0 },
+        recentRelationships: [],
+        relationshipsLoading: false
+      });
+    }
+  },
+
+  /**
+   * 处理关系预览数据
+   */
+  processRelationshipsPreview(relationships) {
+    const currentContactId = this.data.contactId;
+    
+    return relationships.map(rel => {
+      // 确定对方是谁
+      const isSource = rel.source_profile_id == currentContactId;
+      const otherProfile = isSource ? rel.targetProfile : rel.sourceProfile;
+      const otherName = otherProfile?.profile_name || '未知联系人';
+      
+      // 生成头像首字母
+      const otherInitial = this.getAvatarText(otherName);
+      
+      // 格式化关系类型
+      const relationshipLabel = this.formatRelationshipType(rel.relationship_type);
+      
+      // 格式化状态
+      const statusLabel = this.formatRelationshipStatus(rel.status);
+      
+      return {
+        id: rel.id,
+        otherName,
+        otherInitial,
+        relationshipLabel,
+        status: rel.status,
+        statusLabel,
+        confidenceScore: rel.confidence_score
+      };
+    });
+  },
+
+  /**
+   * 格式化关系类型
+   */
+  formatRelationshipType(type) {
+    const typeMap = {
+      'colleague': '同事',
+      'same_location': '同地区',
+      'alumni': '校友',
+      'same_industry': '同行',
+      'investor': '投资人',
+      'client': '客户',
+      'partner': '合作伙伴',
+      'competitor': '竞争对手',
+      'friend': '朋友'
+    };
+    return typeMap[type] || '相关联系人';
+  },
+
+  /**
+   * 格式化关系状态
+   */
+  formatRelationshipStatus(status) {
+    const statusMap = {
+      'discovered': '待确认',
+      'confirmed': '已确认',
+      'ignored': '已忽略'
+    };
+    return statusMap[status] || status;
+  },
+
+  /**
+   * 查看所有关系
+   */
+  onViewAllRelationships() {
+    console.log('查看所有关系，联系人ID:', this.data.contactId);
+    
+    const { contactInfo } = this.data;
+    const contactName = contactInfo?.profile_name || contactInfo?.name || '联系人';
+    
+    wx.navigateTo({
+      url: `/pages/relationship-list/relationship-list?contactId=${this.data.contactId}&contactName=${encodeURIComponent(contactName)}`
+    });
+  },
+
+  /**
+   * 查看关系详情
+   */
+  onViewRelationshipDetail(e) {
+    const { relationshipId } = e.currentTarget.dataset;
+    console.log('查看关系详情，关系ID:', relationshipId);
+    
+    wx.navigateTo({
+      url: `/pages/relationship-detail/relationship-detail?relationshipId=${relationshipId}`
+    });
+  },
+
+  /**
+   * 立即分析关系
+   */
+  async onAnalyzeRelationships() {
+    console.log('立即分析关系');
+    
+    wx.showLoading({
+      title: '正在分析...',
+      mask: true
+    });
+    
+    try {
+      // 调用关系重新分析API
+      const response = await dataManager.reanalyzeContactRelationships(this.data.contactId);
+      
+      if (response && response.success) {
+        wx.hideLoading();
+        
+        wx.showToast({
+          title: '分析完成',
+          icon: 'success'
+        });
+        
+        // 重新加载关系数据
+        await this.loadRelationships();
+        
+        // 如果发现了新关系，提示用户
+        if (this.data.relationshipStats.total > 0) {
+          setTimeout(() => {
+            wx.showModal({
+              title: '发现关系',
+              content: `发现 ${this.data.relationshipStats.total} 个相关关系，是否查看？`,
+              success: (res) => {
+                if (res.confirm) {
+                  this.onViewAllRelationships();
+                }
+              }
+            });
+          }, 1500);
+        }
+        
+      } else {
+        throw new Error(response?.message || '分析失败');
+      }
+      
+    } catch (error) {
+      wx.hideLoading();
+      console.error('分析关系失败:', error);
+      
+      wx.showToast({
+        title: '分析失败，请重试',
+        icon: 'none'
+      });
+    }
   }
 });
