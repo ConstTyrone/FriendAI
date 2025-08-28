@@ -256,6 +256,27 @@ Component({
      */
     formatConfidence(confidence) {
       return Math.round((confidence || 0) * 100);
+    },
+
+    /**
+     * 生成联系人姓名首字母
+     */
+    generateInitial(name) {
+      if (!name) return '?';
+      
+      const firstChar = name.charAt(0);
+      // 如果是中文，直接返回第一个字符
+      if (/[\u4e00-\u9fa5]/.test(firstChar)) {
+        return firstChar;
+      } 
+      // 如果是英文，返回大写首字母
+      else if (/[a-zA-Z]/.test(firstChar)) {
+        return firstChar.toUpperCase();
+      }
+      // 其他情况返回第一个字符
+      else {
+        return firstChar;
+      }
     }
   },
 
@@ -280,27 +301,6 @@ Component({
           'targetProfile.initial': targetInitial
         });
       }
-    }
-  },
-
-  /**
-   * 辅助方法
-   */
-  generateInitial(name) {
-    if (!name) return '?';
-    
-    const firstChar = name.charAt(0);
-    // 如果是中文，直接返回第一个字符
-    if (/[\u4e00-\u9fa5]/.test(firstChar)) {
-      return firstChar;
-    } 
-    // 如果是英文，返回大写首字母
-    else if (/[a-zA-Z]/.test(firstChar)) {
-      return firstChar.toUpperCase();
-    }
-    // 其他情况返回第一个字符
-    else {
-      return firstChar;
     }
   }
 });
