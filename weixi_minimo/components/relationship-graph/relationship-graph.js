@@ -121,15 +121,25 @@ Component({
      * 处理图谱数据
      */
     processGraphData() {
-      if (!this.data.relationships || !this.data.profiles) {
+      console.log('开始处理图谱数据...');
+      console.log('联系人数量:', this.data.profiles?.length);
+      console.log('关系数量:', this.data.relationships?.length);
+      
+      if (!this.data.profiles || this.data.profiles.length === 0) {
+        console.log('没有联系人数据，停止处理');
         return;
       }
+      
+      // 即使没有关系数据也要显示联系人节点
+      const relationships = this.data.relationships || [];
+      console.log('处理后的关系数据长度:', relationships.length);
       
       this.setData({ loading: true });
       
       // 使用图谱数据处理器处理数据
+      console.log('调用GraphDataProcessor处理数据...');
       const graphData = GraphDataProcessor.processRelationshipData(
-        this.data.relationships,
+        relationships,
         this.data.profiles,
         {
           centerNodeId: this.data.centerNodeId,
@@ -137,6 +147,7 @@ Component({
           minConfidence: this.data.minConfidence
         }
       );
+      console.log('处理后的图谱数据:', graphData);
       
       // 计算布局
       const layoutData = GraphDataProcessor.calculateLayout(
