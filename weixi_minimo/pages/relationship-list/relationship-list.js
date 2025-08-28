@@ -108,7 +108,7 @@ Page({
       const response = await dataManager.getContactRelationships(this.data.contactId);
       
       if (response && response.success) {
-        const relationships = response.data || [];
+        const relationships = response.relationships || [];
         
         // 计算统计信息
         const stats = this.calculateStats(relationships);

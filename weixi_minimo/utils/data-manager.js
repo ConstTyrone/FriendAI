@@ -1754,7 +1754,8 @@ class DataManager {
     return {
       success: true,
       message: 'Mock关系数据',
-      data: mockRelationships
+      relationships: mockRelationships,
+      total: mockRelationships.length
     };
   }
 }
