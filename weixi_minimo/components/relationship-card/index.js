@@ -249,6 +249,13 @@ Component({
      */
     stopPropagation(e) {
       // 阻止事件冒泡
+    },
+
+    /**
+     * 格式化置信度
+     */
+    formatConfidence(confidence) {
+      return Math.round((confidence || 0) * 100);
     }
   },
 

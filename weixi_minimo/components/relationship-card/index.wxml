@@ -27,7 +27,7 @@
     <view class="relationship-meta">
       <view class="relationship-type">
         <text class="type-text">{{formatRelationshipType(relationship.relationship_type)}}</text>
-        <text class="confidence-badge">{{Math.round(relationship.confidence_score * 100)}}%</text>
+        <text class="confidence-badge">{{formatConfidence(relationship.confidence_score)}}%</text>
       </view>
       <view class="relationship-direction" wx:if="{{relationship.relationship_direction !== 'bidirectional'}}">
         <text class="direction-text">{{formatDirection(relationship.relationship_direction)}}</text>

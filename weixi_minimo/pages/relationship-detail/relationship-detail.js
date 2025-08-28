@@ -108,7 +108,7 @@ Page({
       const response = await dataManager.getRelationshipDetail(this.data.relationshipId);
       
       if (response && response.success) {
-        const relationship = response.data;
+        const relationship = response.relationship;
         
         // 处理关系数据
         this.processRelationshipData(relationship);
@@ -139,6 +139,12 @@ Page({
    * 处理关系数据
    */
   processRelationshipData(rawRelationship) {
+    // 数据验证
+    if (!rawRelationship) {
+      console.error('关系数据为空');
+      return;
+    }
+    
     // 提取联系人信息，添加防护措施
     const sourceProfile = rawRelationship.sourceProfile || rawRelationship.source_profile || {};
     const targetProfile = rawRelationship.targetProfile || rawRelationship.target_profile || {};

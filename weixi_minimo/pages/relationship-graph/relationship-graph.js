@@ -121,6 +121,9 @@ Page({
       }
       
       // 从API获取
+      console.log('dataManager对象:', dataManager);
+      console.log('dataManager.getContacts方法:', typeof dataManager.getContacts);
+      
       const response = await dataManager.getContacts({
         page: 1,
         pageSize: 1000 // 获取所有联系人用于图谱分析
