@@ -252,7 +252,7 @@ Component({
     },
 
     /**
-     * 格式化置信度
+     * 格式化置信度（返回数字，不包含百分号）
      */
     formatConfidence(confidence) {
       return Math.round((confidence || 0) * 100);

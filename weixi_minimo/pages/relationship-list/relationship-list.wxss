@@ -10,11 +10,11 @@
   background: var(--td-bg-color-page, #1a1a1a);
 }
 
-/* 页面头部 */
+/* 页面头部 - 优化紧凑布局 */
 .page-header {
   background: var(--td-bg-color-container, #ffffff);
-  padding: 0 32rpx 24rpx;
-  margin-bottom: 24rpx;
+  padding: 0 32rpx 16rpx;
+  margin-bottom: 16rpx;
 }
 
 .page-header.dark {
@@ -51,12 +51,12 @@
   flex: 1;
 }
 
-/* 统计信息 */
+/* 统计信息 - 优化紧凑布局 */
 .stats-section {
   display: flex;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 24rpx;
-  padding: 32rpx;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
   margin-top: 16rpx;
 }
 
@@ -68,24 +68,24 @@
 
 .stat-number {
   display: block;
-  font-size: 48rpx;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 8rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: 4rpx;
 }
 
 .stat-label {
   display: block;
-  font-size: 24rpx;
+  font-size: 22rpx;
   opacity: 0.9;
   font-weight: 400;
 }
 
-/* 筛选和排序区域 */
+/* 筛选和排序区域 - 优化紧凑布局 */
 .filter-section {
   background: var(--td-bg-color-container, #ffffff);
-  padding: 24rpx 32rpx;
-  margin-bottom: 24rpx;
+  padding: 16rpx 32rpx 20rpx;
+  margin-bottom: 16rpx;
 }
 
 .filter-section.dark {
@@ -94,14 +94,14 @@
 
 .filter-tabs {
   display: flex;
-  gap: 16rpx;
-  margin-bottom: 24rpx;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
 }
 
 .filter-tab {
   flex: 1;
-  height: 68rpx;
-  border-radius: 16rpx;
+  height: 56rpx;
+  border-radius: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;

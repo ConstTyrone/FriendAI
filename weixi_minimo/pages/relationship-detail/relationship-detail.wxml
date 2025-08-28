@@ -76,7 +76,7 @@
   </view>
   
   <!-- 关系证据 -->
-  <view class="evidence-section" wx:if="{{relationship && relationship.evidence}}">
+  <view class="evidence-section" wx:if="{{relationship && evidenceList.length > 0}}">
     <view class="section-header">
       <text class="section-title">关系证据</text>
       <text class="section-subtitle">基于以下信息发现此关系</text>

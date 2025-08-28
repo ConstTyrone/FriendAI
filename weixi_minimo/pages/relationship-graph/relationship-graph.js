@@ -76,14 +76,35 @@ Page({
    */
   initPageSize() {
     const systemInfo = wx.getSystemInfoSync();
-    const { windowWidth, windowHeight } = systemInfo;
+    const { windowWidth, windowHeight, safeArea } = systemInfo;
     
-    // 计算图谱画布尺寸（减去头部和边距）
-    const graphHeight = windowHeight - 88 - 40; // 头部高度 + 边距
+    // 计算各个部分的高度
+    const statusBarHeight = systemInfo.statusBarHeight || 0;
+    const headerHeight = 88; // 页面头部高度（rpx转px）
+    const toolbarHeight = this.data.isGlobalMode ? 0 : 50; // 工具栏高度
+    const tabBarHeight = this.data.isGlobalMode ? 98 : 0; // 底部导航栏高度
+    const safeAreaBottom = safeArea ? (windowHeight - safeArea.bottom) : 0;
+    const padding = 32; // 容器边距
+    
+    // 计算图谱可用高度（更精确的计算）
+    const occupiedHeight = statusBarHeight + headerHeight + toolbarHeight + tabBarHeight + safeAreaBottom + padding;
+    const availableHeight = windowHeight - occupiedHeight;
+    
+    // 确保图谱高度合理（至少占用60%的屏幕高度）
+    const minHeight = Math.max(400, windowHeight * 0.6);
+    const graphHeight = Math.max(minHeight, availableHeight);
+    
+    console.log('图谱尺寸计算:', {
+      windowHeight,
+      occupiedHeight,
+      availableHeight,
+      graphHeight,
+      minHeight
+    });
     
     this.setData({
       graphWidth: windowWidth - 32,
-      graphHeight: Math.max(300, graphHeight),
+      graphHeight,
       fullscreenWidth: windowWidth,
       fullscreenHeight: windowHeight
     });

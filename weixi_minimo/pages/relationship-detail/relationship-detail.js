@@ -149,17 +149,17 @@ Page({
     const sourceProfile = rawRelationship.sourceProfile || rawRelationship.source_profile || {};
     const targetProfile = rawRelationship.targetProfile || rawRelationship.target_profile || {};
     
-    const sourceName = sourceProfile.profile_name || sourceProfile.name || rawRelationship.source_profile_name || '未知联系人';
-    const targetName = targetProfile.profile_name || targetProfile.name || rawRelationship.target_profile_name || '未知联系人';
-    const sourceCompany = sourceProfile.company || '未知公司';
-    const targetCompany = targetProfile.company || '未知公司';
+    const sourceName = sourceProfile.profile_name || sourceProfile.name || rawRelationship.source_profile_name || '联系人';
+    const targetName = targetProfile.profile_name || targetProfile.name || rawRelationship.target_profile_name || '联系人';
+    const sourceCompany = sourceProfile.company || '';
+    const targetCompany = targetProfile.company || '';
     
     // 生成首字母
     const sourceInitial = this.getNameInitial(sourceName);
     const targetInitial = this.getNameInitial(targetName);
     
-    // 处理证据数据
-    const evidenceList = this.processEvidence(rawRelationship.evidence);
+    // 处理证据数据（传入关系数据用于生成默认证据）
+    const evidenceList = this.processEvidence(rawRelationship.evidence, rawRelationship);
     
     // 处理AI分析
     const aiAnalysis = rawRelationship.ai_analysis || this.generateDefaultAnalysis(rawRelationship);
@@ -195,39 +195,183 @@ Page({
   /**
    * 处理证据数据
    */
-  processEvidence(evidence) {
-    if (!evidence || typeof evidence !== 'object') return [];
-    
+  processEvidence(evidence, relationship) {
     const evidenceList = [];
-    const { matched_fields = [], field_scores = {}, details = {} } = evidence;
     
-    matched_fields.forEach(field => {
-      evidenceList.push({
-        field,
-        match_score: Math.round((field_scores[field] || 0.5) * 100),
-        source_value: details[`${field}_source`] || '未知',
-        target_value: details[`${field}_target`] || '未知'
+    // 如果有具体的证据数据，使用实际数据
+    if (evidence && typeof evidence === 'object') {
+      const { matched_fields = [], field_scores = {}, details = {} } = evidence;
+      
+      matched_fields.forEach(field => {
+        evidenceList.push({
+          field,
+          match_score: Math.round((field_scores[field] || 0.5) * 100),
+          source_value: details[`${field}_source`] || '未知',
+          target_value: details[`${field}_target`] || '未知'
+        });
       });
-    });
+      
+      if (evidenceList.length > 0) {
+        return evidenceList;
+      }
+    }
     
-    return evidenceList;
+    // 如果没有具体证据，根据关系类型生成默认证据
+    if (relationship) {
+      return this.generateDefaultEvidence(relationship);
+    }
+    
+    return [];
+  },
+  
+  /**
+   * 生成默认证据数据
+   */
+  generateDefaultEvidence(relationship) {
+    const defaultEvidence = [];
+    const relationshipType = relationship.relationship_type || 'unknown';
+    
+    // 根据关系类型生成相应的证据字段
+    switch (relationshipType) {
+      case 'colleague':
+        defaultEvidence.push({
+          field: 'company',
+          match_score: Math.round((relationship.confidence_score || 0.7) * 100),
+          source_value: relationship.sourceCompany || '工作单位',
+          target_value: relationship.targetCompany || '工作单位'
+        });
+        if (relationship.sourceCompany && relationship.targetCompany) {
+          defaultEvidence.push({
+            field: 'position',
+            match_score: Math.round(((relationship.confidence_score || 0.7) * 0.8) * 100),
+            source_value: '相关职位',
+            target_value: '相关职位'
+          });
+        }
+        break;
+        
+      case 'same_location':
+        defaultEvidence.push({
+          field: 'location',
+          match_score: Math.round((relationship.confidence_score || 0.6) * 100),
+          source_value: '相近地区',
+          target_value: '相近地区'
+        });
+        break;
+        
+      case 'alumni':
+        defaultEvidence.push({
+          field: 'education',
+          match_score: Math.round((relationship.confidence_score || 0.8) * 100),
+          source_value: '相同院校',
+          target_value: '相同院校'
+        });
+        break;
+        
+      case 'same_industry':
+        defaultEvidence.push({
+          field: 'industry',
+          match_score: Math.round((relationship.confidence_score || 0.7) * 100),
+          source_value: '行业领域',
+          target_value: '行业领域'
+        });
+        break;
+        
+      default:
+        // 通用证据
+        defaultEvidence.push({
+          field: 'company',
+          match_score: Math.round((relationship.confidence_score || 0.5) * 100),
+          source_value: '系统分析',
+          target_value: '相关信息'
+        });
+        break;
+    }
+    
+    return defaultEvidence;
   },
 
   /**
-   * 生成默认分析
+   * 生成更具体的AI分析
    */
   generateDefaultAnalysis(relationship) {
-    const relationshipTypes = {
-      'colleague': '同事关系通常意味着工作上的协作机会，可以考虑在项目合作中互相支持。',
-      'same_location': '地理位置相近的联系人便于线下会面，有助于建立更深层次的合作关系。',
-      'alumni': '校友关系是珍贵的社交网络资源，通常有着相似的教育背景和价值观。',
-      'same_industry': '同行业的专业人士可以相互学习，分享行业洞察和最佳实践。',
-      'client': '客户关系需要用心维护，持续提供价值是保持长期合作的关键。',
-      'partner': '合作伙伴关系建立在互利共赢的基础上，需要定期沟通以加强合作。'
-    };
+    const sourceName = relationship.sourceName || '联系人A';
+    const targetName = relationship.targetName || '联系人B';
+    const sourceCompany = relationship.sourceCompany || '';
+    const targetCompany = relationship.targetCompany || '';
+    const confidenceScore = relationship.confidence_score || 0.5;
+    const relationshipType = relationship.relationship_type || 'unknown';
     
-    return relationshipTypes[relationship.relationship_type] || 
-           '这是一个重要的社交关系，建议定期保持联系以维护和发展这种关系。';
+    let analysis = '';
+    let actionableAdvice = '';
+    
+    // 根据关系类型生成具体分析
+    switch (relationshipType) {
+      case 'colleague':
+        analysis = `${sourceName}和${targetName}存在同事关系`;
+        if (sourceCompany && targetCompany && sourceCompany === targetCompany) {
+          analysis += `，均在${sourceCompany}工作`;
+          actionableAdvice = `建议利用这一同事关系开展内部项目协作，可以考虑：1）在公司项目中互相支持；2）分享工作经验和专业技能；3）建立长期的职业发展联系。`;
+        } else if (sourceCompany && targetCompany) {
+          analysis += `，分别在${sourceCompany}和${targetCompany}工作`;
+          actionableAdvice = `建议探索跨公司的合作机会：1）分享行业见解和最佳实践；2）探讨潜在的商业合作；3）建立更广泛的职业网络。`;
+        } else {
+          actionableAdvice = `同事关系为双方提供了良好的合作基础，建议保持定期的工作交流。`;
+        }
+        break;
+        
+      case 'same_location':
+        analysis = `${sourceName}和${targetName}地理位置相近`;
+        if (confidenceScore > 0.7) {
+          analysis += `，匹配度较高(${Math.round(confidenceScore * 100)}%)`;
+          actionableAdvice = `地理优势明显，建议：1）安排线下会面以深化关系；2）参加本地行业活动增进了解；3）考虑本地化的商业合作机会。`;
+        } else {
+          actionableAdvice = `可以考虑线下见面的机会，但建议先确认具体的地理位置信息。`;
+        }
+        break;
+        
+      case 'alumni':
+        analysis = `${sourceName}和${targetName}具有校友关系`;
+        actionableAdvice = `校友网络具有天然的信任基础，建议：1）回忆共同的学校经历建立话题；2）参加校友活动增强联系；3）在职业发展上互相支持和推荐。这种关系通常具有较强的持续性和互助性。`;
+        break;
+        
+      case 'same_industry':
+        analysis = `${sourceName}和${targetName}属于相同行业领域`;
+        if (sourceCompany && targetCompany) {
+          analysis += `，分别在${sourceCompany}和${targetCompany}从事相关工作`;
+        }
+        actionableAdvice = `同行业关系价值巨大，建议：1）定期分享行业趋势和市场洞察；2）探讨技术创新和业务模式；3）考虑在非竞争领域的战略合作；4）参加行业会议时保持联系。`;
+        break;
+        
+      case 'client':
+        analysis = `${sourceName}和${targetName}存在客户服务关系`;
+        actionableAdvice = `客户关系需要精心维护，建议：1）定期跟进客户需求和满意度；2）提供增值服务以强化合作；3）保持专业沟通增进信任；4）探索长期合作的可能性。`;
+        break;
+        
+      case 'partner':
+        analysis = `${sourceName}和${targetName}为合作伙伴关系`;
+        actionableAdvice = `合作伙伴关系需要持续投入，建议：1）建立定期的沟通机制；2）明确双方的合作目标和期望；3）探索更深层次的战略合作；4）在困难时互相支持。`;
+        break;
+        
+      default:
+        analysis = `${sourceName}和${targetName}之间发现了潜在的社交关系`;
+        if (confidenceScore > 0.7) {
+          analysis += `，系统匹配度较高`;
+          actionableAdvice = `虽然关系类型待进一步确认，但高匹配度表明两人可能有重要联系。建议：1）主动了解对方的背景和兴趣；2）寻找共同话题和连接点；3）在合适时机深入交流。`;
+        } else {
+          actionableAdvice = `建议进一步核实和了解这一关系的具体性质，可以通过共同朋友或直接交流来确认。`;
+        }
+        break;
+    }
+    
+    // 添加可信度相关的建议
+    if (confidenceScore < 0.5) {
+      actionableAdvice += `\n\n注意：当前关系匹配度较低(${Math.round(confidenceScore * 100)}%)，建议谨慎判断并通过多种渠道验证关系的真实性。`;
+    } else if (confidenceScore > 0.8) {
+      actionableAdvice += `\n\n系统对这一关系有很高的信心度(${Math.round(confidenceScore * 100)}%)，可以积极推进相关的联系计划。`;
+    }
+    
+    return `${analysis}。\n\n${actionableAdvice}`;
   },
 
   /**
