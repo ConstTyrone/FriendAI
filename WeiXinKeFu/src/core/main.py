@@ -18,6 +18,7 @@ from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
 from ..services.ai_service import UserProfileExtractor
 from ..services.media_processor import MediaProcessor
+from ..services.relationship_service import get_relationship_service
 
 
 # 配置日志
@@ -1289,7 +1290,7 @@ async def create_profile(
             # 获取创建的画像详情
             created_profile = db.get_user_profile_detail(query_user_id, profile_id)
             
-            # 触发意图匹配（真正的异步执行，不阻塞返回）
+            # 触发意图匹配和关系发现（真正的异步执行，不阻塞返回）
             import asyncio
             async def run_intent_matching():
                 try:
@@ -1300,8 +1301,22 @@ async def create_profile(
                 except Exception as e:
                     logger.error(f"触发意图匹配失败: {e}")
             
+            async def run_relationship_discovery():
+                try:
+                    relationship_service = get_relationship_service(db)
+                    discovered = relationship_service.discover_relationships_for_profile(
+                        user_id=query_user_id,
+                        profile_id=profile_id,
+                        profile_data=created_profile
+                    )
+                    if discovered:
+                        logger.info(f"新联系人{profile_id}发现了{len(discovered)}个关系")
+                except Exception as e:
+                    logger.error(f"触发关系发现失败: {e}")
+            
             # 创建后台任务，不等待完成
             asyncio.create_task(run_intent_matching())
+            asyncio.create_task(run_relationship_discovery())
             
             return {
                 "success": True,
@@ -1408,7 +1423,7 @@ async def update_profile(
             # 获取更新后的画像详情
             updated_profile = db.get_user_profile_detail(query_user_id, profile_id)
             
-            # 触发意图匹配（真正的异步执行，不阻塞返回）
+            # 触发意图匹配和关系发现（真正的异步执行，不阻塞返回）
             import asyncio
             async def run_intent_matching():
                 try:
@@ -1419,8 +1434,22 @@ async def update_profile(
                 except Exception as e:
                     logger.error(f"触发意图匹配失败: {e}")
             
+            async def run_relationship_discovery():
+                try:
+                    relationship_service = get_relationship_service(db)
+                    discovered = relationship_service.discover_relationships_for_profile(
+                        user_id=query_user_id,
+                        profile_id=profile_id,
+                        profile_data=updated_profile
+                    )
+                    if discovered:
+                        logger.info(f"更新的联系人{profile_id}发现了{len(discovered)}个关系")
+                except Exception as e:
+                    logger.error(f"触发关系发现失败: {e}")
+            
             # 创建后台任务，不等待完成
             asyncio.create_task(run_intent_matching())
+            asyncio.create_task(run_relationship_discovery())
             
             return {
                 "success": True,
@@ -2824,4 +2853,159 @@ async def batch_vectorize(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"批量向量化失败: {str(e)}"
+        )
+
+
+# ============= 关系发现系统API =============
+
+@app.get("/api/relationships/{profile_id}")
+async def get_profile_relationships(
+    profile_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """获取某个联系人的所有关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取联系人的关系
+        relationships = relationship_service.get_profile_relationships(
+            user_id=query_user_id,
+            profile_id=profile_id
+        )
+        
+        # 获取关系双方的详细信息
+        for rel in relationships:
+            # 确定另一方的ID
+            other_profile_id = (
+                rel['target_profile_id'] 
+                if rel['source_profile_id'] == profile_id 
+                else rel['source_profile_id']
+            )
+            
+            # 获取另一方的详情
+            other_profile = db.get_user_profile_detail(query_user_id, other_profile_id)
+            if other_profile:
+                rel['other_profile'] = other_profile
+        
+        return {
+            "success": True,
+            "relationships": relationships,
+            "total": len(relationships)
+        }
+        
+    except Exception as e:
+        logger.error(f"获取关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取关系失败: {str(e)}"
+        )
+
+
+@app.get("/api/relationships/stats")
+async def get_relationships_stats(
+    current_user: str = Depends(verify_user_token)
+):
+    """获取用户的关系统计信息"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取统计信息
+        stats = relationship_service.get_relationship_stats(query_user_id)
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"获取关系统计失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取关系统计失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/{relationship_id}/confirm")
+async def confirm_relationship(
+    relationship_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """确认一个关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 确认关系
+        success = relationship_service.confirm_relationship(
+            user_id=query_user_id,
+            relationship_id=relationship_id,
+            confirmed=True
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": "关系已确认"
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="关系不存在"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"确认关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"确认关系失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/{relationship_id}/ignore")
+async def ignore_relationship(
+    relationship_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """忽略一个关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务  
+        relationship_service = get_relationship_service(db)
+        
+        # 忽略关系
+        success = relationship_service.confirm_relationship(
+            user_id=query_user_id,
+            relationship_id=relationship_id,
+            confirmed=False
+        )
+        
+        if success:
+            return {
+                "success": True,
+                "message": "关系已忽略"
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="关系不存在"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"忽略关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"忽略关系失败: {str(e)}"
         )
