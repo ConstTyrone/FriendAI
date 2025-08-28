@@ -208,7 +208,7 @@
         </view>
         <view class="detail-row">
           <text class="detail-label">置信度:</text>
-          <text class="detail-value">{{(selectedLink.confidence * 100).toFixed(1)}}%</text>
+          <text class="detail-value">{{formatConfidence(selectedLink.confidence)}}%</text>
         </view>
         <view class="detail-row">
           <text class="detail-label">状态:</text>
@@ -294,7 +294,7 @@
             step="10"
             bind:change="onMinConfidenceChange"
           ></t-slider>
-          <text class="setting-value">{{(minConfidence * 100).toFixed(0)}}%</text>
+          <text class="setting-value">{{formatMinConfidence(minConfidence)}}%</text>
         </view>
         
         <view class="setting-item">

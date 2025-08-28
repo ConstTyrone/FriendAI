@@ -641,6 +641,20 @@ Component({
     getLinkTargetName(link) {
       const targetNode = this.data.graphData.nodes.find(n => n.id === link.target);
       return targetNode ? targetNode.name : '未知';
+    },
+    
+    /**
+     * 格式化置信度
+     */
+    formatConfidence(confidence) {
+      return (confidence * 100).toFixed(1);
+    },
+    
+    /**
+     * 格式化最小置信度
+     */
+    formatMinConfidence(minConfidence) {
+      return (minConfidence * 100).toFixed(0);
     }
   }
 });
