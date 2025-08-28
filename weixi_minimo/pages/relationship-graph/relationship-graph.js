@@ -97,8 +97,10 @@ Page({
         this.loadRelationships()
       ]);
       
-      // 过滤出有关系的联系人
-      const profilesWithRelationships = this.filterProfilesWithRelationships(profiles, relationships);
+      // 如果有关系数据则过滤，否则显示所有联系人
+      const profilesWithRelationships = relationships.length > 0 
+        ? this.filterProfilesWithRelationships(profiles, relationships)
+        : profiles;
       
       this.setData({
         profiles: profilesWithRelationships,
