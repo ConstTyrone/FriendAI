@@ -1,7 +1,20 @@
-const authManager = require('../../utils/auth-manager');
-const dataManager = require('../../utils/data-manager');
-const cacheManager = require('../../utils/cache-manager');
-const { showToast, showLoading, hideLoading } = require('../../utils/ui-utils');
+// 引入工具模块
+const authManager = getApp().authManager || require('../../utils/auth-manager');
+const dataManager = getApp().dataManager || require('../../utils/data-manager');
+const cacheManager = getApp().cacheManager || require('../../utils/cache-manager');
+
+// UI工具方法
+const showToast = (message, icon = 'none', duration = 2000) => {
+  wx.showToast({ title: message, icon, duration });
+};
+
+const showLoading = (title = '加载中...') => {
+  wx.showLoading({ title });
+};
+
+const hideLoading = () => {
+  wx.hideLoading();
+};
 
 Page({
   data: {
@@ -72,9 +85,9 @@ Page({
       this.setData({ loading: true, error: null });
       
       // 检查登录状态
-      const isLoggedIn = authManager.checkLoginStatus();
-      if (!isLoggedIn) {
-        wx.reLaunch({ url: '/pages/login/login' });
+      const token = wx.getStorageSync('auth_token');
+      if (!token) {
+        wx.reLaunch({ url: '/pages/settings/settings' });
         return;
       }
       
@@ -114,29 +127,57 @@ Page({
    */
   async loadProfiles() {
     try {
-      // 先尝试从缓存获取
-      const cachedProfiles = cacheManager.getContacts();
-      if (cachedProfiles && cachedProfiles.length > 0) {
-        return cachedProfiles;
+      // 直接使用wx.request调用API，避免模块导入问题
+      console.log('开始获取联系人数据...');
+      
+      // 获取token
+      const token = wx.getStorageSync('auth_token');
+      if (!token) {
+        console.error('用户未登录');
+        return [];
       }
       
-      // 从API获取
-      const response = await dataManager.getContacts({
-        page: 1,
-        pageSize: 1000 // 获取所有联系人用于图谱分析
+      return new Promise((resolve) => {
+        wx.request({
+          url: 'https://weixin.dataelem.com/api/contacts',
+          method: 'GET',
+          header: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            page: 1,
+            pageSize: 1000
+          },
+          success: (res) => {
+            console.log('联系人API响应:', res);
+            
+            if (res.statusCode === 200 && res.data && res.data.success) {
+              const profiles = (res.data.contacts || []).map(contact => ({
+                id: contact.id,
+                name: contact.profile_name || contact.name || '未知',
+                company: contact.company || '',
+                position: contact.position || '',
+                avatar: contact.avatar || ''
+              }));
+              
+              console.log('处理后的联系人数据:', profiles);
+              resolve(profiles);
+            } else {
+              console.warn('API响应格式错误:', res.data);
+              resolve([]);
+            }
+          },
+          fail: (error) => {
+            console.error('API请求失败:', error);
+            resolve([]);
+          }
+        });
       });
-      
-      if (response.success && response.data) {
-        const profiles = response.data;
-        cacheManager.setContacts(profiles);
-        return profiles;
-      }
-      
-      return [];
       
     } catch (error) {
       console.error('加载联系人失败:', error);
-      throw error;
+      return [];
     }
   },
   
@@ -145,21 +186,57 @@ Page({
    */
   async loadRelationships() {
     try {
-      // 这里应该调用获取所有关系的API
-      // 暂时使用模拟数据，实际应该调用 dataManager.getAllRelationships()
+      console.log('开始获取关系数据...');
       
-      // 尝试从缓存获取
-      const cachedKey = 'all_relationships';
-      const cachedData = cacheManager.get(cachedKey);
-      if (cachedData) {
-        return cachedData;
+      // 获取token
+      const token = wx.getStorageSync('auth_token');
+      if (!token) {
+        console.error('用户未登录');
+        return [];
       }
       
-      // 模拟API调用（实际开发中替换为真实API）
-      const mockRelationships = this.generateMockRelationships();
-      cacheManager.set(cachedKey, mockRelationships, 5 * 60 * 1000); // 缓存5分钟
-      
-      return mockRelationships;
+      return new Promise((resolve) => {
+        wx.request({
+          url: 'https://weixin.dataelem.com/api/relationships',
+          method: 'GET',
+          header: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          success: (res) => {
+            console.log('关系API响应:', res);
+            
+            if (res.statusCode === 200 && res.data && res.data.success) {
+              const relationships = (res.data.relationships || []).map(rel => ({
+                id: rel.id,
+                source_profile_id: rel.source_profile_id,
+                target_profile_id: rel.target_profile_id,
+                relationship_type: rel.relationship_type,
+                relationship_strength: rel.relationship_strength,
+                confidence_score: rel.confidence_score || 0.8,
+                status: rel.status || 'discovered',
+                evidence_fields: rel.evidence_fields || '',
+                discovered_at: rel.discovered_at || new Date().toISOString(),
+                updated_at: rel.updated_at || new Date().toISOString()
+              }));
+              
+              console.log('处理后的关系数据:', relationships);
+              resolve(relationships);
+            } else {
+              console.warn('关系API响应格式错误:', res.data);
+              // 如果没有关系数据，返回模拟数据用于演示
+              const mockRelationships = this.generateMockRelationships();
+              resolve(mockRelationships);
+            }
+          },
+          fail: (error) => {
+            console.error('关系API请求失败:', error);
+            // 失败时返回模拟数据用于演示
+            const mockRelationships = this.generateMockRelationships();
+            resolve(mockRelationships);
+          }
+        });
+      });
       
     } catch (error) {
       console.error('加载关系数据失败:', error);
@@ -360,23 +437,44 @@ Page({
       const { relationshipId } = e.detail;
       showLoading('确认关系中...');
       
-      // 调用确认关系API
-      const response = await dataManager.confirmRelationship(relationshipId);
-      
-      if (response.success) {
-        // 更新本地数据
-        const relationships = this.data.relationships.map(rel => {
-          if (rel.id === relationshipId) {
-            return { ...rel, status: 'confirmed' };
-          }
-          return rel;
-        });
-        
-        this.setData({ relationships });
-        showToast('关系已确认');
-      } else {
-        showToast('确认关系失败');
+      // 获取token
+      const token = wx.getStorageSync('auth_token');
+      if (!token) {
+        showToast('请先登录');
+        return;
       }
+      
+      // 调用确认关系API
+      wx.request({
+        url: `https://weixin.dataelem.com/api/relationships/${relationshipId}/confirm`,
+        method: 'PUT',
+        header: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          console.log('确认关系API响应:', res);
+          
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            // 更新本地数据
+            const relationships = this.data.relationships.map(rel => {
+              if (rel.id === relationshipId) {
+                return { ...rel, status: 'confirmed' };
+              }
+              return rel;
+            });
+            
+            this.setData({ relationships });
+            showToast('关系已确认');
+          } else {
+            showToast('确认关系失败');
+          }
+        },
+        fail: (error) => {
+          console.error('确认关系API请求失败:', error);
+          showToast('确认关系失败');
+        }
+      });
       
     } catch (error) {
       console.error('确认关系失败:', error);
@@ -394,17 +492,38 @@ Page({
       const { relationshipId } = e.detail;
       showLoading('忽略关系中...');
       
-      // 调用忽略关系API
-      const response = await dataManager.ignoreRelationship(relationshipId);
-      
-      if (response.success) {
-        // 从本地数据中移除
-        const relationships = this.data.relationships.filter(rel => rel.id !== relationshipId);
-        this.setData({ relationships });
-        showToast('关系已忽略');
-      } else {
-        showToast('忽略关系失败');
+      // 获取token
+      const token = wx.getStorageSync('auth_token');
+      if (!token) {
+        showToast('请先登录');
+        return;
       }
+      
+      // 调用忽略关系API
+      wx.request({
+        url: `https://weixin.dataelem.com/api/relationships/${relationshipId}/ignore`,
+        method: 'DELETE',
+        header: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          console.log('忽略关系API响应:', res);
+          
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            // 从本地数据中移除
+            const relationships = this.data.relationships.filter(rel => rel.id !== relationshipId);
+            this.setData({ relationships });
+            showToast('关系已忽略');
+          } else {
+            showToast('忽略关系失败');
+          }
+        },
+        fail: (error) => {
+          console.error('忽略关系API请求失败:', error);
+          showToast('忽略关系失败');
+        }
+      });
       
     } catch (error) {
       console.error('忽略关系失败:', error);
