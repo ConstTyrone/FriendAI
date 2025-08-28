@@ -2878,15 +2878,23 @@ async def get_profile_relationships(
         
         # 获取关系双方的详细信息
         for rel in relationships:
-            # 确定另一方的ID
+            # 获取源联系人详情
+            source_profile = db.get_user_profile_detail(query_user_id, rel['source_profile_id'])
+            if source_profile:
+                rel['sourceProfile'] = source_profile
+            
+            # 获取目标联系人详情
+            target_profile = db.get_user_profile_detail(query_user_id, rel['target_profile_id'])
+            if target_profile:
+                rel['targetProfile'] = target_profile
+            
+            # 保留原有的other_profile字段以兼容性
             other_profile_id = (
                 rel['target_profile_id'] 
                 if rel['source_profile_id'] == profile_id 
                 else rel['source_profile_id']
             )
-            
-            # 获取另一方的详情
-            other_profile = db.get_user_profile_detail(query_user_id, other_profile_id)
+            other_profile = source_profile if other_profile_id == rel['source_profile_id'] else target_profile
             if other_profile:
                 rel['other_profile'] = other_profile
         
