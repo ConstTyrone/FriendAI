@@ -536,7 +536,7 @@ class RelationshipService:
     def delete_discovered_relationships(self, user_id: str, profile_id: int) -> int:
         """删除某个联系人的已发现但未确认的关系"""
         try:
-            with self.database.get_connection() as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # 删除状态为'discovered'的关系记录
@@ -560,7 +560,7 @@ class RelationshipService:
     def get_relationship_detail(self, user_id: str, relationship_id: int) -> Optional[Dict]:
         """获取关系的详细信息"""
         try:
-            with self.database.get_connection() as conn:
+            with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
                 # 获取关系详情，包含所有字段

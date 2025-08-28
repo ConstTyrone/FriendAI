@@ -3029,10 +3029,19 @@ async def reanalyze_relationships(
             profile_id=contact_id
         )
         
+        # 获取联系人数据
+        profile_data = db.get_user_profile_detail(query_user_id, contact_id)
+        if not profile_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="联系人不存在"
+            )
+        
         # 重新发现关系
         discovered = relationship_service.discover_relationships_for_profile(
             user_id=query_user_id,
-            profile_id=contact_id
+            profile_id=contact_id,
+            profile_data=profile_data
         )
         
         return {
@@ -3370,4 +3379,65 @@ async def batch_ai_analyze_relationships(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"批量AI分析失败: {str(e)}"
+        )
+
+
+@app.get("/api/profiles/{profile_id}/interactions")
+async def get_profile_interactions(
+    profile_id: int,
+    limit: int = 10,
+    current_user: str = Depends(verify_user_token)
+):
+    """获取联系人的交互历史"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取联系人详情
+        profile = db.get_user_profile_detail(query_user_id, profile_id)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="联系人不存在"
+            )
+        
+        # 获取最近交互记录 (从raw_messages中提取)
+        interactions = []
+        try:
+            raw_messages = profile.get('raw_messages', '[]')
+            if isinstance(raw_messages, str):
+                import json
+                messages = json.loads(raw_messages)
+            else:
+                messages = raw_messages or []
+            
+            # 取最近的消息作为交互记录
+            for msg in messages[-limit:]:
+                interaction = {
+                    'id': len(interactions) + 1,
+                    'type': 'message',
+                    'content': msg.get('content', ''),
+                    'timestamp': msg.get('timestamp', ''),
+                    'direction': 'received'  # 假设都是接收到的消息
+                }
+                interactions.append(interaction)
+                
+        except (json.JSONDecodeError, Exception) as e:
+            logger.warning(f"解析交互记录失败: {e}")
+            # 如果没有交互记录，返回空数组
+            interactions = []
+        
+        return {
+            "success": True,
+            "interactions": interactions,
+            "total": len(interactions),
+            "profile_name": profile.get('profile_name', profile.get('name', '未知'))
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取交互历史失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取交互历史失败: {str(e)}"
         )
