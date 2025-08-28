@@ -1,0 +1,93 @@
+<!--关系卡片组件-->
+<view class="relationship-card {{themeClass}}" bind:tap="onCardTap">
+  <!-- 关系主体信息 -->
+  <view class="card-header">
+    <!-- 关系双方头像 -->
+    <view class="profiles-avatars">
+      <!-- 源联系人头像 -->
+      <view class="profile-avatar source">
+        <text class="avatar-text">{{sourceProfile.initial}}</text>
+      </view>
+      
+      <!-- 关系连线 -->
+      <view class="relationship-connection">
+        <view class="connection-line"></view>
+        <view class="connection-icon">
+          <text class="connection-text">{{getRelationshipIcon(relationship.relationship_type)}}</text>
+        </view>
+      </view>
+      
+      <!-- 目标联系人头像 -->
+      <view class="profile-avatar target">
+        <text class="avatar-text">{{targetProfile.initial}}</text>
+      </view>
+    </view>
+    
+    <!-- 关系类型和置信度 -->
+    <view class="relationship-meta">
+      <view class="relationship-type">
+        <text class="type-text">{{formatRelationshipType(relationship.relationship_type)}}</text>
+        <text class="confidence-badge">{{Math.round(relationship.confidence_score * 100)}}%</text>
+      </view>
+      <view class="relationship-direction" wx:if="{{relationship.relationship_direction !== 'bidirectional'}}">
+        <text class="direction-text">{{formatDirection(relationship.relationship_direction)}}</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 联系人信息 -->
+  <view class="card-content">
+    <!-- 源联系人信息 -->
+    <view class="profile-info source">
+      <text class="profile-name">{{sourceProfile.profile_name}}</text>
+      <text class="profile-details" wx:if="{{sourceProfile.company || sourceProfile.position}}">
+        {{sourceProfile.company}}{{sourceProfile.company && sourceProfile.position ? ' · ' : ''}}{{sourceProfile.position}}
+      </text>
+    </view>
+    
+    <!-- 关系说明 -->
+    <view class="relationship-desc">
+      <text class="desc-text">{{getRelationshipDescription(relationship.relationship_type)}}</text>
+    </view>
+    
+    <!-- 目标联系人信息 -->
+    <view class="profile-info target">
+      <text class="profile-name">{{targetProfile.profile_name}}</text>
+      <text class="profile-details" wx:if="{{targetProfile.company || targetProfile.position}}">
+        {{targetProfile.company}}{{targetProfile.company && targetProfile.position ? ' · ' : ''}}{{targetProfile.position}}
+      </text>
+    </view>
+  </view>
+  
+  <!-- 关系证据 -->
+  <view class="evidence-section" wx:if="{{relationship.evidence && showEvidence}}">
+    <text class="evidence-label">关系依据：</text>
+    <text class="evidence-text">{{formatEvidence(relationship.evidence)}}</text>
+  </view>
+  
+  <!-- 卡片底部 -->
+  <view class="card-footer">
+    <!-- 发现时间 -->
+    <view class="discovery-time">
+      <t-icon name="time" size="20rpx" color="var(--td-text-color-placeholder, #bdbdbd)" />
+      <text class="time-text">{{formatDiscoveryTime(relationship.discovered_at)}}</text>
+    </view>
+    
+    <!-- 关系状态 -->
+    <view class="relationship-status">
+      <view class="status-badge {{relationship.status}}">
+        <text class="status-text">{{formatStatus(relationship.status)}}</text>
+      </view>
+    </view>
+    
+    <!-- 快速操作按钮 -->
+    <view class="quick-actions" wx:if="{{showActions && relationship.status === 'discovered'}}">
+      <view class="action-btn confirm" bind:tap="onConfirm" catch:tap="stopPropagation">
+        <t-icon name="check" size="28rpx" color="#00a870" />
+      </view>
+      <view class="action-btn ignore" bind:tap="onIgnore" catch:tap="stopPropagation">
+        <t-icon name="close" size="28rpx" color="#ff4d4f" />
+      </view>
+    </view>
+  </view>
+</view>

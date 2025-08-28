@@ -1,0 +1,139 @@
+<!--关系列表页面-->
+<scroll-view class="relationship-list-page {{themeClass}}" scroll-y="{{true}}" bindscroll="onPageScroll" enhanced="{{true}}" show-scrollbar="{{false}}">
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-top">
+      <text class="back-button" bindtap="onBack">‹ 返回</text>
+      <text class="page-title">{{contactName}}的关系</text>
+    </view>
+    
+    <!-- 统计信息 -->
+    <view class="stats-section" wx:if="{{stats.total_relationships > 0}}">
+      <view class="stat-item">
+        <text class="stat-number">{{stats.total_relationships}}</text>
+        <text class="stat-label">总关系</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-number">{{stats.confirmed_relationships}}</text>
+        <text class="stat-label">已确认</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-number">{{stats.discovered_relationships}}</text>
+        <text class="stat-label">待确认</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 筛选和排序 -->
+  <view class="filter-section" wx:if="{{relationships.length > 0}}">
+    <view class="filter-tabs">
+      <view 
+        class="filter-tab {{currentFilter === 'all' ? 'active' : ''}}"
+        bindtap="onFilterChange"
+        data-filter="all"
+      >
+        <text class="tab-text">全部</text>
+      </view>
+      <view 
+        class="filter-tab {{currentFilter === 'discovered' ? 'active' : ''}}"
+        bindtap="onFilterChange"
+        data-filter="discovered"
+      >
+        <text class="tab-text">待确认</text>
+      </view>
+      <view 
+        class="filter-tab {{currentFilter === 'confirmed' ? 'active' : ''}}"
+        bindtap="onFilterChange"
+        data-filter="confirmed"
+      >
+        <text class="tab-text">已确认</text>
+      </view>
+    </view>
+    
+    <!-- 排序选项 -->
+    <view class="sort-section">
+      <text class="sort-label">排序：</text>
+      <picker 
+        bindchange="onSortChange"
+        value="{{currentSortIndex}}"
+        range="{{sortOptions}}"
+        range-key="label"
+      >
+        <view class="sort-picker">
+          <text class="sort-text">{{sortOptions[currentSortIndex].label}}</text>
+          <t-icon name="chevron-down" size="24rpx" color="var(--td-text-color-secondary, #757575)" />
+        </view>
+      </picker>
+    </view>
+  </view>
+  
+  <!-- 关系列表 -->
+  <view class="relationships-container" wx:if="{{filteredRelationships.length > 0}}">
+    <view wx:for="{{filteredRelationships}}" wx:key="id" class="relationship-item">
+      <relationship-card
+        relationship="{{item}}"
+        sourceProfile="{{item.sourceProfile}}"
+        targetProfile="{{item.targetProfile}}"
+        showEvidence="{{true}}"
+        showActions="{{true}}"
+        bind:cardTap="onRelationshipTap"
+        bind:confirm="onConfirmRelationship"
+        bind:ignore="onIgnoreRelationship"
+      />
+    </view>
+  </view>
+  
+  <!-- 批量操作 -->
+  <view class="batch-actions" wx:if="{{hasUncofirmedRelationships}}">
+    <view class="batch-buttons">
+      <button 
+        class="batch-btn primary" 
+        bindtap="onBatchConfirm"
+        disabled="{{batchProcessing}}"
+      >
+        <t-loading wx:if="{{batchProcessing}}" theme="spinner" size="40rpx" />
+        <text class="btn-text">{{batchProcessing ? '处理中...' : '全部确认'}}</text>
+      </button>
+      <button 
+        class="batch-btn secondary" 
+        bindtap="onBatchIgnore"
+        disabled="{{batchProcessing}}"
+      >
+        <text class="btn-text">全部忽略</text>
+      </button>
+    </view>
+  </view>
+  
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && filteredRelationships.length === 0}}">
+    <view class="empty-icon">
+      <text class="icon-text">🔗</text>
+    </view>
+    <text class="empty-title">{{getEmptyTitle()}}</text>
+    <text class="empty-desc">{{getEmptyDescription()}}</text>
+    
+    <!-- 重新分析按钮 -->
+    <button 
+      class="reanalyze-btn" 
+      bindtap="onReanalyze"
+      wx:if="{{currentFilter === 'all'}}"
+    >
+      <t-icon name="refresh" size="28rpx" color="#0052d9" />
+      <text class="btn-text">重新分析关系</text>
+    </button>
+  </view>
+  
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <t-loading theme="spinner" size="60rpx" />
+    <text class="loading-text">加载关系数据中...</text>
+  </view>
+  
+  <!-- 错误状态 -->
+  <view class="error-state" wx:if="{{error && !loading}}">
+    <text class="error-message">{{error}}</text>
+    <button class="retry-btn" bindtap="loadRelationships">
+      <text class="btn-text">重新加载</text>
+    </button>
+  </view>
+</scroll-view>

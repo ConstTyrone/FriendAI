@@ -8,12 +8,16 @@
     "pages/bind-account/bind-account",
     "pages/webview/webview",
     "pages/intent-manager/intent-manager",
-    "pages/matches/matches"
+    "pages/matches/matches",
+    "pages/relationship-list/relationship-list",
+    "pages/relationship-detail/relationship-detail"
   ],
   "themeLocation": "theme.json",
   "usingComponents": {
     "custom-tabbar": "/components/custom-tabbar/index",
     "profile-editor": "/components/profile-editor/index",
+    "relationship-tip": "/components/relationship-tip/index",
+    "relationship-card": "/components/relationship-card/index",
     "t-search": "tdesign-miniprogram/search/search",
     "t-cell": "tdesign-miniprogram/cell/cell",
     "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
