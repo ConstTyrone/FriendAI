@@ -517,4 +517,6 @@ class AuthManager {
 // 创建单例实例
 const authManager = new AuthManager();
 
+// 支持ES6和CommonJS两种导出方式
 export default authManager;
+module.exports = authManager;

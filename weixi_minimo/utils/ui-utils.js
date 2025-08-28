@@ -393,7 +393,34 @@ export function scanCode(onlyFromCamera = true, scanType = ['qrCode', 'barCode']
 }
 
 // 默认导出常用函数
-export default {
+const uiUtils = {
+  showToast,
+  showSuccessToast,
+  showErrorToast,
+  showLoading,
+  hideLoading,
+  showConfirm,
+  showActionSheet,
+  showNavigationBarLoading,
+  hideNavigationBarLoading,
+  setNavigationBarTitle,
+  setNavigationBarColor,
+  copyToClipboard,
+  getClipboardData,
+  vibrateShort,
+  vibrateLong,
+  saveImageToPhotosAlbum,
+  previewImage,
+  makePhoneCall,
+  openLocation,
+  getLocation,
+  scanCode
+};
+
+export default uiUtils;
+
+// 支持CommonJS导出  
+module.exports = {
   showToast,
   showSuccessToast,
   showErrorToast,

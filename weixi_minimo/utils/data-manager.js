@@ -1763,4 +1763,6 @@ class DataManager {
 // 创建单例实例
 const dataManager = new DataManager();
 
+// 支持ES6和CommonJS两种导出方式
 export default dataManager;
+module.exports = dataManager;

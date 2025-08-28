@@ -406,4 +406,6 @@ cacheManager.stopAutoCleanup = function() {
   }
 };
 
+// 支持ES6和CommonJS两种导出方式  
 export default cacheManager;
+module.exports = cacheManager;

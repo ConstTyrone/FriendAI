@@ -1,7 +1,7 @@
-import authManager from '../../utils/auth-manager';
-import dataManager from '../../utils/data-manager';
-import cacheManager from '../../utils/cache-manager';
-import { showToast, showLoading, hideLoading } from '../../utils/ui-utils';
+const authManager = require('../../utils/auth-manager');
+const dataManager = require('../../utils/data-manager');
+const cacheManager = require('../../utils/cache-manager');
+const { showToast, showLoading, hideLoading } = require('../../utils/ui-utils');
 
 Page({
   data: {
@@ -121,9 +121,6 @@ Page({
       }
       
       // 从API获取
-      console.log('dataManager对象:', dataManager);
-      console.log('dataManager.getContacts方法:', typeof dataManager.getContacts);
-      
       const response = await dataManager.getContacts({
         page: 1,
         pageSize: 1000 // 获取所有联系人用于图谱分析
