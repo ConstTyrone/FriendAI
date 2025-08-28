@@ -498,7 +498,7 @@ class RelationshipService:
                     SELECT * FROM relationships
                     WHERE user_id = ? 
                     AND status != 'deleted'
-                    ORDER BY confidence_score DESC, created_at DESC
+                    ORDER BY confidence_score DESC
                 """, (user_id,))
                 
                 relationships = []
