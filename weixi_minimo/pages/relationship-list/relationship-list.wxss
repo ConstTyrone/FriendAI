@@ -1,0 +1,399 @@
+/* 关系列表页面样式 */
+
+.relationship-list-page {
+  min-height: 100vh;
+  background: var(--td-bg-color-page, #f5f5f5);
+  padding-bottom: 200rpx;
+}
+
+.relationship-list-page.dark {
+  background: var(--td-bg-color-page, #1a1a1a);
+}
+
+/* 页面头部 */
+.page-header {
+  background: var(--td-bg-color-container, #ffffff);
+  padding: 0 32rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.page-header.dark {
+  background: var(--td-bg-color-container, #2c2c2c);
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0 32rpx;
+}
+
+.back-button {
+  font-size: 44rpx;
+  color: var(--td-text-color-secondary, #757575);
+  margin-right: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: var(--td-bg-color-component, #f8f8f8);
+}
+
+.back-button:active {
+  background: var(--td-bg-color-component-disabled, #e6e6e6);
+}
+
+.page-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--td-text-color-primary, #212121);
+  flex: 1;
+}
+
+/* 统计信息 */
+.stats-section {
+  display: flex;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-top: 16rpx;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+  color: #ffffff;
+}
+
+.stat-number {
+  display: block;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  display: block;
+  font-size: 24rpx;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* 筛选和排序区域 */
+.filter-section {
+  background: var(--td-bg-color-container, #ffffff);
+  padding: 24rpx 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.filter-section.dark {
+  background: var(--td-bg-color-container, #2c2c2c);
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.filter-tab {
+  flex: 1;
+  height: 68rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--td-bg-color-secondarycontainer, #f5f5f5);
+  transition: all 0.3s ease;
+  border: 2rpx solid transparent;
+}
+
+.filter-tab.active {
+  background: var(--td-brand-color, #0052d9);
+  border-color: var(--td-brand-color, #0052d9);
+}
+
+.filter-tab.active .tab-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  color: var(--td-text-color-secondary, #757575);
+  transition: color 0.3s ease;
+}
+
+/* 排序区域 */
+.sort-section {
+  display: flex;
+  align-items: center;
+  padding-top: 24rpx;
+  border-top: 2rpx solid var(--td-border-level-2-color, #f5f5f5);
+}
+
+.sort-label {
+  font-size: 28rpx;
+  color: var(--td-text-color-secondary, #757575);
+  margin-right: 16rpx;
+}
+
+.sort-picker {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 24rpx;
+  background: var(--td-bg-color-secondarycontainer, #f5f5f5);
+  border-radius: 12rpx;
+  min-width: 200rpx;
+}
+
+.sort-text {
+  font-size: 28rpx;
+  color: var(--td-text-color-primary, #212121);
+  flex: 1;
+}
+
+/* 关系列表容器 */
+.relationships-container {
+  padding: 0 32rpx;
+}
+
+.relationship-item {
+  margin-bottom: 24rpx;
+}
+
+.relationship-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 批量操作区域 */
+.batch-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--td-bg-color-container, #ffffff);
+  padding: 32rpx;
+  border-top: 2rpx solid var(--td-border-level-1-color, #f0f0f0);
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.batch-actions.dark {
+  background: var(--td-bg-color-container, #2c2c2c);
+  border-top-color: var(--td-border-level-1-color, #444444);
+  box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.3);
+}
+
+.batch-buttons {
+  display: flex;
+  gap: 24rpx;
+}
+
+.batch-btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.batch-btn.primary {
+  background: var(--td-brand-color, #0052d9);
+  color: #ffffff;
+}
+
+.batch-btn.primary:not([disabled]):active {
+  background: var(--td-brand-color-8, #0042b6);
+  transform: scale(0.98);
+}
+
+.batch-btn.secondary {
+  background: var(--td-bg-color-secondarycontainer, #f5f5f5);
+  color: var(--td-text-color-secondary, #757575);
+}
+
+.batch-btn.secondary:not([disabled]):active {
+  background: var(--td-bg-color-component-disabled, #e6e6e6);
+  transform: scale(0.98);
+}
+
+.batch-btn[disabled] {
+  opacity: 0.6;
+  transform: none !important;
+}
+
+.btn-text {
+  font-size: 32rpx;
+  margin-left: 16rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 32rpx;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 160rpx;
+  height: 160rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 48rpx;
+  opacity: 0.8;
+}
+
+.icon-text {
+  font-size: 72rpx;
+}
+
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--td-text-color-primary, #212121);
+  margin-bottom: 16rpx;
+  line-height: 1.4;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: var(--td-text-color-secondary, #757575);
+  line-height: 1.6;
+  margin-bottom: 48rpx;
+  max-width: 400rpx;
+}
+
+/* 重新分析按钮 */
+.reanalyze-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 48rpx;
+  background: var(--td-brand-color-1, #e7f2ff);
+  color: var(--td-brand-color, #0052d9);
+  border-radius: 16rpx;
+  border: 2rpx solid var(--td-brand-color-2, #d0e3ff);
+  font-size: 28rpx;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.reanalyze-btn:active {
+  background: var(--td-brand-color-2, #d0e3ff);
+  transform: scale(0.98);
+}
+
+.reanalyze-btn .btn-text {
+  margin-left: 12rpx;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 32rpx;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: var(--td-text-color-secondary, #757575);
+  margin-top: 32rpx;
+}
+
+/* 错误状态 */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 32rpx;
+  text-align: center;
+}
+
+.error-message {
+  font-size: 28rpx;
+  color: var(--td-error-color, #d54941);
+  line-height: 1.6;
+  margin-bottom: 48rpx;
+  max-width: 400rpx;
+}
+
+.retry-btn {
+  padding: 24rpx 48rpx;
+  background: var(--td-brand-color, #0052d9);
+  color: #ffffff;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:active {
+  background: var(--td-brand-color-8, #0042b6);
+  transform: scale(0.98);
+}
+
+/* 深色模式适配 */
+.relationship-list-page.dark .back-button {
+  background: var(--td-bg-color-component, #404040);
+  color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.relationship-list-page.dark .page-title {
+  color: var(--td-text-color-primary, #e0e0e0);
+}
+
+.relationship-list-page.dark .sort-section {
+  border-top-color: var(--td-border-level-2-color, #404040);
+}
+
+.relationship-list-page.dark .sort-picker {
+  background: var(--td-bg-color-secondarycontainer, #404040);
+}
+
+.relationship-list-page.dark .sort-text {
+  color: var(--td-text-color-primary, #e0e0e0);
+}
+
+.relationship-list-page.dark .filter-tab {
+  background: var(--td-bg-color-secondarycontainer, #404040);
+}
+
+.relationship-list-page.dark .tab-text {
+  color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.relationship-list-page.dark .sort-label {
+  color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.relationship-list-page.dark .empty-title {
+  color: var(--td-text-color-primary, #e0e0e0);
+}
+
+.relationship-list-page.dark .empty-desc {
+  color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.relationship-list-page.dark .loading-text {
+  color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.relationship-list-page.dark .batch-btn.secondary {
+  background: var(--td-bg-color-secondarycontainer, #404040);
+  color: var(--td-text-color-secondary, #bdbdbd);
+}

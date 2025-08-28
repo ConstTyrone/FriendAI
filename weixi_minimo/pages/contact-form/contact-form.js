@@ -64,7 +64,12 @@ Page({
     showRecognitionDisplay: false, // 是否显示识别结果
     currentRecognitionText: '', // 当前识别的文本
     isRecognizing: false, // 是否正在识别
-    intermediateProgress: [] // 中间结果进度
+    intermediateProgress: [], // 中间结果进度
+    
+    // 关系发现相关
+    showRelationshipTip: false, // 是否显示关系提示
+    discoveredRelationships: [], // 发现的关系列表
+    createdContactId: null // 新创建的联系人ID
   },
 
   onLoad(options) {
@@ -591,16 +596,32 @@ Page({
         dataManager.emit('dataChanged', { type: 'profile', action: this.data.mode });
       }
       
+      // 如果是创建新联系人，触发关系发现
+      if (this.data.mode === 'add' && result && result.profile) {
+        console.log('新建联系人成功，开始关系发现:', result.profile);
+        this.setData({
+          createdContactId: result.profile.id || result.profile.profile_id
+        });
+        
+        // 异步触发关系发现，不影响用户体验
+        this.discoverRelationships(result.profile);
+      }
+      
       // 显示意图匹配提示（可选，5秒后自动消失）
       this.setData({ showIntentMatchingHint: true });
       setTimeout(() => {
         this.setData({ showIntentMatchingHint: false });
       }, 5000);
       
-      // 延迟返回，让用户看到成功提示
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1500);
+      // 如果是编辑模式，延迟返回
+      if (this.data.mode === 'edit') {
+        setTimeout(() => {
+          wx.navigateBack();
+        }, 1500);
+      } else {
+        // 创建模式下，等待关系发现完成或超时后再返回
+        this.scheduleReturn();
+      }
       
       console.log('联系人保存成功:', result);
     } catch (error) {
@@ -1505,5 +1526,211 @@ Page({
         }
       }
     });
+  },
+
+  // ========== 关系发现相关方法 ==========
+
+  /**
+   * 触发关系发现
+   */
+  async discoverRelationships(profile) {
+    try {
+      console.log('开始为新联系人发现关系:', profile);
+      
+      // 调用关系发现API
+      const contactId = profile.id || profile.profile_id;
+      const response = await dataManager.getContactRelationships(contactId);
+      
+      if (response && response.success && response.data) {
+        const relationships = response.data;
+        console.log('发现关系数量:', relationships.length);
+        
+        if (relationships.length > 0) {
+          // 过滤出待确认的关系
+          const discoveredRelationships = relationships.filter(rel => 
+            rel.status === 'discovered'
+          );
+          
+          if (discoveredRelationships.length > 0) {
+            console.log('显示关系提示, 待确认关系数:', discoveredRelationships.length);
+            
+            // 显示关系提示
+            this.setData({
+              discoveredRelationships,
+              showRelationshipTip: true
+            });
+          } else {
+            // 没有待确认的关系，直接返回
+            this.returnToList();
+          }
+        } else {
+          // 没有发现关系，直接返回
+          this.returnToList();
+        }
+      } else {
+        // 关系发现失败，直接返回
+        console.log('关系发现失败或无数据');
+        this.returnToList();
+      }
+    } catch (error) {
+      console.error('关系发现失败:', error);
+      // 即使失败也正常返回，不影响用户体验
+      this.returnToList();
+    }
+  },
+
+  /**
+   * 安排返回时间
+   */
+  scheduleReturn() {
+    // 设置最大等待时间为5秒
+    this.returnTimer = setTimeout(() => {
+      console.log('关系发现超时，直接返回');
+      this.returnToList();
+    }, 5000);
+  },
+
+  /**
+   * 返回列表页面
+   */
+  returnToList() {
+    if (this.returnTimer) {
+      clearTimeout(this.returnTimer);
+      this.returnTimer = null;
+    }
+    wx.navigateBack();
+  },
+
+  /**
+   * 查看关系详情
+   */
+  onViewRelationshipDetails(e) {
+    const { relationships } = e.detail;
+    console.log('查看关系详情:', relationships);
+    
+    // 跳转到关系列表页面
+    wx.navigateTo({
+      url: `/pages/relationship-list/relationship-list?contactId=${this.data.createdContactId}&contactName=${encodeURIComponent(this.data.formData.name)}`
+    });
+  },
+
+  /**
+   * 确认所有关系
+   */
+  async onConfirmAllRelationships(e) {
+    const { relationships } = e.detail;
+    console.log('确认所有关系:', relationships);
+    
+    try {
+      const relationshipIds = relationships.map(rel => rel.id);
+      const response = await dataManager.batchConfirmRelationships(relationshipIds);
+      
+      if (response && response.success) {
+        wx.showToast({
+          title: '关系已确认',
+          icon: 'success'
+        });
+        
+        // 隐藏关系提示
+        this.setData({
+          showRelationshipTip: false,
+          discoveredRelationships: []
+        });
+        
+        // 延迟返回
+        setTimeout(() => {
+          this.returnToList();
+        }, 1500);
+        
+      } else {
+        throw new Error(response?.message || '确认失败');
+      }
+      
+    } catch (error) {
+      console.error('批量确认关系失败:', error);
+      wx.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 忽略所有关系
+   */
+  async onIgnoreAllRelationships(e) {
+    const { relationships } = e.detail;
+    console.log('忽略所有关系:', relationships);
+    
+    try {
+      const relationshipIds = relationships.map(rel => rel.id);
+      const response = await dataManager.batchIgnoreRelationships(relationshipIds);
+      
+      if (response && response.success) {
+        wx.showToast({
+          title: '关系已忽略',
+          icon: 'success'
+        });
+        
+        // 隐藏关系提示
+        this.setData({
+          showRelationshipTip: false,
+          discoveredRelationships: []
+        });
+        
+        // 延迟返回
+        setTimeout(() => {
+          this.returnToList();
+        }, 1500);
+        
+      } else {
+        throw new Error(response?.message || '忽略失败');
+      }
+      
+    } catch (error) {
+      console.error('批量忽略关系失败:', error);
+      wx.showToast({
+        title: '操作失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 关闭关系提示
+   */
+  onCloseRelationshipTip() {
+    console.log('用户关闭关系提示');
+    
+    this.setData({
+      showRelationshipTip: false,
+      discoveredRelationships: []
+    });
+    
+    // 延迟返回
+    setTimeout(() => {
+      this.returnToList();
+    }, 500);
+  },
+
+  /**
+   * 页面卸载时清理定时器
+   */
+  onUnload() {
+    console.log('联系人表单页面卸载');
+    
+    if (this.returnTimer) {
+      clearTimeout(this.returnTimer);
+      this.returnTimer = null;
+    }
+    
+    // 清理语音识别资源
+    recordManager.stop();
+    
+    // 清理主题监听器
+    if (this.themeListener) {
+      themeManager.removeListener(this.themeListener);
+      this.themeListener = null;
+    }
   }
 });

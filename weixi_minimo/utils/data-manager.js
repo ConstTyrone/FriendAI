@@ -1203,6 +1203,384 @@ class DataManager {
       intervalSeconds: this.autoRefreshInterval / 1000
     };
   }
+  
+  // ============ 关系管理相关方法 ============
+  
+  /**
+   * 获取联系人的关系列表
+   * @param {number} contactId - 联系人ID
+   * @returns {Promise<Object>} API响应
+   */
+  async getContactRelationships(contactId) {
+    try {
+      console.log('获取联系人关系:', contactId);
+      
+      // Mock模式下返回模拟数据
+      if (this.isMockMode) {
+        return this.getMockRelationships(contactId);
+      }
+      
+      const response = await apiClient.get(`/api/relationships/${contactId}`);
+      console.log('获取关系数据成功:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('获取关系数据失败:', error);
+      
+      // 网络错误时返回模拟数据
+      if (error.message.includes('网络') || error.message.includes('Network')) {
+        console.log('网络错误，使用Mock数据');
+        return this.getMockRelationships(contactId);
+      }
+      
+      throw error;
+    }
+  }
+  
+  /**
+   * 确认关系
+   * @param {number} relationshipId - 关系ID
+   * @returns {Promise<Object>} API响应
+   */
+  async confirmRelationship(relationshipId) {
+    try {
+      console.log('确认关系:', relationshipId);
+      
+      // Mock模式下模拟确认操作
+      if (this.isMockMode) {
+        return {
+          success: true,
+          message: '关系确认成功（Mock模式）',
+          data: { id: relationshipId, status: 'confirmed' }
+        };
+      }
+      
+      const response = await apiClient.post(`/api/relationships/${relationshipId}/confirm`);
+      console.log('确认关系成功:', response);
+      
+      // 通知监听器
+      this.notifyListeners('relationship_confirmed', { relationshipId });
+      
+      return response;
+    } catch (error) {
+      console.error('确认关系失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 忽略关系
+   * @param {number} relationshipId - 关系ID
+   * @returns {Promise<Object>} API响应
+   */
+  async ignoreRelationship(relationshipId) {
+    try {
+      console.log('忽略关系:', relationshipId);
+      
+      // Mock模式下模拟忽略操作
+      if (this.isMockMode) {
+        return {
+          success: true,
+          message: '关系已忽略（Mock模式）',
+          data: { id: relationshipId, status: 'ignored' }
+        };
+      }
+      
+      const response = await apiClient.post(`/api/relationships/${relationshipId}/ignore`);
+      console.log('忽略关系成功:', response);
+      
+      // 通知监听器
+      this.notifyListeners('relationship_ignored', { relationshipId });
+      
+      return response;
+    } catch (error) {
+      console.error('忽略关系失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 批量确认关系
+   * @param {Array} relationshipIds - 关系ID数组
+   * @returns {Promise<Object>} API响应
+   */
+  async batchConfirmRelationships(relationshipIds) {
+    try {
+      console.log('批量确认关系:', relationshipIds);
+      
+      // Mock模式下模拟批量确认
+      if (this.isMockMode) {
+        return {
+          success: true,
+          message: `批量确认了 ${relationshipIds.length} 个关系（Mock模式）`,
+          data: {
+            confirmed_count: relationshipIds.length,
+            failed_count: 0
+          }
+        };
+      }
+      
+      const response = await apiClient.post('/api/relationships/batch/confirm', {
+        relationship_ids: relationshipIds
+      });
+      console.log('批量确认成功:', response);
+      
+      // 通知监听器
+      this.notifyListeners('relationships_batch_confirmed', { relationshipIds });
+      
+      return response;
+    } catch (error) {
+      console.error('批量确认关系失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 批量忽略关系
+   * @param {Array} relationshipIds - 关系ID数组
+   * @returns {Promise<Object>} API响应
+   */
+  async batchIgnoreRelationships(relationshipIds) {
+    try {
+      console.log('批量忽略关系:', relationshipIds);
+      
+      // Mock模式下模拟批量忽略
+      if (this.isMockMode) {
+        return {
+          success: true,
+          message: `批量忽略了 ${relationshipIds.length} 个关系（Mock模式）`,
+          data: {
+            ignored_count: relationshipIds.length,
+            failed_count: 0
+          }
+        };
+      }
+      
+      const response = await apiClient.post('/api/relationships/batch/ignore', {
+        relationship_ids: relationshipIds
+      });
+      console.log('批量忽略成功:', response);
+      
+      // 通知监听器
+      this.notifyListeners('relationships_batch_ignored', { relationshipIds });
+      
+      return response;
+    } catch (error) {
+      console.error('批量忽略关系失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 重新分析联系人关系
+   * @param {number} contactId - 联系人ID
+   * @returns {Promise<Object>} API响应
+   */
+  async reanalyzeContactRelationships(contactId) {
+    try {
+      console.log('重新分析联系人关系:', contactId);
+      
+      // Mock模式下模拟重新分析
+      if (this.isMockMode) {
+        return {
+          success: true,
+          message: '关系重新分析完成（Mock模式）',
+          data: {
+            analyzed_count: Math.floor(Math.random() * 5) + 1,
+            new_relationships: Math.floor(Math.random() * 3)
+          }
+        };
+      }
+      
+      const response = await apiClient.post(`/api/relationships/${contactId}/reanalyze`);
+      console.log('重新分析成功:', response);
+      
+      // 通知监听器
+      this.notifyListeners('relationships_reanalyzed', { contactId });
+      
+      return response;
+    } catch (error) {
+      console.error('重新分析关系失败:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 获取关系详情
+   * @param {number} relationshipId - 关系ID
+   * @returns {Promise<Object>} API响应
+   */
+  async getRelationshipDetail(relationshipId) {
+    try {
+      console.log('获取关系详情:', relationshipId);
+      
+      // Mock模式下返回模拟数据
+      if (this.isMockMode) {
+        return this.getMockRelationshipDetail(relationshipId);
+      }
+      
+      const response = await apiClient.get(`/api/relationships/detail/${relationshipId}`);
+      console.log('获取关系详情成功:', response);
+      
+      return response;
+    } catch (error) {
+      console.error('获取关系详情失败:', error);
+      
+      // 网络错误时返回模拟数据
+      if (error.message.includes('网络') || error.message.includes('Network')) {
+        console.log('网络错误，使用Mock数据');
+        return this.getMockRelationshipDetail(relationshipId);
+      }
+      
+      throw error;
+    }
+  },
+
+  /**
+   * 获取Mock模式的关系详情
+   * @param {number} relationshipId - 关系ID
+   * @returns {Object} Mock关系详情数据
+   */
+  getMockRelationshipDetail(relationshipId) {
+    console.log('生成Mock关系详情数据，关系ID:', relationshipId);
+    
+    // 模拟详细的关系数据
+    const mockRelationshipDetail = {
+      id: relationshipId,
+      source_profile_id: 'mock_1',
+      target_profile_id: 'mock_2',
+      relationship_type: 'colleague',
+      confidence_score: 0.85,
+      status: 'discovered',
+      evidence: {
+        matched_fields: ['company', 'location', 'industry'],
+        field_scores: {
+          'company': 0.95,
+          'location': 0.78,
+          'industry': 0.82
+        },
+        details: {
+          'company_source': 'Mock科技有限公司',
+          'company_target': 'Mock科技有限公司',
+          'location_source': '上海市浦东新区',
+          'location_target': '上海市浦东新区张江',
+          'industry_source': '互联网科技',
+          'industry_target': '软件开发'
+        }
+      },
+      ai_analysis: '基于工作地点和公司信息的分析显示，两位联系人很可能是同事关系。相同的公司背景和相近的工作地点为这个关系提供了强有力的证据。建议确认这个关系并在工作协作中保持联系。',
+      created_at: '2024-08-06T10:30:00Z',
+      updated_at: '2024-08-06T15:45:00Z',
+      sourceProfile: {
+        id: 'mock_1',
+        profile_name: '张伟（Mock）',
+        company: 'Mock科技有限公司',
+        position: '技术总监',
+        location: '上海市浦东新区',
+        phone: '138****8888'
+      },
+      targetProfile: {
+        id: 'mock_2',
+        profile_name: '李娜（Mock）',
+        company: 'Mock科技有限公司',
+        position: '产品经理',
+        location: '上海市浦东新区张江',
+        phone: '139****9999'
+      }
+    };
+    
+    return {
+      success: true,
+      message: 'Mock关系详情数据',
+      data: mockRelationshipDetail
+    };
+  },
+
+  /**
+   * 获取Mock模式的关系数据
+   * @param {number} contactId - 联系人ID
+   * @returns {Object} Mock关系数据
+   */
+  getMockRelationships(contactId) {
+    console.log('生成Mock关系数据，联系人ID:', contactId);
+    
+    // 根据联系人ID生成不同的模拟关系
+    const mockRelationships = [
+      {
+        id: 1,
+        source_profile_id: contactId,
+        target_profile_id: contactId === 'mock_1' ? 'mock_2' : 'mock_1',
+        relationship_type: 'colleague',
+        confidence_score: 0.85,
+        status: 'discovered',
+        evidence: {
+          matched_fields: ['company'],
+          details: '同公司员工'
+        },
+        created_at: '2024-08-06T10:30:00Z',
+        sourceProfile: {
+          id: contactId,
+          profile_name: contactId === 'mock_1' ? '张伟（Mock）' : '李娜（Mock）'
+        },
+        targetProfile: {
+          id: contactId === 'mock_1' ? 'mock_2' : 'mock_1',
+          profile_name: contactId === 'mock_1' ? '李娜（Mock）' : '张伟（Mock）'
+        }
+      },
+      {
+        id: 2,
+        source_profile_id: contactId,
+        target_profile_id: 'mock_3',
+        relationship_type: 'same_location',
+        confidence_score: 0.72,
+        status: 'discovered',
+        evidence: {
+          matched_fields: ['location'],
+          details: '同一地区'
+        },
+        created_at: '2024-08-06T11:15:00Z',
+        sourceProfile: {
+          id: contactId,
+          profile_name: contactId === 'mock_1' ? '张伟（Mock）' : '李娜（Mock）'
+        },
+        targetProfile: {
+          id: 'mock_3',
+          profile_name: '王强（Mock）'
+        }
+      }
+    ];
+    
+    // 如果联系人ID是mock_1，增加一个已确认的关系
+    if (contactId === 'mock_1') {
+      mockRelationships.push({
+        id: 3,
+        source_profile_id: contactId,
+        target_profile_id: 'mock_4',
+        relationship_type: 'alumni',
+        confidence_score: 0.91,
+        status: 'confirmed',
+        evidence: {
+          matched_fields: ['education'],
+          details: '同校校友'
+        },
+        created_at: '2024-08-05T14:20:00Z',
+        sourceProfile: {
+          id: contactId,
+          profile_name: '张伟（Mock）'
+        },
+        targetProfile: {
+          id: 'mock_4',
+          profile_name: '赵丽（Mock）'
+        }
+      });
+    }
+    
+    return {
+      success: true,
+      message: 'Mock关系数据',
+      data: mockRelationships
+    };
+  }
 }
 
 // 创建单例实例

@@ -1,0 +1,219 @@
+<!--关系详情页面-->
+<scroll-view class="relationship-detail-page {{themeClass}}" scroll-y="{{true}}" bindscroll="onPageScroll" enhanced="{{true}}" show-scrollbar="{{false}}">
+  
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-top">
+      <text class="back-button" bindtap="onBack">‹ 返回</text>
+      <text class="page-title">关系详情</text>
+      <view class="header-actions">
+        <view class="action-btn" bindtap="onShare">
+          <t-icon name="share" size="24rpx" color="var(--td-text-color-secondary, #757575)" />
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 关系概览卡片 -->
+  <view class="relationship-overview" wx:if="{{relationship}}">
+    <view class="overview-card">
+      <!-- 联系人信息 -->
+      <view class="contacts-section">
+        <view class="contact-item source">
+          <view class="contact-avatar">
+            <text class="avatar-text">{{relationship.sourceInitial}}</text>
+          </view>
+          <view class="contact-info">
+            <text class="contact-name">{{relationship.sourceName}}</text>
+            <text class="contact-subtitle">{{relationship.sourceCompany}}</text>
+          </view>
+        </view>
+        
+        <!-- 关系连接线 -->
+        <view class="relationship-connector">
+          <view class="connector-line"></view>
+          <view class="connector-center">
+            <view class="relationship-badge {{relationship.status}}">
+              <text class="badge-icon">{{getRelationshipIcon(relationship.relationship_type)}}</text>
+            </view>
+            <text class="relationship-label">{{formatRelationshipType(relationship.relationship_type)}}</text>
+          </view>
+          <view class="connector-line"></view>
+        </view>
+        
+        <view class="contact-item target">
+          <view class="contact-avatar">
+            <text class="avatar-text">{{relationship.targetInitial}}</text>
+          </view>
+          <view class="contact-info">
+            <text class="contact-name">{{relationship.targetName}}</text>
+            <text class="contact-subtitle">{{relationship.targetCompany}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 关系状态和可信度 -->
+      <view class="relationship-metrics">
+        <view class="metric-item">
+          <text class="metric-label">状态</text>
+          <view class="status-badge {{relationship.status}}">
+            <text class="status-text">{{formatStatus(relationship.status)}}</text>
+          </view>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">可信度</text>
+          <view class="confidence-bar">
+            <view class="confidence-fill" style="width: {{relationship.confidence_score * 100}}%"></view>
+            <text class="confidence-text">{{Math.round(relationship.confidence_score * 100)}}%</text>
+          </view>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">发现时间</text>
+          <text class="metric-value">{{formatDate(relationship.created_at)}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 关系证据 -->
+  <view class="evidence-section" wx:if="{{relationship && relationship.evidence}}">
+    <view class="section-header">
+      <text class="section-title">关系证据</text>
+      <text class="section-subtitle">基于以下信息发现此关系</text>
+    </view>
+    
+    <view class="evidence-cards">
+      <view wx:for="{{evidenceList}}" wx:key="field" class="evidence-card">
+        <view class="evidence-header">
+          <view class="evidence-icon">
+            <text class="icon-text">{{getEvidenceIcon(item.field)}}</text>
+          </view>
+          <text class="evidence-title">{{getEvidenceTitle(item.field)}}</text>
+          <view class="evidence-match-score">
+            <text class="score-text">{{item.match_score}}%</text>
+          </view>
+        </view>
+        <view class="evidence-content">
+          <view class="evidence-comparison">
+            <view class="comparison-item">
+              <text class="comparison-label">{{relationship.sourceName}}</text>
+              <text class="comparison-value">{{item.source_value}}</text>
+            </view>
+            <view class="comparison-divider">≈</view>
+            <view class="comparison-item">
+              <text class="comparison-label">{{relationship.targetName}}</text>
+              <text class="comparison-value">{{item.target_value}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 智能分析 -->
+  <view class="analysis-section" wx:if="{{relationship && relationship.ai_analysis}}">
+    <view class="section-header">
+      <text class="section-title">智能分析</text>
+      <text class="section-subtitle">AI生成的关系洞察</text>
+    </view>
+    
+    <view class="analysis-card">
+      <view class="analysis-content">
+        <text class="analysis-text">{{relationship.ai_analysis}}</text>
+      </view>
+      <view class="analysis-tags" wx:if="{{relationship.analysis_tags}}">
+        <view wx:for="{{relationship.analysis_tags}}" wx:key="*this" class="analysis-tag">
+          <text class="tag-text">{{item}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 相关时间线 -->
+  <view class="timeline-section" wx:if="{{timeline.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">关系时间线</text>
+      <text class="section-subtitle">相关历史记录</text>
+    </view>
+    
+    <view class="timeline-container">
+      <view wx:for="{{timeline}}" wx:key="id" class="timeline-item">
+        <view class="timeline-dot {{item.type}}"></view>
+        <view class="timeline-content">
+          <text class="timeline-title">{{item.title}}</text>
+          <text class="timeline-desc">{{item.description}}</text>
+          <text class="timeline-time">{{formatDateTime(item.timestamp)}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 相关建议 -->
+  <view class="suggestions-section" wx:if="{{suggestions.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">相关建议</text>
+      <text class="section-subtitle">基于此关系的行动建议</text>
+    </view>
+    
+    <view class="suggestions-cards">
+      <view wx:for="{{suggestions}}" wx:key="id" class="suggestion-card" bindtap="onSuggestionTap" data-suggestion="{{item}}">
+        <view class="suggestion-icon">
+          <text class="icon-text">{{item.icon}}</text>
+        </view>
+        <view class="suggestion-content">
+          <text class="suggestion-title">{{item.title}}</text>
+          <text class="suggestion-desc">{{item.description}}</text>
+        </view>
+        <view class="suggestion-arrow">
+          <t-icon name="chevron-right" size="20rpx" color="var(--td-text-color-placeholder, #bdbdbd)" />
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 操作按钮 -->
+  <view class="action-buttons" wx:if="{{relationship && relationship.status === 'discovered'}}">
+    <button class="action-btn secondary" bindtap="onIgnoreRelationship">
+      <t-icon name="close" size="24rpx" />
+      <text class="btn-text">忽略关系</text>
+    </button>
+    <button class="action-btn primary" bindtap="onConfirmRelationship">
+      <t-icon name="check" size="24rpx" />
+      <text class="btn-text">确认关系</text>
+    </button>
+  </view>
+  
+  <!-- 已处理状态显示 -->
+  <view class="status-display" wx:if="{{relationship && relationship.status !== 'discovered'}}">
+    <view class="status-icon {{relationship.status}}">
+      <text class="icon-text">{{relationship.status === 'confirmed' ? '✓' : '✕'}}</text>
+    </view>
+    <text class="status-message">
+      {{relationship.status === 'confirmed' ? '此关系已确认' : '此关系已忽略'}}
+    </text>
+    <text class="status-time">{{formatDateTime(relationship.updated_at)}}</text>
+  </view>
+  
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <t-loading theme="spinner" size="60rpx" />
+    <text class="loading-text">加载关系详情中...</text>
+  </view>
+  
+  <!-- 错误状态 -->
+  <view class="error-state" wx:if="{{error && !loading}}">
+    <text class="error-message">{{error}}</text>
+    <button class="retry-btn" bindtap="loadRelationshipDetail">
+      <text class="btn-text">重新加载</text>
+    </button>
+  </view>
+  
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && !error && !relationship}}">
+    <view class="empty-icon">
+      <text class="icon-text">🔗</text>
+    </view>
+    <text class="empty-title">找不到关系信息</text>
+    <text class="empty-desc">该关系可能已被删除或不存在</text>
+  </view>
+</scroll-view>

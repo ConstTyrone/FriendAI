@@ -314,6 +314,18 @@
     </view>
   </view>
 
+  <!-- 关系发现提示 -->
+  <relationship-tip
+    relationships="{{discoveredRelationships}}"
+    visible="{{showRelationshipTip}}"
+    show-preview="{{true}}"
+    show-actions="{{true}}"
+    bind:viewDetails="onViewRelationshipDetails"
+    bind:confirmAll="onConfirmAllRelationships" 
+    bind:ignoreAll="onIgnoreAllRelationships"
+    bind:close="onCloseRelationshipTip"
+  />
+
   <!-- 取消确认对话框 -->
   <view class="confirm-overlay {{showCancelDialog ? 'show' : ''}}" bindtap="onCancelCancel">
     <view class="confirm-dialog" catchtap="onStopPropagation">
