@@ -1,5 +1,5 @@
 import { PAGE_ROUTES } from '../../utils/constants';
-import { isPhone, isEmail, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, isValidGender } from '../../utils/validator';
+import { isPhone, isNotEmpty, isValidMaritalStatus, isValidAssetLevel, isValidGender } from '../../utils/validator';
 import authManager from '../../utils/auth-manager';
 import dataManager from '../../utils/data-manager';
 import apiClient from '../../utils/api-client';
@@ -18,8 +18,6 @@ Page({
     formData: {
       name: '',
       phone: '',
-      wechat_id: '',
-      email: '',
       company: '',
       position: '',
       address: '',
@@ -187,8 +185,6 @@ Page({
       const formData = {
         name: contact.profile_name || contact.name || '',
         phone: contact.phone || '',
-        wechat_id: contact.wechat_id || '',
-        email: contact.email || '',
         company: contact.company || '',
         position: contact.position || '',
         address: contact.location || contact.address || '',
@@ -237,8 +233,6 @@ Page({
     const formData = {
       name: importData.profile_name || '',
       phone: importData.phone || '',
-      wechat_id: '',
-      email: '',
       company: importData.company || '',
       position: importData.position || '',
       address: importData.location || '',
@@ -428,15 +422,6 @@ Page({
       errors.phone = '请输入正确的手机号码';
     }
     
-    // 验证邮箱
-    if (formData.email && !isEmail(formData.email)) {
-      errors.email = '请输入正确的邮箱地址';
-    }
-    
-    // 验证微信号
-    if (formData.wechat_id && formData.wechat_id.length < 6) {
-      errors.wechat_id = '微信号长度至少6位';
-    }
     
     // 验证性别
     if (formData.gender && !isValidGender(formData.gender)) {
@@ -522,7 +507,7 @@ Page({
       // 1. 新增模式：字段有值时发送
       // 2. 编辑模式：字段有值且与原始数据不同时发送
       const fieldsToCheck = [
-        'phone', 'wechat_id', 'email', 'company', 'position', 
+        'phone', 'company', 'position', 
         'address', 'notes', 'age', 'education', 'personality'
       ];
       

@@ -1064,15 +1064,10 @@ Page({
           
         case 'dataUpdated':
           console.log('数据更新事件:', data);
-          if (data?.type === 'auto_refresh') {
-            // 显示新数据提示
-            wx.showToast({
-              title: `发现 ${data.updateCount || 1} 个新联系人`,
-              icon: 'success',
-              duration: 2000
-            });
-            
-            // 自动刷新页面数据
+          // 暂时禁用自动刷新提示，避免频繁弹窗
+          // 只在真正有新数据时才提示
+          if (data?.type === 'auto_refresh' && data?.updateCount > 0) {
+            // 自动刷新页面数据，但不弹窗提示
             this.loadInitialData(true);
           }
           break;

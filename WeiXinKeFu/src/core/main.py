@@ -2386,17 +2386,23 @@ async def update_match_feedback(
             # 记录评分事件
             await scoring_analytics.record_scoring_event(scoring_event)
             
-            # 如果积累了足够反馈，触发校准
+            # 收集反馈数据，但暂不触发自动优化
             feedback_count = await scoring_analytics.get_user_feedback_count(query_user_id)
-            if feedback_count >= 10 and feedback_count % 5 == 0:  # 每5个反馈触发一次校准
+            
+            # 每5个反馈记录一次统计
+            if feedback_count >= 5 and feedback_count % 5 == 0:
+                logger.info(f"📊 用户 {query_user_id} 已收集 {feedback_count} 个反馈")
+                
+                # 暂时只记录，不做自动优化
+                # TODO: 收集足够数据后，人工分析并手动优化
+                """
+                # 未来可能启用的自动校准代码
                 calibration_params = await scoring_analytics.calculate_calibration(query_user_id)
                 if calibration_params:
-                    logger.info(f"用户 {query_user_id} 触发自动校准: {calibration_params}")
-                    # 这里可以自动应用校准参数
-                    from src.config.scoring_config import scoring_config_manager
-                    scoring_config_manager.update_config({
-                        'calibration': calibration_params
-                    })
+                    logger.info(f"计算出校准参数: {calibration_params}")
+                    # from src.config.scoring_config import scoring_config_manager
+                    # scoring_config_manager.update_config({'calibration': calibration_params})
+                """
         except Exception as e:
             # 分析系统错误不影响反馈更新
             logger.warning(f"记录到分析系统失败: {e}")
@@ -2523,6 +2529,101 @@ async def vectorize_intent(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"向量化失败: {str(e)}"
+        )
+
+@app.get("/api/feedback/stats")
+async def get_feedback_stats(
+    current_user: str = Depends(verify_user_token)
+):
+    """获取用户反馈统计"""
+    try:
+        import sqlite3
+        import json
+        
+        # 获取用户ID
+        query_user_id = get_query_user_id(current_user)
+        
+        # 连接数据库
+        conn = sqlite3.connect(db.db_path)
+        cursor = conn.cursor()
+        
+        # 统计反馈数据
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_matches,
+                COUNT(user_feedback) as total_feedback,
+                COUNT(CASE WHEN user_feedback = 'positive' THEN 1 END) as positive_count,
+                COUNT(CASE WHEN user_feedback = 'negative' THEN 1 END) as negative_count,
+                COUNT(CASE WHEN user_feedback = 'ignored' THEN 1 END) as ignored_count,
+                AVG(CASE WHEN user_feedback = 'positive' THEN match_score END) as positive_avg_score,
+                AVG(CASE WHEN user_feedback = 'negative' THEN match_score END) as negative_avg_score
+            FROM intent_matches
+            WHERE user_id = ?
+        """, (query_user_id,))
+        
+        result = cursor.fetchone()
+        
+        # 获取最近反馈
+        cursor.execute("""
+            SELECT 
+                im.id,
+                im.match_score,
+                im.user_feedback,
+                im.feedback_at,
+                ui.name as intent_name,
+                im.profile_id
+            FROM intent_matches im
+            JOIN user_intents ui ON im.intent_id = ui.id
+            WHERE im.user_id = ? AND im.user_feedback IS NOT NULL
+            ORDER BY im.feedback_at DESC
+            LIMIT 10
+        """, (query_user_id,))
+        
+        recent_feedback = []
+        for row in cursor.fetchall():
+            recent_feedback.append({
+                'id': row[0],
+                'match_score': row[1],
+                'feedback': row[2],
+                'feedback_at': row[3],
+                'intent_name': row[4],
+                'profile_id': row[5]
+            })
+        
+        conn.close()
+        
+        # 计算统计指标
+        feedback_rate = result[1] / result[0] * 100 if result[0] > 0 else 0
+        positive_rate = result[2] / result[1] * 100 if result[1] > 0 else 0
+        negative_rate = result[3] / result[1] * 100 if result[1] > 0 else 0
+        
+        stats = {
+            'total_matches': result[0],
+            'total_feedback': result[1],
+            'feedback_rate': round(feedback_rate, 1),
+            'positive_count': result[2],
+            'negative_count': result[3],
+            'ignored_count': result[4],
+            'positive_rate': round(positive_rate, 1),
+            'negative_rate': round(negative_rate, 1),
+            'positive_avg_score': round(result[5], 3) if result[5] else 0,
+            'negative_avg_score': round(result[6], 3) if result[6] else 0,
+            'score_separation': round(abs((result[5] or 0) - (result[6] or 0)), 3),
+            'recent_feedback': recent_feedback,
+            'collection_status': '数据收集中' if result[1] < 50 else '可以分析',
+            'recommendation': '继续收集反馈' if result[1] < 50 else '已有足够数据，可以进行人工分析'
+        }
+        
+        return {
+            "success": True,
+            "data": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"获取反馈统计失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取反馈统计失败: {str(e)}"
         )
 
 @app.get("/api/ai/vector-status")

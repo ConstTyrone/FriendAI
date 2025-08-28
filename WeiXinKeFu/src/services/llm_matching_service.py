@@ -148,12 +148,15 @@ class LLMMatchingService:
             # 解析响应
             judgment = self._parse_judgment(response)
             
-            # 应用自适应校准
+            # 暂时禁用自动校准，只收集数据
+            # TODO: 收集足够数据后再启用自动优化
+            """
             if self.config and self.config.enable_calibration:
                 original_score = judgment.match_score
                 judgment = await self._apply_calibration(judgment, intent, profile)
                 if judgment.match_score != original_score:
                     logger.info(f"🔧 校准调整: {original_score:.3f} → {judgment.match_score:.3f}")
+            """
             
             # 记录解析结果
             logger.info(f"📊 LLM最终结果: 分数={judgment.match_score:.3f}, 置信度={judgment.confidence:.3f}, 是否匹配={judgment.is_match}")

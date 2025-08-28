@@ -38,47 +38,15 @@
       </view>
     </view>
 
-    <!-- 快速操作 -->
-    <view class="quick-actions">
-      <view class="action-button" bind:tap="onCopyWechatId" wx:if="{{contactInfo.wechat_id}}">
-        <text class="action-label">微信</text>
-      </view>
-    </view>
-
     <!-- 基本信息 -->
     <view class="info-section">
       <text class="section-title">基本信息</text>
       <view class="info-list">
         <view class="info-item" wx:if="{{contactInfo.phone}}">
           <text class="info-label">电话</text>
-          <text class="info-value">{{formatPhone(contactInfo.phone)}}</text>
+          <text class="info-value">{{contactInfo.phone}}</text>
         </view>
         
-        <view class="info-item" wx:if="{{contactInfo.wechat_id}}" bind:tap="onCopyWechatId">
-          <text class="info-label">微信</text>
-          <text class="info-value">{{contactInfo.wechat_id}}</text>
-          <text class="info-arrow">›</text>
-        </view>
-        
-        <view class="info-item" wx:if="{{contactInfo.email}}">
-          <text class="info-label">邮箱</text>
-          <text class="info-value">{{contactInfo.email}}</text>
-        </view>
-        
-        <view class="info-item" wx:if="{{contactInfo.location || contactInfo.address}}">
-          <text class="info-label">地址</text>
-          <text class="info-value">{{contactInfo.location || contactInfo.address}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 个人特征 -->
-    <view 
-      class="info-section"
-      wx:if="{{contactInfo.gender || contactInfo.age || contactInfo.marital_status || contactInfo.education || contactInfo.asset_level}}"
-    >
-      <text class="section-title">个人特征</text>
-      <view class="info-list">
         <view class="info-item" wx:if="{{contactInfo.gender}}">
           <text class="info-label">性别</text>
           <text class="info-value">{{contactInfo.gender}}</text>
@@ -88,98 +56,36 @@
           <text class="info-label">年龄</text>
           <text class="info-value">{{contactInfo.age}}</text>
         </view>
-        
-        <view class="info-item" wx:if="{{contactInfo.marital_status}}">
-          <text class="info-label">婚姻</text>
-          <text class="info-value">{{contactInfo.marital_status}}</text>
+      </view>
+    </view>
+
+    <!-- 工作信息 -->
+    <view 
+      class="info-section"
+      wx:if="{{contactInfo.company || contactInfo.position}}"
+    >
+      <text class="section-title">工作信息</text>
+      <view class="info-list">
+        <view class="info-item" wx:if="{{contactInfo.company}}">
+          <text class="info-label">公司</text>
+          <text class="info-value">{{contactInfo.company}}</text>
         </view>
         
-        <view class="info-item" wx:if="{{contactInfo.education}}">
-          <text class="info-label">学历</text>
-          <text class="info-value">{{contactInfo.education}}</text>
-        </view>
-        
-        <view class="info-item" wx:if="{{contactInfo.asset_level}}">
-          <text class="info-label">资产</text>
-          <text class="info-value">{{contactInfo.asset_level}}</text>
+        <view class="info-item" wx:if="{{contactInfo.position}}">
+          <text class="info-label">职务</text>
+          <text class="info-value">{{contactInfo.position}}</text>
         </view>
       </view>
     </view>
 
-    <!-- AI分析 -->
+    <!-- AI描述 -->
     <view 
       class="info-section ai-section"
-      wx:if="{{contactInfo.ai_summary || contactInfo.personality}}"
+      wx:if="{{contactInfo.ai_summary}}"
     >
-      <text class="section-title">AI分析</text>
+      <text class="section-title">AI描述</text>
       <view class="ai-content">
-        <view class="ai-item" wx:if="{{contactInfo.ai_summary}}">
-          <text class="ai-text">{{contactInfo.ai_summary}}</text>
-        </view>
-        <view class="ai-item" wx:if="{{contactInfo.personality}}">
-          <text class="ai-label">性格：</text>
-          <text class="ai-text">{{contactInfo.personality}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 备注信息 -->
-    <view class="info-section" wx:if="{{contactInfo.notes}}">
-      <text class="section-title">备注</text>
-      <view class="notes-content">
-        <text class="notes-text">{{contactInfo.notes}}</text>
-      </view>
-    </view>
-
-    <!-- 标签 -->
-    <view 
-      class="info-section tags-section"
-      wx:if="{{contactInfo.tags && contactInfo.tags.length > 0}}"
-    >
-      <text class="section-title">标签</text>
-      <view class="tag-list">
-        <view 
-          wx:for="{{contactInfo.tags}}" 
-          wx:key="index" 
-          class="tag-wrapper"
-        >
-          <text class="tag-text">{{item}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 信息来源 -->
-    <view 
-      class="info-section source-section"
-      wx:if="{{contactInfo.source === 'wechat_message' && contactInfo.source_messages && contactInfo.source_messages.length > 0}}"
-    >
-      <view class="section-header" bind:tap="onToggleSourceMessages">
-        <text class="section-title">信息来源</text>
-        <text class="expand-icon {{showSourceMessages ? 'expanded' : ''}}">›</text>
-      </view>
-      
-      <view class="source-content {{showSourceMessages ? 'expanded' : ''}}">
-        <text class="source-tip">此联系人通过微信消息创建，以下是原始信息：</text>
-        <view class="source-messages">
-          <view 
-            wx:for="{{contactInfo.source_messages}}" 
-            wx:key="id" 
-            class="source-message"
-          >
-            <view class="message-header">
-              <text class="message-time">{{formatSourceTime(item.timestamp)}}</text>
-              <text class="message-type">{{formatMessageType(item.message_type)}}</text>
-              <text class="message-action">{{item.action === 'created' ? '创建' : '更新'}}</text>
-            </view>
-            <view class="message-content">
-              <text class="content-text" wx:if="{{item.processed_content}}">{{item.processed_content}}</text>
-              <text class="content-text" wx:else>{{item.raw_content}}</text>
-            </view>
-            <view class="message-id" wx:if="{{item.wechat_msg_id}}">
-              <text class="id-text">消息ID: {{item.wechat_msg_id}}</text>
-            </view>
-          </view>
-        </view>
+        <text class="ai-text">{{contactInfo.ai_summary}}</text>
       </view>
     </view>
 

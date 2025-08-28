@@ -14,51 +14,31 @@
       <text class="card-avatar-text">{{contact.initial || '?'}}</text>
     </view>
     
-    <!-- 基本信息 -->
+    <!-- 基本信息（精简版） -->
     <view class="contact-info">
+      <!-- 姓名 -->
       <view class="contact-name">
         <text class="name-text">{{contact.displayName || contact.profile_name || '未知联系人'}}</text>
-        <t-icon 
-          wx:if="{{contact.confidence_score >= 0.8}}" 
-          name="check-circle-filled" 
-          size="20rpx" 
-          color="#52c41a"
-          class="verified-icon"
-        />
       </view>
       
+      <!-- 公司和职务 -->
       <view class="contact-company" wx:if="{{contact.company || contact.position}}">
         <text class="company-text">
           {{contact.company}}{{contact.company && contact.position ? ' · ' : ''}}{{contact.position}}
         </text>
       </view>
       
-      <view class="contact-location" wx:if="{{contact.location}}">
-        <t-icon name="location" size="20rpx" color="#909399" />
-        <text class="location-text">{{contact.location}}</text>
-      </view>
-    </view>
-    
-    <!-- 置信度指示器 -->
-    <view class="confidence-indicator" wx:if="{{contact.confidence_score}}">
-      <view class="confidence-circle {{getConfidenceLevel(contact.confidence_score)}}">
-        <text class="confidence-text">{{formatConfidence(contact.confidence_score)}}</text>
+      <!-- 其他基本信息：电话、性别、年龄（简洁显示） -->
+      <view class="contact-basic" wx:if="{{contact.phone || contact.gender || contact.age}}">
+        <text class="basic-text" wx:if="{{contact.phone}}">📞 {{contact.phone}}</text>
+        <text class="basic-text" wx:if="{{contact.gender && contact.age}}"> · {{contact.gender}} {{contact.age}}岁</text>
+        <text class="basic-text" wx:elif="{{contact.gender}}"> · {{contact.gender}}</text>
+        <text class="basic-text" wx:elif="{{contact.age}}"> · {{contact.age}}岁</text>
       </view>
     </view>
   </view>
   
-  <!-- 标签区域 -->
-  <view class="card-tags" wx:if="{{contact.formattedTags && contact.formattedTags.length > 0}}">
-    <view
-      wx:for="{{contact.formattedTags}}"
-      wx:key="index"
-      class="contact-tag tag-{{getTagType(item)}}"
-    >
-      <text class="tag-text">{{item}}</text>
-    </view>
-  </view>
-  
-  <!-- AI摘要 -->
+  <!-- AI摘要（如果有） -->
   <view class="card-summary" wx:if="{{contact.ai_summary && showSummary}}">
     <text class="summary-text">{{contact.ai_summary}}</text>
   </view>

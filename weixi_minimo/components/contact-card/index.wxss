@@ -83,15 +83,17 @@
   line-height: 1.3;
 }
 
-.contact-location {
+/* 基本信息行（新增） */
+.contact-basic {
   display: flex;
   align-items: center;
+  margin-top: 6rpx;
 }
 
-.location-text {
+.basic-text {
   font-size: 24rpx;
   color: #909399;
-  margin-left: 4rpx;
+  line-height: 1.3;
 }
 
 /* 置信度指示器 */

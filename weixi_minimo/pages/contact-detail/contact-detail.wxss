@@ -7,6 +7,11 @@
   padding-bottom: calc(120rpx + env(safe-area-inset-bottom)); /* 为底部按钮留出空间 */
 }
 
+/* 精简布局，减少信息区块的内边距 */
+.detail-content {
+  padding: 20rpx;
+}
+
 /* 深色模式适配 */
 .detail-page.theme-dark {
   background-color: #1a1a1a;
@@ -339,7 +344,7 @@
   font-weight: 500;
 }
 
-/* 信息区块 */
+/* 信息区块 - 调整为更紧凑的布局 */
 .info-section {
   background: #FFFFFF;
   margin: 16rpx 24rpx;
@@ -409,29 +414,23 @@
   margin-left: 16rpx;
 }
 
-/* AI分析区域 */
+/* AI描述区域 - 优化样式 */
+.ai-section {
+  background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+  border: 1rpx solid #e3e8f0;
+}
+
 .ai-section .ai-content {
-  padding-top: 8rpx;
-}
-
-.ai-item {
-  margin-bottom: 16rpx;
-}
-
-.ai-item:last-child {
-  margin-bottom: 0;
-}
-
-.ai-label {
-  font-size: 26rpx;
-  color: #666666;
-  margin-right: 8rpx;
+  padding-top: 12rpx;
 }
 
 .ai-text {
   font-size: 28rpx;
   color: #333333;
-  line-height: 1.6;
+  line-height: 1.8;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 16rpx;
+  border-radius: 8rpx;
 }
 
 /* 备注内容 */

@@ -762,15 +762,28 @@ class IntentMatcher:
                         existing_id
                     ))
                     
-                    # 如果分数显著提升且之前已读，可以重置为未读以便通知用户
-                    if score - (existing_score or 0) > 0.1 and is_read == 1:
+                    # 只有在分数大幅提升时才重置为未读（从0.1改为0.3，避免频繁触发）
+                    # 并且需要间隔24小时以上才能再次提醒
+                    if score - (existing_score or 0) > 0.3 and is_read == 1:
+                        # 检查上次更新时间，避免频繁提醒
                         cursor.execute("""
-                            UPDATE intent_matches 
-                            SET is_read = 0
-                            WHERE id = ?
+                            SELECT updated_at FROM intent_matches 
+                            WHERE id = ? 
+                            AND datetime(updated_at) < datetime('now', '-24 hours')
                         """, (existing_id,))
-                        logger.info(f"匹配分数显著提升，重置为未读状态: intent_id={intent_id}, profile_id={profile_id}")
-                        return (existing_id, True)  # 返回ID和需要推送标志
+                        
+                        if cursor.fetchone():
+                            # 距离上次更新超过24小时，才重置为未读
+                            cursor.execute("""
+                                UPDATE intent_matches 
+                                SET is_read = 0
+                                WHERE id = ?
+                            """, (existing_id,))
+                            logger.info(f"匹配分数显著提升且超过24小时，重置为未读: intent_id={intent_id}, profile_id={profile_id}")
+                            return (existing_id, True)  # 返回ID和需要推送标志
+                        else:
+                            logger.debug(f"匹配分数提升但未超过24小时冷却期，不重置: intent_id={intent_id}, profile_id={profile_id}")
+                            return (existing_id, False)
                 
                 return (existing_id, False)  # 已存在且无需推送
             else:

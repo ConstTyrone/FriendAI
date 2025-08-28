@@ -136,11 +136,13 @@ Page({
       console.log('手机号字段:', contactInfo.phone);
       console.log('所有字段:', Object.keys(contactInfo));
       
-      // 预处理联系人数据，添加头像信息
+      // 预处理联系人数据，添加头像信息和格式化电话
       const processedContactInfo = {
         ...contactInfo,
         initial: this.getAvatarText(contactInfo.profile_name || contactInfo.name),
-        avatarColor: this.getAvatarColor(contactInfo.profile_name || contactInfo.name)
+        avatarColor: this.getAvatarColor(contactInfo.profile_name || contactInfo.name),
+        // 如果有电话，格式化显示
+        phone: contactInfo.phone ? formatPhoneUtil(contactInfo.phone) : contactInfo.phone
       };
       
       this.setData({

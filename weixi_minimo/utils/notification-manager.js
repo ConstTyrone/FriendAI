@@ -12,6 +12,8 @@ class NotificationManager {
     this.audioContext = null;
     this.isPolling = false;
     this.currentInterval = null;
+    this.lastNotifiedMatchIds = new Set(); // 记录已经弹窗过的匹配ID，避免重复
+    this.notificationCooldown = 60000; // 1分钟内同一个匹配不重复弹窗
   }
 
   /**
@@ -193,6 +195,21 @@ class NotificationManager {
    */
   showNotification(match, count) {
     if (!match) return;
+
+    // 检查是否已经为这个匹配弹过窗（避免重复弹窗）
+    const matchKey = `${match.intent_id}_${match.profile_id}`;
+    if (this.lastNotifiedMatchIds.has(matchKey)) {
+      console.log(`匹配 ${matchKey} 已经通知过，跳过重复弹窗`);
+      return;
+    }
+
+    // 记录这个匹配已经弹窗
+    this.lastNotifiedMatchIds.add(matchKey);
+    
+    // 设置定时清理，允许一定时间后再次弹窗（如果确实有新的更新）
+    setTimeout(() => {
+      this.lastNotifiedMatchIds.delete(matchKey);
+    }, this.notificationCooldown);
 
     const title = count > 1 ? `发现${count}个新匹配！` : '发现新的匹配！';
     const content = `${match.intent_name} - ${match.profile_name || '新联系人'}`;

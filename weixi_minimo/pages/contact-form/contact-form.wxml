@@ -65,32 +65,6 @@
           />
         </view>
         <text class="error-message" wx:if="{{formErrors.phone}}">{{formErrors.phone}}</text>
-        
-        <!-- 微信号 -->
-        <view class="form-item">
-          <text class="form-label">微信号</text>
-          <input
-            class="form-input {{formErrors.wechat_id ? 'error' : ''}}"
-            value="{{formData.wechat_id}}"
-            placeholder="请输入微信号"
-            bindinput="onFieldChange"
-            data-field="wechat_id"
-          />
-        </view>
-        <text class="error-message" wx:if="{{formErrors.wechat_id}}">{{formErrors.wechat_id}}</text>
-        
-        <!-- 邮箱 -->
-        <view class="form-item">
-          <text class="form-label">邮箱</text>
-          <input
-            class="form-input {{formErrors.email ? 'error' : ''}}"
-            value="{{formData.email}}"
-            placeholder="请输入邮箱地址"
-            bindinput="onFieldChange"
-            data-field="email"
-          />
-        </view>
-        <text class="error-message" wx:if="{{formErrors.email}}">{{formErrors.email}}</text>
       </view>
     </view>
     
