@@ -409,8 +409,27 @@ class RelationshipService:
             关系列表
         """
         try:
+            logger.info(f"🔍 特定联系人关系查询开始 - 用户ID: {user_id}, 联系人ID: {profile_id}")
+            
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # 首先检查该联系人相关的关系总数
+                cursor.execute("""
+                    SELECT COUNT(*) FROM relationships 
+                    WHERE user_id = ? AND (source_profile_id = ? OR target_profile_id = ?)
+                """, (user_id, profile_id, profile_id))
+                total_count = cursor.fetchone()[0]
+                logger.info(f"📊 联系人 {profile_id} 相关的总关系数量: {total_count}")
+                
+                # 检查活跃关系数量
+                cursor.execute("""
+                    SELECT COUNT(*) FROM relationships 
+                    WHERE user_id = ? AND (source_profile_id = ? OR target_profile_id = ?)
+                    AND status != 'deleted'
+                """, (user_id, profile_id, profile_id))
+                active_count = cursor.fetchone()[0]
+                logger.info(f"📊 联系人 {profile_id} 相关的活跃关系数量: {active_count}")
                 
                 cursor.execute("""
                     SELECT * FROM relationships
@@ -421,8 +440,13 @@ class RelationshipService:
                 """, (user_id, profile_id, profile_id))
                 
                 relationships = []
-                for row in cursor.fetchall():
+                rows = cursor.fetchall()
+                logger.info(f"📊 联系人关系SQL查询返回行数: {len(rows)}")
+                
+                for row in rows:
                     rel = dict(row)
+                    logger.info(f"📋 联系人关系记录: ID={rel.get('id')}, source={rel.get('source_profile_id')}, target={rel.get('target_profile_id')}, status={rel.get('status')}")
+                    
                     # 解析JSON字段
                     if rel.get('evidence'):
                         try:
@@ -432,10 +456,11 @@ class RelationshipService:
                             
                     relationships.append(rel)
                     
+                logger.info(f"✅ 特定联系人关系查询完成 - 返回 {len(relationships)} 个关系")
                 return relationships
                 
         except Exception as e:
-            logger.error(f"获取联系人关系失败: {e}")
+            logger.error(f"❌ 获取联系人关系失败: {e}")
             return []
     
     def get_all_relationships(self, user_id: str) -> List[Dict]:
@@ -449,8 +474,25 @@ class RelationshipService:
             关系列表
         """
         try:
+            logger.info(f"🔍 全局关系查询开始 - 用户ID: {user_id}")
+            
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
+                
+                # 首先检查relationships表中是否有数据
+                cursor.execute("SELECT COUNT(*) FROM relationships WHERE user_id = ?", (user_id,))
+                total_count = cursor.fetchone()[0]
+                logger.info(f"📊 用户 {user_id} 的总关系数量: {total_count}")
+                
+                # 检查有多少非删除状态的关系
+                cursor.execute("SELECT COUNT(*) FROM relationships WHERE user_id = ? AND status != 'deleted'", (user_id,))
+                active_count = cursor.fetchone()[0]
+                logger.info(f"📊 用户 {user_id} 的活跃关系数量: {active_count}")
+                
+                # 查看所有状态的关系
+                cursor.execute("SELECT status, COUNT(*) FROM relationships WHERE user_id = ? GROUP BY status", (user_id,))
+                status_stats = cursor.fetchall()
+                logger.info(f"📊 用户 {user_id} 的关系状态分布: {status_stats}")
                 
                 cursor.execute("""
                     SELECT * FROM relationships
@@ -460,8 +502,13 @@ class RelationshipService:
                 """, (user_id,))
                 
                 relationships = []
-                for row in cursor.fetchall():
+                rows = cursor.fetchall()
+                logger.info(f"📊 SQL查询返回行数: {len(rows)}")
+                
+                for row in rows:
                     rel = dict(row)
+                    logger.info(f"📋 关系记录: ID={rel.get('id')}, source={rel.get('source_profile_id')}, target={rel.get('target_profile_id')}, status={rel.get('status')}")
+                    
                     # 解析JSON字段
                     if rel.get('evidence'):
                         try:
@@ -470,11 +517,12 @@ class RelationshipService:
                             rel['evidence'] = {}
                             
                     relationships.append(rel)
-                    
+                
+                logger.info(f"✅ 全局关系查询完成 - 返回 {len(relationships)} 个关系")
                 return relationships
                 
         except Exception as e:
-            logger.error(f"获取所有关系失败: {e}")
+            logger.error(f"❌ 获取所有关系失败: {e}")
             return []
     
     def confirm_relationship(self, user_id: str, relationship_id: int, confirmed: bool = True) -> bool:
