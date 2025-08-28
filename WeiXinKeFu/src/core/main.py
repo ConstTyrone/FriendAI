@@ -3009,3 +3009,365 @@ async def ignore_relationship(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"忽略关系失败: {str(e)}"
         )
+
+
+@app.post("/api/relationships/{contact_id}/reanalyze")
+async def reanalyze_relationships(
+    contact_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """重新分析某个联系人的关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 删除现有的关系（状态为discovered的）
+        relationship_service.delete_discovered_relationships(
+            user_id=query_user_id,
+            profile_id=contact_id
+        )
+        
+        # 重新发现关系
+        discovered = relationship_service.discover_relationships_for_profile(
+            user_id=query_user_id,
+            profile_id=contact_id
+        )
+        
+        return {
+            "success": True,
+            "message": "关系重新分析完成",
+            "discovered_count": len(discovered),
+            "relationships": discovered
+        }
+        
+    except Exception as e:
+        logger.error(f"重新分析关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"重新分析关系失败: {str(e)}"
+        )
+
+
+@app.get("/api/relationships/detail/{relationship_id}")
+async def get_relationship_detail(
+    relationship_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """获取关系的详细信息"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取关系详情
+        relationship = relationship_service.get_relationship_detail(
+            user_id=query_user_id,
+            relationship_id=relationship_id
+        )
+        
+        if not relationship:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="关系不存在"
+            )
+        
+        # 获取关系双方的详细信息
+        source_profile = db.get_user_profile_detail(query_user_id, relationship['source_profile_id'])
+        target_profile = db.get_user_profile_detail(query_user_id, relationship['target_profile_id'])
+        
+        relationship['source_profile'] = source_profile
+        relationship['target_profile'] = target_profile
+        
+        return {
+            "success": True,
+            "relationship": relationship
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取关系详情失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取关系详情失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/batch/confirm")
+async def batch_confirm_relationships(
+    relationship_ids: List[int],
+    current_user: str = Depends(verify_user_token)
+):
+    """批量确认关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        success_count = 0
+        failed_ids = []
+        
+        for relationship_id in relationship_ids:
+            try:
+                success = relationship_service.confirm_relationship(
+                    user_id=query_user_id,
+                    relationship_id=relationship_id,
+                    confirmed=True
+                )
+                if success:
+                    success_count += 1
+                else:
+                    failed_ids.append(relationship_id)
+            except Exception as e:
+                logger.error(f"确认关系 {relationship_id} 失败: {e}")
+                failed_ids.append(relationship_id)
+        
+        return {
+            "success": True,
+            "message": f"批量确认完成：成功 {success_count} 个",
+            "success_count": success_count,
+            "failed_count": len(failed_ids),
+            "failed_ids": failed_ids
+        }
+        
+    except Exception as e:
+        logger.error(f"批量确认关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"批量确认关系失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/batch/ignore")
+async def batch_ignore_relationships(
+    relationship_ids: List[int],
+    current_user: str = Depends(verify_user_token)
+):
+    """批量忽略关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        success_count = 0
+        failed_ids = []
+        
+        for relationship_id in relationship_ids:
+            try:
+                success = relationship_service.confirm_relationship(
+                    user_id=query_user_id,
+                    relationship_id=relationship_id,
+                    confirmed=False
+                )
+                if success:
+                    success_count += 1
+                else:
+                    failed_ids.append(relationship_id)
+            except Exception as e:
+                logger.error(f"忽略关系 {relationship_id} 失败: {e}")
+                failed_ids.append(relationship_id)
+        
+        return {
+            "success": True,
+            "message": f"批量忽略完成：成功 {success_count} 个",
+            "success_count": success_count,
+            "failed_count": len(failed_ids),
+            "failed_ids": failed_ids
+        }
+        
+    except Exception as e:
+        logger.error(f"批量忽略关系失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"批量忽略关系失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/{contact_id}/ai-analyze")
+async def ai_analyze_relationships(
+    contact_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """使用AI重新分析某个联系人的关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取联系人详情
+        profile = db.get_user_profile_detail(query_user_id, contact_id)
+        if not profile:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="联系人不存在"
+            )
+        
+        # 使用AI重新分析关系
+        ai_relationships = relationship_service.discover_relationships_with_ai(
+            user_id=query_user_id,
+            profile_id=contact_id,
+            profile_data=profile
+        )
+        
+        return {
+            "success": True,
+            "message": "AI关系分析完成",
+            "discovered_count": len(ai_relationships),
+            "relationships": ai_relationships
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI关系分析失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI关系分析失败: {str(e)}"
+        )
+
+
+@app.get("/api/relationships/suggestions/{contact_id}")
+async def get_relationship_suggestions(
+    contact_id: int,
+    limit: int = 10,
+    current_user: str = Depends(verify_user_token)
+):
+    """获取AI关系建议"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 获取AI关系建议
+        suggestions = relationship_service.get_ai_relationship_suggestions(
+            user_id=query_user_id,
+            profile_id=contact_id,
+            limit=limit
+        )
+        
+        return {
+            "success": True,
+            "suggestions": suggestions,
+            "total": len(suggestions)
+        }
+        
+    except Exception as e:
+        logger.error(f"获取关系建议失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取关系建议失败: {str(e)}"
+        )
+
+
+@app.get("/api/relationships/quality/{relationship_id}")
+async def analyze_relationship_quality(
+    relationship_id: int,
+    current_user: str = Depends(verify_user_token)
+):
+    """分析关系质量"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        # 分析关系质量
+        quality_analysis = relationship_service.analyze_relationship_quality(
+            user_id=query_user_id,
+            relationship_id=relationship_id
+        )
+        
+        if 'error' in quality_analysis:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=quality_analysis['error']
+            )
+        
+        return {
+            "success": True,
+            "quality_analysis": quality_analysis
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"关系质量分析失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"关系质量分析失败: {str(e)}"
+        )
+
+
+@app.post("/api/relationships/batch/ai-analyze")
+async def batch_ai_analyze_relationships(
+    contact_ids: List[int],
+    current_user: str = Depends(verify_user_token)
+):
+    """批量AI分析关系"""
+    try:
+        query_user_id = get_query_user_id(current_user)
+        
+        # 获取关系服务
+        relationship_service = get_relationship_service(db)
+        
+        results = []
+        total_discovered = 0
+        
+        for contact_id in contact_ids:
+            try:
+                # 获取联系人详情
+                profile = db.get_user_profile_detail(query_user_id, contact_id)
+                if not profile:
+                    results.append({
+                        'contact_id': contact_id,
+                        'success': False,
+                        'error': '联系人不存在'
+                    })
+                    continue
+                
+                # AI分析关系
+                ai_relationships = relationship_service.discover_relationships_with_ai(
+                    user_id=query_user_id,
+                    profile_id=contact_id,
+                    profile_data=profile
+                )
+                
+                results.append({
+                    'contact_id': contact_id,
+                    'success': True,
+                    'discovered_count': len(ai_relationships),
+                    'relationships': ai_relationships
+                })
+                
+                total_discovered += len(ai_relationships)
+                
+            except Exception as e:
+                logger.error(f"AI分析联系人 {contact_id} 失败: {e}")
+                results.append({
+                    'contact_id': contact_id,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        success_count = sum(1 for r in results if r['success'])
+        
+        return {
+            "success": True,
+            "message": f"批量AI分析完成：成功 {success_count}/{len(contact_ids)} 个",
+            "total_discovered": total_discovered,
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"批量AI分析失败: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"批量AI分析失败: {str(e)}"
+        )

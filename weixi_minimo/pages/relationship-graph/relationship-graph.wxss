@@ -1,0 +1,223 @@
+/* 关系图谱页面样式 */
+.relationship-graph-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--td-bg-color-page);
+}
+
+/* 页面头部样式 */
+.page-header {
+  background: var(--td-bg-color-container);
+  border-bottom: 1rpx solid var(--td-border-level-1-color);
+  z-index: 10;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24rpx;
+  height: 88rpx;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.page-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+}
+
+.header-right {
+  display: flex;
+  gap: 16rpx;
+}
+
+/* 图谱容器样式 */
+.graph-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 中心节点选择弹窗样式 */
+.center-selector-popup {
+  max-height: 80vh;
+  background: var(--td-bg-color-container);
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 32rpx 24rpx;
+  border-bottom: 1rpx solid var(--td-border-level-1-color);
+}
+
+.selector-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+}
+
+.selector-search {
+  padding: 24rpx 32rpx;
+}
+
+.selector-content {
+  max-height: 60vh;
+  overflow: hidden;
+}
+
+.contact-list {
+  max-height: 60vh;
+  padding: 0 32rpx 32rpx;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--td-border-level-1-color);
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.contact-item:last-child {
+  border-bottom: none;
+}
+
+.contact-item.selected {
+  background: var(--td-bg-color-secondarycontainer);
+  border-radius: 12rpx;
+  padding: 24rpx 16rpx;
+  margin: 0 -16rpx;
+}
+
+.contact-item:active {
+  background: var(--td-bg-color-secondarycontainer);
+  border-radius: 12rpx;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--td-text-color-primary);
+  margin-bottom: 8rpx;
+}
+
+.contact-detail {
+  display: flex;
+  gap: 16rpx;
+  font-size: 26rpx;
+  color: var(--td-text-color-secondary);
+}
+
+.contact-company {
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-position {
+  max-width: 150rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+}
+
+.stat-text {
+  font-size: 24rpx;
+  color: var(--td-text-color-placeholder);
+}
+
+/* 全屏模式样式 */
+.fullscreen-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--td-bg-color-page);
+}
+
+.fullscreen-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: var(--td-spacer-4);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.fullscreen-graph {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* 加载和错误状态样式 */
+.loading-container,
+.error-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  z-index: 10;
+}
+
+.error-text {
+  font-size: 30rpx;
+  color: var(--td-text-color-secondary);
+  text-align: center;
+  max-width: 400rpx;
+}
+
+/* 响应式设计 */
+@media (max-width: 400px) {
+  .header-content {
+    padding: 0 16rpx;
+  }
+  
+  .page-title {
+    font-size: 30rpx;
+  }
+  
+  .contact-item {
+    gap: 16rpx;
+  }
+  
+  .contact-detail {
+    gap: 12rpx;
+  }
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .fullscreen-header {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

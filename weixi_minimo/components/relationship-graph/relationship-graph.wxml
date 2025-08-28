@@ -1,0 +1,312 @@
+<!--
+  关系图谱可视化组件
+  支持触摸交互、节点选择、缩放和拖拽
+-->
+<view class="relationship-graph">
+  <!-- 工具栏 -->
+  <view class="graph-toolbar">
+    <view class="toolbar-left">
+      <t-button 
+        variant="text" 
+        size="small" 
+        icon="refresh"
+        bind:tap="onRefresh"
+      >刷新</t-button>
+      
+      <t-button 
+        variant="text" 
+        size="small" 
+        icon="setting"
+        bind:tap="onOpenSettings"
+      >设置</t-button>
+    </view>
+    
+    <view class="toolbar-right">
+      <t-button 
+        variant="text" 
+        size="small" 
+        icon="zoom-in"
+        bind:tap="onZoomIn"
+      >放大</t-button>
+      
+      <t-button 
+        variant="text" 
+        size="small" 
+        icon="zoom-out"
+        bind:tap="onZoomOut"
+      >缩小</t-button>
+      
+      <t-button 
+        variant="text" 
+        size="small" 
+        icon="fullscreen"
+        bind:tap="onFullscreen"
+      >全屏</t-button>
+    </view>
+  </view>
+  
+  <!-- 图谱统计信息 -->
+  <view class="graph-stats" wx:if="{{showStats && graphData.stats}}">
+    <view class="stat-item">
+      <text class="stat-number">{{graphData.stats.totalNodes}}</text>
+      <text class="stat-label">联系人</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-number">{{graphData.stats.totalLinks}}</text>
+      <text class="stat-label">关系</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-number">{{graphData.stats.confirmedLinks}}</text>
+      <text class="stat-label">已确认</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-number">{{graphData.stats.strongLinks}}</text>
+      <text class="stat-label">强关系</text>
+    </view>
+  </view>
+  
+  <!-- 图谱画布 -->
+  <view class="graph-canvas-container">
+    <canvas 
+      class="graph-canvas"
+      canvas-id="relationshipGraph"
+      type="2d"
+      style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+      bind:touchstart="onTouchStart"
+      bind:touchmove="onTouchMove"
+      bind:touchend="onTouchEnd"
+      bind:tap="onCanvasTap"
+      disable-scroll="{{true}}"
+    ></canvas>
+    
+    <!-- 加载状态 -->
+    <view class="loading-overlay" wx:if="{{loading}}">
+      <t-loading theme="dots" size="large" text="正在生成关系图谱..." />
+    </view>
+    
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && (!graphData.nodes || graphData.nodes.length === 0)}}">
+      <t-icon name="link-unlink" size="large" color="var(--td-text-color-placeholder)" />
+      <text class="empty-text">暂无关系数据</text>
+      <text class="empty-tip">添加联系人后系统会自动发现关系</text>
+    </view>
+  </view>
+  
+  <!-- 图例 -->
+  <view class="graph-legend" wx:if="{{showLegend && graphData.stats.relationshipTypes.length > 0}}">
+    <view class="legend-title">关系类型</view>
+    <scroll-view class="legend-content" scroll-x>
+      <view class="legend-items">
+        <view 
+          class="legend-item" 
+          wx:for="{{graphData.stats.relationshipTypes}}" 
+          wx:key="type"
+          wx:if="{{index < 6}}"
+        >
+          <view 
+            class="legend-color" 
+            style="background-color: {{getLinkColor(item.type)}}"
+          ></view>
+          <text class="legend-text">{{getRelationshipTypeName(item.type)}} ({{item.count}})</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+  
+  <!-- 节点详情弹窗 -->
+  <t-popup
+    visible="{{showNodeDetail}}"
+    placement="bottom"
+    bind:visible-change="onNodeDetailClose"
+  >
+    <view class="node-detail-popup" wx:if="{{selectedNode}}">
+      <view class="node-detail-header">
+        <t-avatar 
+          size="large" 
+          image="{{selectedNode.avatar}}" 
+        >{{selectedNode.name.charAt(0)}}</t-avatar>
+        <view class="node-detail-info">
+          <view class="node-name">{{selectedNode.name}}</view>
+          <view class="node-company">{{selectedNode.company}}</view>
+          <view class="node-position">{{selectedNode.position}}</view>
+        </view>
+        <t-button 
+          variant="text" 
+          icon="close" 
+          bind:tap="onNodeDetailClose"
+        ></t-button>
+      </view>
+      
+      <view class="node-detail-stats">
+        <view class="detail-stat">
+          <text class="stat-number">{{selectedNode.relationshipCount}}</text>
+          <text class="stat-label">总关系数</text>
+        </view>
+        <view class="detail-stat">
+          <text class="stat-number">{{selectedNode.strongRelationshipCount}}</text>
+          <text class="stat-label">强关系数</text>
+        </view>
+        <view class="detail-stat">
+          <text class="stat-number">{{selectedNode.level}}</text>
+          <text class="stat-label">关系层级</text>
+        </view>
+      </view>
+      
+      <view class="node-detail-tags" wx:if="{{selectedNode.tags && selectedNode.tags.length > 0}}">
+        <view class="tags-title">标签</view>
+        <view class="tags-list">
+          <t-tag 
+            variant="light" 
+            size="small"
+            wx:for="{{selectedNode.tags}}" 
+            wx:key="*this"
+          >{{item}}</t-tag>
+        </view>
+      </view>
+      
+      <view class="node-detail-actions">
+        <t-button 
+          variant="outline" 
+          size="small"
+          bind:tap="onViewNodeDetail"
+        >查看详情</t-button>
+        <t-button 
+          theme="primary" 
+          size="small"
+          bind:tap="onSetAsCenter"
+        >设为中心</t-button>
+      </view>
+    </view>
+  </t-popup>
+  
+  <!-- 关系详情弹窗 -->
+  <t-popup
+    visible="{{showLinkDetail}}"
+    placement="bottom" 
+    bind:visible-change="onLinkDetailClose"
+  >
+    <view class="link-detail-popup" wx:if="{{selectedLink}}">
+      <view class="link-detail-header">
+        <view class="link-title">
+          {{getLinkSourceName(selectedLink)}} ↔ {{getLinkTargetName(selectedLink)}}
+        </view>
+        <t-button 
+          variant="text" 
+          icon="close" 
+          bind:tap="onLinkDetailClose"
+        ></t-button>
+      </view>
+      
+      <view class="link-detail-content">
+        <view class="detail-row">
+          <text class="detail-label">关系类型:</text>
+          <text class="detail-value">{{getRelationshipTypeName(selectedLink.type)}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">关系强度:</text>
+          <text class="detail-value">{{getRelationshipStrengthName(selectedLink.strength)}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">置信度:</text>
+          <text class="detail-value">{{(selectedLink.confidence * 100).toFixed(1)}}%</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">状态:</text>
+          <t-tag 
+            variant="{{selectedLink.confirmed ? 'dark' : 'light'}}"
+            theme="{{selectedLink.confirmed ? 'success' : 'warning'}}"
+            size="small"
+          >
+            {{selectedLink.confirmed ? '已确认' : '待确认'}}
+          </t-tag>
+        </view>
+        <view class="detail-row" wx:if="{{selectedLink.matchedFields && selectedLink.matchedFields.length > 0}}">
+          <text class="detail-label">匹配字段:</text>
+          <text class="detail-value">{{selectedLink.matchedFields.join(', ')}}</text>
+        </view>
+      </view>
+      
+      <view class="link-detail-actions" wx:if="{{!selectedLink.confirmed}}">
+        <t-button 
+          variant="outline" 
+          size="small"
+          bind:tap="onIgnoreLink"
+        >忽略关系</t-button>
+        <t-button 
+          theme="primary" 
+          size="small"
+          bind:tap="onConfirmLink"
+        >确认关系</t-button>
+      </view>
+    </view>
+  </t-popup>
+  
+  <!-- 设置弹窗 -->
+  <t-popup
+    visible="{{showSettings}}"
+    placement="bottom"
+    bind:visible-change="onSettingsClose"
+  >
+    <view class="settings-popup">
+      <view class="settings-header">
+        <text class="settings-title">图谱设置</text>
+        <t-button 
+          variant="text" 
+          icon="close" 
+          bind:tap="onSettingsClose"
+        ></t-button>
+      </view>
+      
+      <view class="settings-content">
+        <view class="setting-item">
+          <text class="setting-label">显示统计信息</text>
+          <t-switch 
+            value="{{showStats}}" 
+            bind:change="onShowStatsChange"
+          ></t-switch>
+        </view>
+        
+        <view class="setting-item">
+          <text class="setting-label">显示图例</text>
+          <t-switch 
+            value="{{showLegend}}" 
+            bind:change="onShowLegendChange"
+          ></t-switch>
+        </view>
+        
+        <view class="setting-item">
+          <text class="setting-label">布局方式</text>
+          <t-radio-group 
+            value="{{layoutType}}" 
+            bind:change="onLayoutTypeChange"
+          >
+            <t-radio value="circle" label="环形布局" />
+            <t-radio value="radial" label="径向布局" />
+          </t-radio-group>
+        </view>
+        
+        <view class="setting-item">
+          <text class="setting-label">最小置信度</text>
+          <t-slider 
+            value="{{minConfidence * 100}}"
+            min="0"
+            max="100" 
+            step="10"
+            bind:change="onMinConfidenceChange"
+          ></t-slider>
+          <text class="setting-value">{{(minConfidence * 100).toFixed(0)}}%</text>
+        </view>
+        
+        <view class="setting-item">
+          <text class="setting-label">最大层级</text>
+          <t-stepper 
+            value="{{maxDepth}}"
+            min="1"
+            max="5"
+            bind:change="onMaxDepthChange"
+          ></t-stepper>
+        </view>
+      </view>
+    </view>
+  </t-popup>
+</view>

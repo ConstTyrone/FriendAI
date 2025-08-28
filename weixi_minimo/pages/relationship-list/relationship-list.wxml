@@ -50,6 +50,20 @@
       </view>
     </view>
     
+    <!-- 视图切换 -->
+    <view class="view-toggle-section">
+      <view class="view-toggle">
+        <view class="toggle-button active">
+          <t-icon name="format-list-bulleted" size="32rpx" />
+          <text class="toggle-text">列表</text>
+        </view>
+        <view class="toggle-button" bindtap="onSwitchToGraph">
+          <t-icon name="chart-bubble" size="32rpx" />
+          <text class="toggle-text">图谱</text>
+        </view>
+      </view>
+    </view>
+    
     <!-- 排序选项 -->
     <view class="sort-section">
       <text class="sort-label">排序：</text>

@@ -126,6 +126,48 @@
   transition: color 0.3s ease;
 }
 
+/* 视图切换区域 */
+.view-toggle-section {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 2rpx solid var(--td-border-level-2-color, #f5f5f5);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 16rpx;
+}
+
+.toggle-button {
+  flex: 1;
+  height: 68rpx;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--td-bg-color-secondarycontainer, #f5f5f5);
+  transition: all 0.3s ease;
+  border: 2rpx solid transparent;
+}
+
+.toggle-button.active {
+  background: var(--td-brand-color-light, #e7f3ff);
+  border-color: var(--td-brand-color, #0052d9);
+}
+
+.toggle-button.active .toggle-text {
+  color: var(--td-brand-color, #0052d9);
+  font-weight: 600;
+}
+
+.toggle-text {
+  font-size: 24rpx;
+  color: var(--td-text-color-secondary, #757575);
+  margin-top: 4rpx;
+  transition: color 0.3s ease;
+}
+
 /* 排序区域 */
 .sort-section {
   display: flex;

@@ -10,7 +10,8 @@
     "pages/intent-manager/intent-manager",
     "pages/matches/matches",
     "pages/relationship-list/relationship-list",
-    "pages/relationship-detail/relationship-detail"
+    "pages/relationship-detail/relationship-detail",
+    "pages/relationship-graph/relationship-graph"
   ],
   "themeLocation": "theme.json",
   "usingComponents": {
@@ -18,6 +19,7 @@
     "profile-editor": "/components/profile-editor/index",
     "relationship-tip": "/components/relationship-tip/index",
     "relationship-card": "/components/relationship-card/index",
+    "relationship-graph": "/components/relationship-graph/relationship-graph",
     "t-search": "tdesign-miniprogram/search/search",
     "t-cell": "tdesign-miniprogram/cell/cell",
     "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",

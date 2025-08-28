@@ -11,6 +11,14 @@ from typing import List, Dict, Any, Optional, Tuple
 from difflib import SequenceMatcher
 import re
 
+# 导入AI关系分析器
+try:
+    from .ai_relationship_analyzer import AIRelationshipAnalyzer
+    AI_AVAILABLE = True
+except ImportError as e:
+    AI_AVAILABLE = False
+    AIRelationshipAnalyzer = None
+
 logger = logging.getLogger(__name__)
 
 class RelationshipService:
@@ -25,6 +33,14 @@ class RelationshipService:
         """
         self.db = database
         self.rules_cache = {}  # 缓存检测规则
+        
+        # 初始化AI分析器
+        self.ai_analyzer = AIRelationshipAnalyzer() if AI_AVAILABLE else None
+        if self.ai_analyzer:
+            logger.info("AI关系分析器初始化成功")
+        else:
+            logger.info("AI关系分析器不可用，使用传统规则匹配")
+            
         self._load_detection_rules()
         
     def _load_detection_rules(self):
@@ -516,6 +532,388 @@ class RelationshipService:
                 'discovered_relationships': 0,
                 'relationships_by_type': {}
             }
+    
+    def delete_discovered_relationships(self, user_id: str, profile_id: int) -> int:
+        """删除某个联系人的已发现但未确认的关系"""
+        try:
+            with self.database.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 删除状态为'discovered'的关系记录
+                cursor.execute("""
+                    DELETE FROM relationships 
+                    WHERE user_id = ? 
+                    AND (source_profile_id = ? OR target_profile_id = ?) 
+                    AND status = 'discovered'
+                """, (user_id, profile_id, profile_id))
+                
+                deleted_count = cursor.rowcount
+                conn.commit()
+                
+                logger.info(f"删除了联系人 {profile_id} 的 {deleted_count} 个未确认关系")
+                return deleted_count
+                
+        except Exception as e:
+            logger.error(f"删除已发现关系失败: {e}")
+            return 0
+    
+    def get_relationship_detail(self, user_id: str, relationship_id: int) -> Optional[Dict]:
+        """获取关系的详细信息"""
+        try:
+            with self.database.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 获取关系详情，包含所有字段
+                cursor.execute("""
+                    SELECT 
+                        id, user_id, 
+                        source_profile_id, source_profile_name,
+                        target_profile_id, target_profile_name,
+                        relationship_type, relationship_subtype, relationship_direction,
+                        confidence_score, relationship_strength,
+                        evidence, evidence_fields, matching_method,
+                        status, confirmed_by, confirmed_at,
+                        metadata, tags,
+                        discovered_at, updated_at
+                    FROM relationships 
+                    WHERE user_id = ? AND id = ?
+                """, (user_id, relationship_id))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                # 将行数据转换为字典
+                columns = [
+                    'id', 'user_id',
+                    'source_profile_id', 'source_profile_name', 
+                    'target_profile_id', 'target_profile_name',
+                    'relationship_type', 'relationship_subtype', 'relationship_direction',
+                    'confidence_score', 'relationship_strength',
+                    'evidence', 'evidence_fields', 'matching_method',
+                    'status', 'confirmed_by', 'confirmed_at',
+                    'metadata', 'tags',
+                    'discovered_at', 'updated_at'
+                ]
+                
+                relationship = dict(zip(columns, row))
+                
+                # 解析JSON字段
+                try:
+                    if relationship['evidence']:
+                        import json
+                        relationship['evidence'] = json.loads(relationship['evidence'])
+                except:
+                    relationship['evidence'] = {}
+                    
+                try:
+                    if relationship['metadata']:
+                        import json
+                        relationship['metadata'] = json.loads(relationship['metadata'])
+                except:
+                    relationship['metadata'] = {}
+                
+                return relationship
+                
+        except Exception as e:
+            logger.error(f"获取关系详情失败: {e}")
+            return None
+    
+    def discover_relationships_with_ai(self, user_id: str, profile_id: int, profile_data: Dict) -> List[Dict]:
+        """
+        使用AI增强的关系发现
+        
+        Args:
+            user_id: 微信用户ID
+            profile_id: 联系人ID
+            profile_data: 联系人数据
+            
+        Returns:
+            发现的关系列表
+        """
+        try:
+            logger.info(f"开始AI增强关系发现，用户: {user_id}, 联系人: {profile_id}")
+            
+            # 获取所有其他联系人
+            other_profiles = self._get_other_profiles(user_id, profile_id)
+            
+            if not other_profiles:
+                logger.info("没有其他联系人，无法进行关系发现")
+                return []
+            
+            discovered_relationships = []
+            
+            # 如果AI可用，优先使用AI分析
+            if self.ai_analyzer:
+                ai_relationships = self._discover_with_ai(profile_data, other_profiles)
+                discovered_relationships.extend(ai_relationships)
+            
+            # 使用传统规则作为补充或备用
+            rule_relationships = self._apply_detection_rules(profile_data, other_profiles[0], user_id)
+            
+            # 合并和去重
+            final_relationships = self._merge_relationship_results(
+                discovered_relationships, 
+                rule_relationships,
+                user_id,
+                profile_id
+            )
+            
+            # 保存发现的关系
+            if final_relationships:
+                self._save_relationships(final_relationships)
+                
+            # 记录发现日志
+            self._log_discovery(
+                user_id=user_id,
+                trigger_type='ai_enhanced_scan',
+                trigger_profile_id=profile_id,
+                trigger_profile_name=profile_data.get('profile_name', profile_data.get('name', '未知')),
+                relationships_found=len(final_relationships),
+                ai_used=bool(self.ai_analyzer)
+            )
+            
+            logger.info(f"AI增强关系发现完成，发现 {len(final_relationships)} 个关系")
+            return final_relationships
+            
+        except Exception as e:
+            logger.error(f"AI增强关系发现失败: {e}")
+            return []
+    
+    def _discover_with_ai(self, target_profile: Dict, other_profiles: List[Dict]) -> List[Dict]:
+        """使用AI发现关系"""
+        ai_relationships = []
+        
+        try:
+            for other_profile in other_profiles:
+                # 使用AI分析器分析关系
+                analysis = self.ai_analyzer.analyze_relationship_with_ai(target_profile, other_profile)
+                
+                # 只保留置信度足够的关系
+                if analysis.get('confidence_score', 0) >= 0.4:  # 可配置阈值
+                    ai_relationship = {
+                        'source_profile_id': target_profile.get('id'),
+                        'source_profile_name': target_profile.get('profile_name', target_profile.get('name', '未知')),
+                        'target_profile_id': other_profile.get('id'),
+                        'target_profile_name': other_profile.get('profile_name', other_profile.get('name', '未知')),
+                        
+                        'relationship_type': analysis.get('relationship_type', 'colleague'),
+                        'relationship_subtype': analysis.get('relationship_subtype', ''),
+                        'relationship_direction': analysis.get('relationship_direction', 'bidirectional'),
+                        'confidence_score': analysis.get('confidence_score', 0.5),
+                        'relationship_strength': analysis.get('relationship_strength', 'medium'),
+                        
+                        'evidence': json.dumps(analysis.get('evidence', {}), ensure_ascii=False),
+                        'evidence_fields': ','.join(analysis.get('matched_fields', [])),
+                        'matching_method': 'ai_inference',
+                        
+                        'metadata': json.dumps({
+                            'ai_reasoning': analysis.get('ai_reasoning', ''),
+                            'explanation': analysis.get('explanation', ''),
+                            'analysis_metadata': analysis.get('analysis_metadata', {}),
+                            'enhanced_by_ai': True
+                        }, ensure_ascii=False),
+                        
+                        'status': 'discovered',
+                        'discovered_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    
+                    ai_relationships.append(ai_relationship)
+                    
+                # 避免API频率限制
+                time.sleep(0.1)
+                
+        except Exception as e:
+            logger.error(f"AI关系发现过程失败: {e}")
+            
+        return ai_relationships
+    
+    def _merge_relationship_results(self, ai_relationships: List[Dict], rule_relationships: List[Dict], 
+                                  user_id: str, profile_id: int) -> List[Dict]:
+        """
+        合并AI和规则发现的关系结果
+        
+        Args:
+            ai_relationships: AI发现的关系
+            rule_relationships: 规则发现的关系
+            user_id: 用户ID
+            profile_id: 联系人ID
+            
+        Returns:
+            合并后的关系列表
+        """
+        try:
+            merged = {}  # 用于去重的字典
+            
+            # 添加AI关系（优先级高）
+            for rel in ai_relationships:
+                key = f"{rel['source_profile_id']}-{rel['target_profile_id']}-{rel['relationship_type']}"
+                merged[key] = {
+                    **rel,
+                    'user_id': user_id,
+                    'primary_discovery_method': 'ai'
+                }
+            
+            # 添加规则关系（作为补充）
+            for rel in rule_relationships:
+                key = f"{rel['source_profile_id']}-{rel['target_profile_id']}-{rel['relationship_type']}"
+                
+                if key not in merged:
+                    # 新关系，直接添加
+                    merged[key] = {
+                        **rel,
+                        'user_id': user_id,
+                        'primary_discovery_method': 'rules'
+                    }
+                else:
+                    # 关系已存在，合并证据
+                    existing = merged[key]
+                    if existing.get('primary_discovery_method') == 'ai':
+                        # 保持AI结果，但添加规则证据
+                        try:
+                            existing_evidence = json.loads(existing.get('evidence', '{}'))
+                            rule_evidence = json.loads(rel.get('evidence', '{}'))
+                            
+                            combined_evidence = {**existing_evidence, **rule_evidence}
+                            existing['evidence'] = json.dumps(combined_evidence, ensure_ascii=False)
+                            
+                            # 合并匹配字段
+                            existing_fields = set(existing.get('evidence_fields', '').split(','))
+                            rule_fields = set(rel.get('evidence_fields', '').split(','))
+                            combined_fields = existing_fields | rule_fields
+                            existing['evidence_fields'] = ','.join(filter(None, combined_fields))
+                            
+                        except (json.JSONDecodeError, Exception) as e:
+                            logger.warning(f"合并证据失败: {e}")
+            
+            return list(merged.values())
+            
+        except Exception as e:
+            logger.error(f"合并关系结果失败: {e}")
+            return ai_relationships or rule_relationships
+    
+    def get_ai_relationship_suggestions(self, user_id: str, profile_id: int, limit: int = 10) -> List[Dict]:
+        """
+        获取AI关系建议
+        
+        Args:
+            user_id: 用户ID
+            profile_id: 目标联系人ID
+            limit: 返回数量限制
+            
+        Returns:
+            关系建议列表
+        """
+        if not self.ai_analyzer:
+            return []
+            
+        try:
+            # 获取目标联系人
+            target_profile = self.db.get_user_profile_detail(user_id, profile_id)
+            if not target_profile:
+                return []
+            
+            # 获取所有候选联系人
+            candidate_profiles = self._get_other_profiles(user_id, profile_id)
+            if not candidate_profiles:
+                return []
+            
+            # 使用AI分析器获取建议
+            suggestions = self.ai_analyzer.get_relationship_suggestions(
+                target_profile, 
+                candidate_profiles, 
+                top_k=limit
+            )
+            
+            return suggestions
+            
+        except Exception as e:
+            logger.error(f"获取AI关系建议失败: {e}")
+            return []
+    
+    def analyze_relationship_quality(self, user_id: str, relationship_id: int) -> Dict:
+        """
+        分析关系质量
+        
+        Args:
+            user_id: 用户ID
+            relationship_id: 关系ID
+            
+        Returns:
+            关系质量分析结果
+        """
+        try:
+            # 获取关系详情
+            relationship = self.get_relationship_detail(user_id, relationship_id)
+            if not relationship:
+                return {'error': '关系不存在'}
+            
+            # 基础质量分析
+            quality_score = relationship.get('confidence_score', 0.5)
+            
+            # 证据强度分析
+            evidence_fields = relationship.get('evidence_fields', '')
+            field_count = len([f for f in evidence_fields.split(',') if f.strip()])
+            
+            # 匹配方法权重
+            method_weights = {
+                'ai_inference': 1.0,
+                'exact': 0.9,
+                'fuzzy': 0.7,
+                'pattern_match': 0.6
+            }
+            
+            method_weight = method_weights.get(relationship.get('matching_method', 'fuzzy'), 0.5)
+            
+            # 综合质量评分
+            final_score = (quality_score * 0.6) + (min(field_count / 3, 1.0) * 0.2) + (method_weight * 0.2)
+            
+            # 质量等级
+            if final_score >= 0.8:
+                quality_level = 'excellent'
+                quality_desc = '高质量关系'
+            elif final_score >= 0.6:
+                quality_level = 'good'
+                quality_desc = '良好关系'
+            elif final_score >= 0.4:
+                quality_level = 'moderate'
+                quality_desc = '中等关系'
+            else:
+                quality_level = 'poor'
+                quality_desc = '需要验证'
+            
+            return {
+                'quality_score': final_score,
+                'quality_level': quality_level,
+                'quality_description': quality_desc,
+                'evidence_strength': field_count,
+                'method_reliability': method_weight,
+                'confidence_score': quality_score,
+                'recommendations': self._get_quality_recommendations(final_score, relationship)
+            }
+            
+        except Exception as e:
+            logger.error(f"关系质量分析失败: {e}")
+            return {'error': f'分析失败: {str(e)}'}
+    
+    def _get_quality_recommendations(self, score: float, relationship: Dict) -> List[str]:
+        """获取质量改进建议"""
+        recommendations = []
+        
+        if score < 0.4:
+            recommendations.append("建议收集更多证据信息")
+            recommendations.append("可以手动确认或忽略此关系")
+            
+        if score < 0.6:
+            recommendations.append("建议验证关系的准确性")
+            
+        if relationship.get('matching_method') != 'ai_inference':
+            recommendations.append("可以使用AI重新分析提高准确性")
+            
+        if not relationship.get('confirmed_at'):
+            recommendations.append("建议确认关系以提高可靠性")
+            
+        return recommendations
 
 
 # 单例实例

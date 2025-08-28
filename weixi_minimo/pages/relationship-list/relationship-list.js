@@ -537,5 +537,15 @@ Page({
    */
   get hasUncofirmedRelationships() {
     return this.data.relationships.some(rel => rel.status === 'discovered');
+  },
+
+  /**
+   * 切换到图谱视图
+   */
+  onSwitchToGraph() {
+    const contactId = this.data.contactId;
+    wx.navigateTo({
+      url: `/pages/relationship-graph/relationship-graph?centerNodeId=${contactId}`
+    });
   }
 });

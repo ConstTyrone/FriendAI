@@ -1,0 +1,154 @@
+<!--
+  关系图谱页面 - 完整的关系可视化界面
+-->
+<view class="relationship-graph-page">
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-content">
+      <view class="header-left">
+        <t-button 
+          variant="text" 
+          icon="arrow-left" 
+          bind:tap="onBack"
+        ></t-button>
+        <text class="page-title">关系图谱</text>
+      </view>
+      
+      <view class="header-right">
+        <t-button 
+          variant="text" 
+          icon="user" 
+          bind:tap="onSelectCenter"
+        >选择中心</t-button>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 图谱组件 -->
+  <view class="graph-container">
+    <relationship-graph
+      relationships="{{relationships}}"
+      profiles="{{profiles}}"
+      centerNodeId="{{centerNodeId}}"
+      width="{{graphWidth}}"
+      height="{{graphHeight}}"
+      bind:nodeDetail="onNodeDetail"
+      bind:centerChange="onCenterChange"
+      bind:confirmRelationship="onConfirmRelationship"
+      bind:ignoreRelationship="onIgnoreRelationship"
+      bind:fullscreen="onFullscreen"
+    />
+  </view>
+  
+  <!-- 中心节点选择弹窗 -->
+  <t-popup
+    visible="{{showCenterSelector}}"
+    placement="bottom"
+    bind:visible-change="onCenterSelectorClose"
+  >
+    <view class="center-selector-popup">
+      <view class="selector-header">
+        <text class="selector-title">选择中心联系人</text>
+        <t-button 
+          variant="text" 
+          icon="close" 
+          bind:tap="onCenterSelectorClose"
+        ></t-button>
+      </view>
+      
+      <view class="selector-search">
+        <t-search 
+          value="{{centerSearchKeyword}}"
+          placeholder="搜索联系人"
+          bind:change="onCenterSearchChange"
+          bind:submit="onCenterSearch"
+        />
+      </view>
+      
+      <view class="selector-content">
+        <scroll-view class="contact-list" scroll-y enhanced>
+          <view 
+            class="contact-item {{centerNodeId === item.id ? 'selected' : ''}}"
+            wx:for="{{filteredProfiles}}"
+            wx:key="id"
+            bind:tap="onSelectCenterContact"
+            data-contact-id="{{item.id}}"
+          >
+            <t-avatar 
+              size="medium" 
+              image="{{item.avatar}}"
+            >{{item.name.charAt(0)}}</t-avatar>
+            
+            <view class="contact-info">
+              <view class="contact-name">{{item.name}}</view>
+              <view class="contact-detail">
+                <text class="contact-company">{{item.company || '未知公司'}}</text>
+                <text class="contact-position">{{item.position || ''}}</text>
+              </view>
+            </view>
+            
+            <view class="contact-stats">
+              <text class="stat-text">{{getContactRelationshipCount(item.id)}}个关系</text>
+            </view>
+            
+            <t-icon 
+              name="check-circle-filled" 
+              size="large"
+              color="#07c160"
+              wx:if="{{centerNodeId === item.id}}"
+            />
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+  </t-popup>
+  
+  <!-- 全屏模式 -->
+  <t-popup
+    visible="{{fullscreenMode}}"
+    placement="center"
+    show-overlay="{{false}}"
+    custom-style="width: 100vw; height: 100vh;"
+    bind:visible-change="onFullscreenClose"
+  >
+    <view class="fullscreen-container">
+      <view class="fullscreen-header">
+        <t-button 
+          variant="text" 
+          icon="close" 
+          bind:tap="onFullscreenClose"
+        >退出全屏</t-button>
+      </view>
+      
+      <view class="fullscreen-graph">
+        <relationship-graph
+          relationships="{{relationships}}"
+          profiles="{{profiles}}"
+          centerNodeId="{{centerNodeId}}"
+          width="{{fullscreenWidth}}"
+          height="{{fullscreenHeight}}"
+          bind:nodeDetail="onNodeDetail"
+          bind:centerChange="onCenterChange"
+          bind:confirmRelationship="onConfirmRelationship"
+          bind:ignoreRelationship="onIgnoreRelationship"
+        />
+      </view>
+    </view>
+  </t-popup>
+  
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <t-loading theme="dots" size="large" text="正在加载关系数据..." />
+  </view>
+  
+  <!-- 错误状态 -->
+  <view class="error-container" wx:if="{{error}}">
+    <t-icon name="error-circle" size="large" color="var(--td-error-color-6)" />
+    <text class="error-text">{{error}}</text>
+    <t-button 
+      theme="primary" 
+      variant="outline" 
+      bind:tap="onRetry"
+    >重新加载</t-button>
+  </view>
+</view>

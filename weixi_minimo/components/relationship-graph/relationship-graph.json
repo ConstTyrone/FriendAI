@@ -1,0 +1,16 @@
+{
+  "component": true,
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-loading": "tdesign-miniprogram/loading/loading",
+    "t-popup": "tdesign-miniprogram/popup/popup",
+    "t-avatar": "tdesign-miniprogram/avatar/avatar",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-switch": "tdesign-miniprogram/switch/switch",
+    "t-radio-group": "tdesign-miniprogram/radio-group/radio-group",
+    "t-radio": "tdesign-miniprogram/radio/radio",
+    "t-slider": "tdesign-miniprogram/slider/slider",
+    "t-stepper": "tdesign-miniprogram/stepper/stepper"
+  }
+}
