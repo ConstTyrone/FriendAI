@@ -2953,6 +2953,18 @@ async def get_all_relationships(
         # 获取所有关系
         relationships = relationship_service.get_all_relationships(query_user_id)
         
+        # 为每个关系添加完整的联系人信息
+        for rel in relationships:
+            # 获取源联系人详情
+            source_profile = db.get_user_profile_detail(query_user_id, rel['source_profile_id'])
+            if source_profile:
+                rel['sourceProfile'] = source_profile
+            
+            # 获取目标联系人详情
+            target_profile = db.get_user_profile_detail(query_user_id, rel['target_profile_id'])
+            if target_profile:
+                rel['targetProfile'] = target_profile
+        
         return {
             "success": True,
             "relationships": relationships,

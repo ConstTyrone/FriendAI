@@ -9,6 +9,7 @@
     "t-popup": "../../miniprogram_npm/tdesign-miniprogram/popup/popup",
     "t-avatar": "../../miniprogram_npm/tdesign-miniprogram/avatar/avatar",
     "t-search": "../../miniprogram_npm/tdesign-miniprogram/search/search",
-    "relationship-graph": "../../components/relationship-graph/relationship-graph"
+    "relationship-graph": "../../components/relationship-graph/relationship-graph",
+    "custom-tabbar": "../../components/custom-tabbar/index"
   }
 }

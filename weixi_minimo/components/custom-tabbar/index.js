@@ -24,6 +24,12 @@ Component({
         highlight: true  // 突出显示这个重要功能
       },
       {
+        key: 'relationship-network',
+        text: '关系网',
+        icon: 'chart-bubble',  // 使用图表气泡图标表示关系网络
+        path: '/pages/relationship-graph/relationship-graph'
+      },
+      {
         key: 'settings',
         text: '设置',
         icon: 'tools',
@@ -59,6 +65,7 @@ Component({
       const mainPages = [
         'pages/contact-list/contact-list',
         'pages/intent-manager/intent-manager',
+        'pages/relationship-graph/relationship-graph',
         'pages/settings/settings'
       ];
 

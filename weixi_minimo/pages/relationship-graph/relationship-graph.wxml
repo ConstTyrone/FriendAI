@@ -7,11 +7,12 @@
     <view class="header-content">
       <view class="header-left">
         <t-button 
+          wx:if="{{!isGlobalMode}}"
           variant="text" 
           icon="arrow-left" 
           bind:tap="onBack"
         ></t-button>
-        <text class="page-title">关系图谱</text>
+        <text class="page-title">{{pageTitle}}</text>
       </view>
       
       <view class="header-right">
@@ -151,4 +152,11 @@
       bind:tap="onRetry"
     >重新加载</t-button>
   </view>
+  
+  <!-- 底部导航栏（仅全局模式） -->
+  <custom-tabbar 
+    wx:if="{{isGlobalMode}}"
+    current="relationship-network"
+    bind:tabchange="onTabChange"
+  ></custom-tabbar>
 </view>

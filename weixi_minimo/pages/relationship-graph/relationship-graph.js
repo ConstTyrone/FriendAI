@@ -23,6 +23,10 @@ Page({
     profiles: [],
     centerNodeId: null,
     
+    // 页面模式
+    isGlobalMode: false,  // 是否为全局关系网络模式
+    pageTitle: '关系图谱',
+    
     // 搜索和筛选
     centerSearchKeyword: '',
     filteredProfiles: [],
@@ -44,7 +48,15 @@ Page({
     // 从参数获取中心节点ID
     if (options.centerNodeId) {
       this.setData({
-        centerNodeId: parseInt(options.centerNodeId)
+        centerNodeId: parseInt(options.centerNodeId),
+        isGlobalMode: false,
+        pageTitle: options.contactName ? `${decodeURIComponent(options.contactName)}的关系` : '联系人关系'
+      });
+    } else {
+      // 全局关系网络模式
+      this.setData({
+        isGlobalMode: true,
+        pageTitle: '关系网络'
       });
     }
     
@@ -611,5 +623,15 @@ Page({
    */
   onRetry() {
     this.loadData();
+  },
+  
+  /**
+   * 底部导航栏切换
+   */
+  onTabChange(e) {
+    const { path } = e.detail;
+    wx.redirectTo({
+      url: path
+    });
   }
 });

@@ -544,8 +544,9 @@ Page({
    */
   onSwitchToGraph() {
     const contactId = this.data.contactId;
+    const contactName = encodeURIComponent(this.data.contactName || '联系人');
     wx.navigateTo({
-      url: `/pages/relationship-graph/relationship-graph?centerNodeId=${contactId}`
+      url: `/pages/relationship-graph/relationship-graph?centerNodeId=${contactId}&contactName=${contactName}`
     });
   }
 });
