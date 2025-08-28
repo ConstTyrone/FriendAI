@@ -152,8 +152,10 @@ Page({
           success: (res) => {
             console.log('联系人API响应:', res);
             
-            if (res.statusCode === 200 && res.data && res.data.success) {
-              const profiles = (res.data.profiles || res.data.contacts || []).map(profile => ({
+            if (res.statusCode === 200 && res.data) {
+              // 检查是否有profiles字段
+              const profilesList = res.data.profiles || res.data.contacts || [];
+              const profiles = profilesList.map(profile => ({
                 id: profile.id,
                 name: profile.profile_name || profile.name || '未知',
                 company: profile.basic_info?.company || profile.company || '',
@@ -206,8 +208,10 @@ Page({
           success: (res) => {
             console.log('关系API响应:', res);
             
-            if (res.statusCode === 200 && res.data && res.data.success) {
-              const relationships = (res.data.relationships || []).map(rel => ({
+            if (res.statusCode === 200 && res.data) {
+              // 检查是否有relationships字段
+              const relationshipsList = res.data.relationships || [];
+              const relationships = relationshipsList.map(rel => ({
                 id: rel.id,
                 source_profile_id: rel.source_profile_id,
                 target_profile_id: rel.target_profile_id,
