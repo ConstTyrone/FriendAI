@@ -1594,7 +1594,7 @@ class DataManager {
       
       throw error;
     }
-  },
+  }
 
   /**
    * 获取Mock模式的关系详情
