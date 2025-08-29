@@ -537,9 +537,20 @@ Page({
       // 获取关系数据
       const response = await dataManager.getContactRelationships(this.data.contactId);
       
+      console.log('=== 调试：API原始响应 ===');
+      console.log('完整响应:', JSON.stringify(response, null, 2));
+      console.log('响应键名:', response ? Object.keys(response) : 'response为空');
+      
       if (response && response.success && response.relationships) {
         const relationships = response.relationships;
-        console.log('关系数据加载成功:', relationships);
+        console.log('关系数据加载成功，数量:', relationships.length);
+        
+        if (relationships.length > 0) {
+          console.log('=== 调试：第一个关系对象 ===');
+          console.log('完整关系对象:', JSON.stringify(relationships[0], null, 2));
+          console.log('置信度字段值:', relationships[0].confidence_score);
+          console.log('置信度类型:', typeof relationships[0].confidence_score);
+        }
         
         // 计算统计信息
         const stats = {
@@ -550,6 +561,8 @@ Page({
         
         // 处理关系预览数据（最多显示3个最近的）
         const recentRelationships = this.processRelationshipsPreview(relationships.slice(0, 3));
+        console.log('=== 调试：处理后的预览数据 ===');
+        console.log('预览关系数据:', JSON.stringify(recentRelationships, null, 2));
         
         this.setData({
           relationshipStats: stats,
@@ -584,8 +597,10 @@ Page({
    */
   processRelationshipsPreview(relationships) {
     const currentContactId = this.data.contactId;
+    console.log('processRelationshipsPreview - currentContactId:', currentContactId);
     
     return relationships.map(rel => {
+      console.log('处理关系:', rel.id, '置信度原始值:', rel.confidence_score);
       // 确定对方是谁
       const isSource = rel.source_profile_id == currentContactId;
       const otherProfile = isSource ? rel.targetProfile : rel.sourceProfile;
@@ -600,15 +615,21 @@ Page({
       // 格式化状态
       const statusLabel = this.formatRelationshipStatus(rel.status);
       
-      return {
+      const confidenceScore = Math.round((rel.confidence_score || 0) * 100);
+      console.log('计算后的置信度:', confidenceScore);
+      
+      const result = {
         id: rel.id,
         otherName,
         otherInitial,
         relationshipLabel,
         status: rel.status,
         statusLabel,
-        confidenceScore: Math.round((rel.confidence_score || 0) * 100)
+        confidenceScore
       };
+      
+      console.log('最终返回的关系预览对象:', JSON.stringify(result, null, 2));
+      return result;
     });
   },
 

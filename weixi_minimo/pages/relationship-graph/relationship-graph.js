@@ -264,13 +264,21 @@ Page({
             if (res.statusCode === 200 && res.data) {
               // 检查是否有relationships字段
               const relationshipsList = res.data.relationships || [];
+              
+              // 调试：检查原始数据
+              console.log('=== 知识图谱页面调试 ===');
+              if (relationshipsList.length > 0) {
+                console.log('第一个原始关系:', JSON.stringify(relationshipsList[0], null, 2));
+                console.log('原始confidence_score:', relationshipsList[0].confidence_score);
+              }
+              
               const relationships = relationshipsList.map(rel => ({
                 id: rel.id,
                 source_profile_id: rel.source_profile_id,
                 target_profile_id: rel.target_profile_id,
                 relationship_type: rel.relationship_type,
                 relationship_strength: rel.relationship_strength,
-                confidence_score: rel.confidence_score || 0.8,
+                confidence_score: rel.confidence_score !== undefined ? rel.confidence_score : 0.8, // 修复逻辑错误
                 status: rel.status || 'discovered',
                 evidence_fields: rel.evidence_fields || '',
                 discovered_at: rel.discovered_at || new Date().toISOString(),

@@ -88,8 +88,13 @@ Component({
      * 处理联系人数据
      */
     processProfiles() {
-      const { sourceProfile, targetProfile } = this.properties;
+      const { relationship, sourceProfile, targetProfile } = this.properties;
       console.log('processProfiles被调用:', { sourceProfile, targetProfile });
+      
+      // 调试：检查relationship数据
+      console.log('=== relationship-card 组件调试 ===');
+      console.log('传入的 relationship:', JSON.stringify(relationship, null, 2));
+      console.log('relationship.confidence_score:', relationship?.confidence_score);
       
       // 使用内部data而不是直接修改properties
       const updateData = {};

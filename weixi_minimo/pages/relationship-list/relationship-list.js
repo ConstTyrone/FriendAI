@@ -125,6 +125,13 @@ Page({
         const relationships = response.relationships || [];
         console.log('关系列表页面: 成功获取关系数据，数量:', relationships.length);
         
+        // 调试：检查第一个关系的confidence_score
+        if (relationships.length > 0) {
+          console.log('=== 关系列表页面调试 ===');
+          console.log('第一个关系对象:', JSON.stringify(relationships[0], null, 2));
+          console.log('第一个关系confidence_score:', relationships[0].confidence_score);
+        }
+        
         // 计算统计信息
         const stats = this.calculateStats(relationships);
         console.log('关系列表页面: 统计信息:', stats);
