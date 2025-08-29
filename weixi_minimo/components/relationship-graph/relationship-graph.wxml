@@ -208,25 +208,20 @@
         <view class="link-title">
           {{getLinkSourceName(selectedLink)}} ↔ {{getLinkTargetName(selectedLink)}}
         </view>
-        <t-button 
-          variant="text" 
-          icon="close" 
-          bind:tap="onLinkDetailClose"
-        ></t-button>
       </view>
       
       <view class="link-detail-content">
         <view class="detail-row">
           <text class="detail-label">关系类型:</text>
-          <text class="detail-value">{{getRelationshipTypeName(selectedLink.type)}}</text>
+          <text class="detail-value">{{selectedLink.relationshipTypeName}}</text>
         </view>
         <view class="detail-row">
           <text class="detail-label">关系强度:</text>
-          <text class="detail-value">{{getRelationshipStrengthName(selectedLink.strength)}}</text>
+          <text class="detail-value">{{selectedLink.relationshipStrengthName}}</text>
         </view>
         <view class="detail-row">
           <text class="detail-label">置信度:</text>
-          <text class="detail-value">{{selectedLink.confidencePercentage || (selectedLink.confidence * 100).toFixed(1)}}%</text>
+          <text class="detail-value">{{selectedLink.confidencePercentage}}%</text>
         </view>
         <view class="detail-row">
           <text class="detail-label">状态:</text>
@@ -238,9 +233,9 @@
             {{selectedLink.confirmed ? '已确认' : '待确认'}}
           </t-tag>
         </view>
-        <view class="detail-row" wx:if="{{selectedLink.matchedFields && selectedLink.matchedFields.length > 0}}">
+        <view class="detail-row" wx:if="{{selectedLink.matchedFieldsDisplay}}">
           <text class="detail-label">匹配字段:</text>
-          <text class="detail-value">{{selectedLink.matchedFields.join(', ')}}</text>
+          <text class="detail-value">{{selectedLink.matchedFieldsDisplay}}</text>
         </view>
       </view>
       

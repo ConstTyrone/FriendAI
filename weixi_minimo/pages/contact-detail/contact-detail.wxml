@@ -149,6 +149,43 @@
       </view>
     </view>
 
+    <!-- 信息来源 -->
+    <view 
+      class="info-section source-section" 
+      wx:if="{{contactInfo.source_messages && contactInfo.source_messages.length > 0}}"
+    >
+      <view class="section-header" bind:tap="onToggleSourceMessages">
+        <text class="section-title">原始消息记录 ({{contactInfo.source_messages.length}}条)</text>
+        <view class="section-action">
+          <text class="action-arrow {{showSourceMessages ? 'expanded' : ''}}">›</text>
+        </view>
+      </view>
+      
+      <view class="source-messages {{showSourceMessages ? 'expanded' : ''}}" wx:if="{{showSourceMessages}}">
+        <view wx:for="{{contactInfo.source_messages}}" wx:key="id" class="message-item">
+          <view class="message-header">
+            <text class="message-type">{{item.message_type}}</text>
+            <text class="message-time">{{formatSourceTime(item.timestamp)}}</text>
+          </view>
+          
+          <view class="message-content" wx:if="{{item.processed_content}}">
+            <text class="content-label">处理后内容：</text>
+            <text class="content-text">{{item.processed_content}}</text>
+          </view>
+          
+          <view class="message-meta" wx:if="{{item.wechat_msg_id || item.media_url}}">
+            <text class="meta-label">消息详情：</text>
+            <text class="meta-text" wx:if="{{item.wechat_msg_id}}">消息ID: {{item.wechat_msg_id}}</text>
+            <text class="meta-text" wx:if="{{item.media_url}}">媒体URL: {{item.media_url}}</text>
+          </view>
+          
+          <view class="message-action">
+            <text class="action-label">{{item.action === 'created' ? '首次创建' : '信息更新'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 时间信息 -->
     <view class="time-info">
       <text class="time-text">创建于 {{formatDate(contactInfo.created_at)}}</text>

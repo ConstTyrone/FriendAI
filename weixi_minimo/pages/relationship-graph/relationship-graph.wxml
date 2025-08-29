@@ -37,11 +37,6 @@
     <view class="center-selector-popup">
       <view class="selector-header">
         <text class="selector-title">选择中心联系人</text>
-        <t-button 
-          variant="text" 
-          icon="close" 
-          bind:tap="onCenterSelectorClose"
-        ></t-button>
       </view>
       
       <view class="selector-search">

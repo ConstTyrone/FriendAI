@@ -674,8 +674,16 @@ Component({
         });
       } else if (hitLink) {
         console.log('点击连线:', hitLink);
+        // 预计算所有显示值避免模板函数调用失败
+        const linkWithDisplayValues = {
+          ...hitLink,
+          confidencePercentage: Math.round((hitLink.confidence || hitLink.confidence_score || 0) * 100),
+          relationshipTypeName: this.getRelationshipTypeName(hitLink.relationship_type),
+          relationshipStrengthName: this.getRelationshipStrengthName(hitLink.relationship_strength),
+          matchedFieldsDisplay: hitLink.evidence_fields || hitLink.matchedFields || ''
+        };
         this.setData({
-          selectedLink: hitLink,
+          selectedLink: linkWithDisplayValues,
           showLinkDetail: true
         });
       } else {
@@ -718,8 +726,16 @@ Component({
         });
       } else if (hitLink) {
         console.log('点击连线:', hitLink);
+        // 预计算所有显示值避免模板函数调用失败
+        const linkWithDisplayValues = {
+          ...hitLink,
+          confidencePercentage: Math.round((hitLink.confidence || hitLink.confidence_score || 0) * 100),
+          relationshipTypeName: this.getRelationshipTypeName(hitLink.relationship_type),
+          relationshipStrengthName: this.getRelationshipStrengthName(hitLink.relationship_strength),
+          matchedFieldsDisplay: hitLink.evidence_fields || hitLink.matchedFields || ''
+        };
         this.setData({
-          selectedLink: hitLink,
+          selectedLink: linkWithDisplayValues,
           showLinkDetail: true
         });
       } else {

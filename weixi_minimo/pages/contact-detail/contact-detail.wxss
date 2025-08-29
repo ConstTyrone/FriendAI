@@ -1278,3 +1278,181 @@ t-tag {
 .detail-page.dark .action-text {
   color: var(--td-text-color-secondary, #bdbdbd);
 }
+
+/* 原始消息记录样式 */
+.source-section {
+  margin-top: 32rpx !important;
+}
+
+.section-header {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.section-header:active {
+  opacity: 0.7;
+}
+
+.action-arrow {
+  transition: transform 0.3s ease;
+  font-weight: 500;
+}
+
+.action-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.source-messages {
+  overflow: hidden;
+  transition: all 0.3s ease;
+  max-height: 0;
+  opacity: 0;
+}
+
+.source-messages.expanded {
+  max-height: 2000rpx;
+  opacity: 1;
+  margin-top: 24rpx;
+}
+
+.message-item {
+  background: #F8F9FA;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border: 2rpx solid #E8EAED;
+  transition: all 0.2s ease;
+}
+
+.message-item:hover {
+  border-color: #DADCE0;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.message-item:last-child {
+  margin-bottom: 0;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 2rpx solid #E8EAED;
+}
+
+.message-type {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.message-time {
+  font-size: 24rpx;
+  color: #757575;
+  font-weight: 400;
+}
+
+.message-content {
+  margin-bottom: 16rpx;
+}
+
+.content-label {
+  display: block;
+  font-size: 22rpx;
+  color: #757575;
+  margin-bottom: 8rpx;
+  font-weight: 500;
+}
+
+.content-text {
+  font-size: 26rpx;
+  color: #212121;
+  line-height: 1.5;
+  background: #FFFFFF;
+  padding: 16rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #F0F0F0;
+  word-wrap: break-word;
+}
+
+.message-meta {
+  margin-bottom: 12rpx;
+}
+
+.meta-label {
+  display: block;
+  font-size: 22rpx;
+  color: #757575;
+  margin-bottom: 8rpx;
+  font-weight: 500;
+}
+
+.meta-text {
+  display: block;
+  font-size: 24rpx;
+  color: #424242;
+  line-height: 1.4;
+  margin-bottom: 4rpx;
+  font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.message-action {
+  text-align: right;
+}
+
+.action-label {
+  font-size: 22rpx;
+  color: #757575;
+  background: #F0F2F5;
+  padding: 6rpx 12rpx;
+  border-radius: 8rpx;
+  display: inline-block;
+  font-weight: 400;
+}
+
+/* 深色模式适配 - 原始消息记录 */
+.theme-dark .message-item {
+  background: #2a2a2a;
+  border-color: #444444;
+}
+
+.theme-dark .message-item:hover {
+  border-color: #555555;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .message-header {
+  border-bottom-color: #444444;
+}
+
+.theme-dark .message-time {
+  color: #999999;
+}
+
+.theme-dark .content-label {
+  color: #999999;
+}
+
+.theme-dark .content-text {
+  color: #cccccc;
+  background: #1a1a1a;
+  border-color: #333333;
+}
+
+.theme-dark .meta-label {
+  color: #999999;
+}
+
+.theme-dark .meta-text {
+  color: #cccccc;
+}
+
+.theme-dark .action-label {
+  color: #888888;
+  background: #333333;
+}
