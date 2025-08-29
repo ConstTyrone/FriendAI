@@ -126,7 +126,10 @@
           </view>
           <view class="preview-info">
             <text class="preview-name">{{item.otherName}}</text>
-            <text class="preview-relation">{{item.relationshipLabel}}</text>
+            <view class="preview-meta">
+              <text class="preview-relation">{{item.relationshipLabel}}</text>
+              <text class="preview-confidence" wx:if="{{item.confidenceScore > 0}}">{{item.confidenceScore}}%</text>
+            </view>
           </view>
           <view class="preview-status {{item.status}}">
             <text class="status-text">{{item.statusLabel}}</text>

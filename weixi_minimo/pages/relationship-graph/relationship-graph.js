@@ -25,7 +25,6 @@ Page({
     
     // 页面模式
     isGlobalMode: false,  // 是否为全局关系网络模式
-    pageTitle: '关系图谱',
     
     // 搜索和筛选
     centerSearchKeyword: '',
@@ -49,15 +48,18 @@ Page({
     if (options.centerNodeId) {
       this.setData({
         centerNodeId: parseInt(options.centerNodeId),
-        isGlobalMode: false,
-        pageTitle: options.contactName ? `${decodeURIComponent(options.contactName)}的关系` : '联系人关系'
+        isGlobalMode: false
       });
+      
+      // 动态设置导航栏标题
+      const title = options.contactName ? `${decodeURIComponent(options.contactName)}的关系` : '联系人关系';
+      wx.setNavigationBarTitle({ title });
     } else {
       // 全局关系网络模式
       this.setData({
-        isGlobalMode: true,
-        pageTitle: '关系网络'
+        isGlobalMode: true
       });
+      wx.setNavigationBarTitle({ title: '关系网络' });
     }
     
     this.initPageSize();
@@ -80,14 +82,14 @@ Page({
     
     // 计算各个部分的高度
     const statusBarHeight = systemInfo.statusBarHeight || 0;
-    const headerHeight = 88; // 页面头部高度（rpx转px）
-    const toolbarHeight = this.data.isGlobalMode ? 0 : 50; // 工具栏高度
-    const tabBarHeight = this.data.isGlobalMode ? 98 : 0; // 底部导航栏高度
+    const navigationBarHeight = 44; // 系统导航栏高度
+    const quickActionsHeight = 24; // 快速操作栏高度 (16rpx padding * 2 + button height)
+    const tabBarHeight = this.data.isGlobalMode ? 0 : 98; // 底部导航栏高度
     const safeAreaBottom = safeArea ? (windowHeight - safeArea.bottom) : 0;
-    const padding = 32; // 容器边距
+    const padding = 16; // 容器边距
     
-    // 计算图谱可用高度（更精确的计算）
-    const occupiedHeight = statusBarHeight + headerHeight + toolbarHeight + tabBarHeight + safeAreaBottom + padding;
+    // 计算图谱可用高度
+    const occupiedHeight = statusBarHeight + navigationBarHeight + quickActionsHeight + tabBarHeight + safeAreaBottom + padding;
     const availableHeight = windowHeight - occupiedHeight;
     
     // 确保图谱高度合理（至少占用60%的屏幕高度）
@@ -103,7 +105,7 @@ Page({
     });
     
     this.setData({
-      graphWidth: windowWidth - 32,
+      graphWidth: windowWidth - 16, // 调整边距为16px
       graphHeight,
       fullscreenWidth: windowWidth,
       fullscreenHeight: windowHeight
@@ -426,10 +428,6 @@ Page({
   /**
    * 返回上一页
    */
-  onBack() {
-    wx.navigateBack();
-  },
-  
   /**
    * 选择中心节点
    */

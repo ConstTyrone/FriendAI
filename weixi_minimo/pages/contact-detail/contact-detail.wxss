@@ -1124,10 +1124,25 @@ t-tag {
   line-height: 1.2;
 }
 
+.preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .preview-relation {
   font-size: 24rpx;
   color: var(--td-text-color-secondary, #757575);
   line-height: 1.2;
+}
+
+.preview-confidence {
+  font-size: 20rpx;
+  background: #f6ffed;
+  color: #52c41a;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
 }
 
 .preview-status {
@@ -1249,6 +1264,11 @@ t-tag {
 
 .detail-page.dark .preview-relation {
   color: var(--td-text-color-secondary, #bdbdbd);
+}
+
+.detail-page.dark .preview-confidence {
+  background: #162312;
+  color: #73d13d;
 }
 
 .detail-page.dark .empty-desc {

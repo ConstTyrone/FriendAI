@@ -537,8 +537,8 @@ Page({
       // 获取关系数据
       const response = await dataManager.getContactRelationships(this.data.contactId);
       
-      if (response && response.success && response.data) {
-        const relationships = response.data;
+      if (response && response.success && response.relationships) {
+        const relationships = response.relationships;
         console.log('关系数据加载成功:', relationships);
         
         // 计算统计信息
@@ -607,7 +607,7 @@ Page({
         relationshipLabel,
         status: rel.status,
         statusLabel,
-        confidenceScore: rel.confidence_score
+        confidenceScore: Math.round((rel.confidence_score || 0) * 100)
       };
     });
   },

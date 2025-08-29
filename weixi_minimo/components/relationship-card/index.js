@@ -37,7 +37,9 @@ Component({
    * 组件数据
    */
   data: {
-    themeClass: ''
+    themeClass: '',
+    sourceInitial: '',
+    targetInitial: ''
   },
 
   /**
@@ -46,6 +48,11 @@ Component({
   lifetimes: {
     attached() {
       this.initTheme();
+    },
+    
+    ready() {
+      // 组件准备就绪时处理初始数据
+      this.processProfiles();
     },
     
     detached() {
@@ -75,6 +82,33 @@ Component({
         });
       };
       themeManager.addListener(this.themeListener);
+    },
+
+    /**
+     * 处理联系人数据
+     */
+    processProfiles() {
+      const { sourceProfile, targetProfile } = this.properties;
+      console.log('processProfiles被调用:', { sourceProfile, targetProfile });
+      
+      // 使用内部data而不是直接修改properties
+      const updateData = {};
+      
+      if (sourceProfile && sourceProfile.profile_name && !sourceProfile.initial) {
+        const sourceInitial = this.generateInitial(sourceProfile.profile_name);
+        console.log('生成源联系人首字母（ready）:', { name: sourceProfile.profile_name, initial: sourceInitial });
+        updateData.sourceInitial = sourceInitial;
+      }
+      
+      if (targetProfile && targetProfile.profile_name && !targetProfile.initial) {
+        const targetInitial = this.generateInitial(targetProfile.profile_name);
+        console.log('生成目标联系人首字母（ready）:', { name: targetProfile.profile_name, initial: targetInitial });
+        updateData.targetInitial = targetInitial;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        this.setData(updateData);
+      }
     },
 
     /**
@@ -284,21 +318,22 @@ Component({
    * 数据监听器
    */
   observers: {
-    'sourceProfile, targetProfile': function(sourceProfile, targetProfile) {
-      // 为联系人生成首字母
-      if (sourceProfile && sourceProfile.profile_name) {
-        const sourceName = sourceProfile.profile_name;
-        const sourceInitial = this.generateInitial(sourceName);
+    'sourceProfile.profile_name': function(profileName) {
+      if (profileName && !this.data.sourceInitial) {
+        const sourceInitial = this.generateInitial(profileName);
+        console.log('生成源联系人首字母:', { profileName, sourceInitial });
         this.setData({
-          'sourceProfile.initial': sourceInitial
+          sourceInitial: sourceInitial
         });
       }
-
-      if (targetProfile && targetProfile.profile_name) {
-        const targetName = targetProfile.profile_name;
-        const targetInitial = this.generateInitial(targetName);
+    },
+    
+    'targetProfile.profile_name': function(profileName) {
+      if (profileName && !this.data.targetInitial) {
+        const targetInitial = this.generateInitial(profileName);
+        console.log('生成目标联系人首字母:', { profileName, targetInitial });
         this.setData({
-          'targetProfile.initial': targetInitial
+          targetInitial: targetInitial
         });
       }
     }

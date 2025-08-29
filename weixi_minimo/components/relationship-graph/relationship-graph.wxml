@@ -39,6 +39,13 @@
       <t-button 
         variant="text" 
         size="small" 
+        icon="location"
+        bind:tap="onResetView"
+      >居中</t-button>
+      
+      <t-button 
+        variant="text" 
+        size="small" 
         icon="fullscreen"
         bind:tap="onFullscreen"
       >全屏</t-button>
@@ -111,6 +118,17 @@
         </view>
       </view>
     </scroll-view>
+    
+    <!-- 交互提示 -->
+    <view class="interaction-tips">
+      <view class="tips-title">💡 操作提示</view>
+      <view class="tips-list">
+        <view class="tip-item">👆 点击节点查看详情</view>
+        <view class="tip-item">👆 点击连线查看关系</view>
+        <view class="tip-item">🔍 双指缩放查看更多</view>
+        <view class="tip-item">⚙️ 点击设置调整显示</view>
+      </view>
+    </view>
   </view>
   
   <!-- 节点详情弹窗 -->

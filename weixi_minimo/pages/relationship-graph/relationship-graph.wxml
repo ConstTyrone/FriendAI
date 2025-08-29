@@ -2,27 +2,14 @@
   关系图谱页面 - 完整的关系可视化界面
 -->
 <view class="relationship-graph-page">
-  <!-- 页面头部 -->
-  <view class="page-header">
-    <view class="header-content">
-      <view class="header-left">
-        <t-button 
-          wx:if="{{!isGlobalMode}}"
-          variant="text" 
-          icon="arrow-left" 
-          bind:tap="onBack"
-        ></t-button>
-        <text class="page-title">{{pageTitle}}</text>
-      </view>
-      
-      <view class="header-right">
-        <t-button 
-          variant="text" 
-          icon="user" 
-          bind:tap="onSelectCenter"
-        >选择中心</t-button>
-      </view>
-    </view>
+  <!-- 快速操作栏 -->
+  <view class="quick-actions">
+    <t-button 
+      variant="text" 
+      icon="user" 
+      size="small"
+      bind:tap="onSelectCenter"
+    >选择中心</t-button>
   </view>
   
   <!-- 图谱组件 -->

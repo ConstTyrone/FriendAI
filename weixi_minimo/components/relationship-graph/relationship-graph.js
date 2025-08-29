@@ -75,11 +75,22 @@ Component({
   
   lifetimes: {
     attached() {
-      this.initCanvas();
+      // 使用传入的尺寸或默认尺寸
+      const width = this.data.width || 350;
+      const height = this.data.height || 400;
+      
       this.setData({
-        canvasWidth: this.data.width,
-        canvasHeight: this.data.height
+        canvasWidth: width,
+        canvasHeight: height
       });
+      
+      // 初始化触摸检测属性
+      this.touchStartTime = null;
+      this.touchStartX = null;
+      this.touchStartY = null;
+      this.hasMoved = false;
+      
+      this.initCanvas();
     },
     
     ready() {
@@ -90,6 +101,15 @@ Component({
   observers: {
     'relationships, profiles, centerNodeId': function() {
       this.processGraphData();
+    },
+    'width, height': function(width, height) {
+      if (width && height) {
+        this.setData({
+          canvasWidth: width,
+          canvasHeight: height
+        });
+        this.initCanvas();
+      }
     }
   },
   
@@ -160,12 +180,18 @@ Component({
         }
       );
       
+      // 计算居中偏移
+      const centerOffset = this.calculateCenterOffset(layoutData.nodes);
+      
       this.setData({
         graphData: {
           ...graphData,
           nodes: layoutData.nodes,
           links: layoutData.links
         },
+        translateX: centerOffset.x,
+        translateY: centerOffset.y,
+        scale: 1, // 重置缩放比例
         loading: false
       }, () => {
         this.renderGraph();
@@ -182,60 +208,155 @@ Component({
       const { nodes, links } = this.data.graphData;
       const { scale, translateX, translateY } = this.data;
       
-      // 清空画布
-      ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+      // 添加数据验证
+      if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
+        console.log('renderGraph: 没有有效的节点数据');
+        ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        return;
+      }
       
-      // 应用变换
-      ctx.save();
-      ctx.translate(translateX, translateY);
-      ctx.scale(scale, scale);
+      console.log('开始渲染图谱:', { 节点数: nodes.length, 连线数: (links || []).length });
       
-      // 绘制连接线
-      links.forEach(link => {
-        this.drawLink(ctx, link, nodes);
-      });
-      
-      // 绘制节点
-      nodes.forEach(node => {
-        this.drawNode(ctx, node);
-      });
-      
-      ctx.restore();
+      try {
+        // 清空画布
+        ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        
+        // 应用变换
+        ctx.save();
+        ctx.translate(translateX, translateY);
+        ctx.scale(scale, scale);
+        
+        // 绘制连接线
+        if (links && Array.isArray(links)) {
+          links.forEach((link, index) => {
+            try {
+              this.drawLink(ctx, link, nodes);
+            } catch (error) {
+              console.error(`绘制连线 ${index} 失败:`, error, link);
+            }
+          });
+        }
+        
+        // 绘制节点
+        nodes.forEach((node, index) => {
+          try {
+            this.drawNode(ctx, node);
+          } catch (error) {
+            console.error(`绘制节点 ${index} 失败:`, error, node);
+          }
+        });
+        
+      } catch (error) {
+        console.error('renderGraph 渲染失败:', error);
+      } finally {
+        ctx.restore();
+      }
     },
     
     /**
      * 绘制节点
      */
     drawNode(ctx, node) {
+      if (!ctx || !node) {
+        console.warn('drawNode: 缺少必要参数', { ctx: !!ctx, node: !!node });
+        return;
+      }
+      
       const { x, y, name, size, color, level } = node;
       
+      // 验证坐标
+      if (typeof x !== 'number' || typeof y !== 'number' || isNaN(x) || isNaN(y)) {
+        console.warn('drawNode: 无效的节点坐标', { x, y, name });
+        return;
+      }
+      
       // 节点大小
-      const radius = size === 'large' ? 25 : 18;
+      const radius = size === 'large' ? 28 : 20;
       
-      // 绘制节点圆圈
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.strokeStyle = level === 0 ? '#1976d2' : '#fff';
-      ctx.lineWidth = level === 0 ? 3 : 2;
-      ctx.stroke();
-      
-      // 绘制节点文字
-      ctx.fillStyle = '#fff';
-      ctx.font = size === 'large' ? 'bold 12px sans-serif' : '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      // 绘制姓名首字母
-      const initial = name ? name.charAt(0) : '?';
-      ctx.fillText(initial, x, y);
-      
-      // 绘制姓名标签
-      if (size === 'large' || this.data.scale > 1.2) {
-        ctx.fillStyle = '#333';
-        ctx.font = '11px sans-serif';
-        ctx.fillText(name, x, y + radius + 15);
+      // 创建阴影效果
+      ctx.save();
+      try {
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        
+        // 绘制节点圆圈（带渐变）
+        let fillColor;
+        
+        // 验证渐变参数
+        const gradientValid = typeof x === 'number' && typeof y === 'number' && 
+                            typeof radius === 'number' && 
+                            !isNaN(x) && !isNaN(y) && !isNaN(radius) && 
+                            radius > 0;
+        
+        if (gradientValid) {
+          try {
+            // 确保渐变参数都是有效的数值
+            const x1 = x - radius * 0.3;
+            const y1 = y - radius * 0.3;
+            const r1 = 0;
+            const x2 = x;
+            const y2 = y;
+            const r2 = radius;
+            
+            const gradient = ctx.createRadialGradient(x1, y1, r1, x2, y2, r2);
+            
+            if (level === 0) {
+              gradient.addColorStop(0, '#06ae56');
+              gradient.addColorStop(1, '#048a44');
+            } else {
+              const nodeColor = this.validateColor(color) || '#4caf50';
+              const darkerColor = this.darkenColor(nodeColor, 0.2);
+              gradient.addColorStop(0, nodeColor);
+              gradient.addColorStop(1, darkerColor);
+            }
+            fillColor = gradient;
+          } catch (error) {
+            console.warn('渐变创建失败，使用纯色填充:', error);
+            fillColor = level === 0 ? '#06ae56' : (this.validateColor(color) || '#4caf50');
+          }
+        } else {
+          // 参数无效，直接使用纯色
+          fillColor = level === 0 ? '#06ae56' : (this.validateColor(color) || '#4caf50');
+        }
+        
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        
+        // 绘制边框
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = level === 0 ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = level === 0 ? 3 : 2;
+        ctx.stroke();
+        
+        // 绘制节点文字
+        ctx.fillStyle = '#ffffff';
+        ctx.font = size === 'large' ? 'bold 14px sans-serif' : 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // 绘制姓名首字母
+        const initial = name ? name.charAt(0) : '?';
+        ctx.fillText(initial, x, y);
+        
+        // 绘制姓名标签
+        if ((size === 'large' || this.data.scale > 1.2) && name) {
+          ctx.save();
+          ctx.fillStyle = '#333';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+          ctx.shadowBlur = 2;
+          ctx.fillText(name, x, y + radius + 18);
+          ctx.restore();
+        }
+        
+      } catch (error) {
+        console.error('drawNode 绘制失败:', error, node);
+      } finally {
+        ctx.restore();
       }
     },
     
@@ -251,12 +372,23 @@ Component({
       const { x1, y1 } = { x1: sourceNode.x, y1: sourceNode.y };
       const { x2, y2 } = { x2: targetNode.x, y2: targetNode.y };
       
+      // 增强连线样式
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 2;
+      
       // 设置线条样式
       ctx.strokeStyle = link.color;
-      ctx.lineWidth = link.width;
+      ctx.lineWidth = Math.max(link.width, 2);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // 根据关系强度设置透明度
+      ctx.globalAlpha = link.strength === 'strong' ? 1.0 : 
+                        link.strength === 'medium' ? 0.8 : 0.6;
       
       if (link.style === 'dashed') {
-        ctx.setLineDash([5, 5]);
+        ctx.setLineDash([8, 4]);
       } else {
         ctx.setLineDash([]);
       }
@@ -267,10 +399,84 @@ Component({
       ctx.lineTo(x2, y2);
       ctx.stroke();
       
+      ctx.restore();
+      
       // 绘制方向箭头（如果不是双向关系）
       if (link.direction !== 'bidirectional') {
         this.drawArrow(ctx, x1, y1, x2, y2, link.color);
       }
+    },
+    
+    /**
+     * 验证颜色格式
+     */
+    validateColor(color) {
+      if (!color || typeof color !== 'string') {
+        return null;
+      }
+      
+      // 检查常见颜色格式
+      const hexPattern = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const rgbPattern = /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/;
+      const rgbaPattern = /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[0-9.]+\s*\)$/;
+      
+      if (hexPattern.test(color) || rgbPattern.test(color) || rgbaPattern.test(color)) {
+        return color;
+      }
+      
+      // 检查预设颜色名
+      const namedColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'gray', 'black', 'white'];
+      if (namedColors.includes(color.toLowerCase())) {
+        return color;
+      }
+      
+      return null;
+    },
+    
+    /**
+     * 颜色变暗辅助函数
+     */
+    darkenColor(color, amount = 0.2) {
+      const validColor = this.validateColor(color);
+      if (!validColor) {
+        return '#4caf50'; // 默认绿色
+      }
+      
+      // 预设颜色映射
+      const colorMap = {
+        '#1976d2': '#1565c0',
+        '#4caf50': '#388e3c',
+        '#ff9800': '#f57c00',
+        '#f44336': '#d32f2f',
+        '#9c27b0': '#7b1fa2',
+        '#607d8b': '#455a64',
+        '#06ae56': '#048a44'
+      };
+      
+      // 如果有预设映射，直接返回
+      if (colorMap[validColor]) {
+        return colorMap[validColor];
+      }
+      
+      // 简单的颜色变暗处理
+      if (validColor.startsWith('#') && validColor.length === 7) {
+        try {
+          const r = parseInt(validColor.substr(1, 2), 16);
+          const g = parseInt(validColor.substr(3, 2), 16);
+          const b = parseInt(validColor.substr(5, 2), 16);
+          
+          const darkR = Math.max(0, Math.floor(r * (1 - amount)));
+          const darkG = Math.max(0, Math.floor(g * (1 - amount)));
+          const darkB = Math.max(0, Math.floor(b * (1 - amount)));
+          
+          return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+        } catch (e) {
+          console.warn('颜色处理失败:', validColor, e);
+          return '#388e3c'; // 默认深绿色
+        }
+      }
+      
+      return validColor; // 无法处理的颜色格式，返回原色
     },
     
     /**
@@ -295,12 +501,25 @@ Component({
      */
     onTouchStart(e) {
       const touch = e.touches[0];
+      const isMultiTouch = e.touches.length > 1;
+      
       this.setData({
         lastTouchX: touch.x,
         lastTouchY: touch.y,
         touching: true,
-        multiTouch: e.touches.length > 1
+        multiTouch: isMultiTouch
       });
+      
+      // 记录点击开始状态（用于检测单击）
+      this.touchStartTime = Date.now();
+      this.touchStartX = touch.x;
+      this.touchStartY = touch.y;
+      this.hasMoved = false;
+      
+      // 重置双指缩放距离
+      if (isMultiTouch) {
+        this.lastPinchDistance = null;
+      }
     },
     
     /**
@@ -309,18 +528,47 @@ Component({
     onTouchMove(e) {
       if (!this.data.touching) return;
       
-      const touch = e.touches[0];
-      const deltaX = touch.x - this.data.lastTouchX;
-      const deltaY = touch.y - this.data.lastTouchY;
+      const touchCount = e.touches.length;
       
-      if (this.data.multiTouch && e.touches.length > 1) {
+      // 更新多指触摸状态
+      if (touchCount > 1 && !this.data.multiTouch) {
+        this.setData({ multiTouch: true });
+        this.lastPinchDistance = null; // 重置缩放距离
+      } else if (touchCount === 1 && this.data.multiTouch) {
+        this.setData({ multiTouch: false });
+      }
+      
+      if (touchCount > 1) {
         // 双指缩放
         this.handlePinchZoom(e.touches);
-      } else {
+      } else if (touchCount === 1 && !this.data.multiTouch) {
         // 单指拖拽
+        const touch = e.touches[0];
+        const deltaX = touch.x - this.data.lastTouchX;
+        const deltaY = touch.y - this.data.lastTouchY;
+        
+        // 检查是否为微小移动（可能是点击）
+        const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (moveDistance < 5) {
+          return; // 忽略微小移动
+        }
+        
+        // 标记已移动
+        this.hasMoved = true;
+        
+        const newTranslateX = this.data.translateX + deltaX;
+        const newTranslateY = this.data.translateY + deltaY;
+        
+        // 简单的边界限制
+        const { canvasWidth, canvasHeight } = this.data;
+        const limit = Math.max(canvasWidth, canvasHeight) * 2;
+        
+        const clampedTranslateX = Math.max(-limit, Math.min(limit, newTranslateX));
+        const clampedTranslateY = Math.max(-limit, Math.min(limit, newTranslateY));
+        
         this.setData({
-          translateX: this.data.translateX + deltaX,
-          translateY: this.data.translateY + deltaY,
+          translateX: clampedTranslateX,
+          translateY: clampedTranslateY,
           lastTouchX: touch.x,
           lastTouchY: touch.y
         }, () => {
@@ -333,30 +581,149 @@ Component({
      * 触摸结束
      */
     onTouchEnd(e) {
-      this.setData({
-        touching: false,
-        multiTouch: false
+      // 检查是否还有触摸点
+      const remainingTouches = e.touches.length;
+      
+      if (remainingTouches === 0) {
+        // 检测是否为单击
+        this.detectTap();
+        
+        this.setData({
+          touching: false,
+          multiTouch: false
+        });
+        this.lastPinchDistance = null;
+      } else if (remainingTouches === 1) {
+        // 从双指切换到单指
+        this.setData({
+          multiTouch: false,
+          lastTouchX: e.touches[0].x,
+          lastTouchY: e.touches[0].y
+        });
+        this.lastPinchDistance = null;
+      }
+    },
+    
+    /**
+     * 检测单击
+     */
+    detectTap() {
+      if (!this.touchStartTime || !this.touchStartX || !this.touchStartY) {
+        console.log('单击检测失败：缺少开始触摸数据');
+        return;
+      }
+      
+      const touchDuration = Date.now() - this.touchStartTime;
+      
+      // 检查是否为单击：时间短且没有移动
+      if (touchDuration < 300 && !this.hasMoved) {
+        console.log('检测到单击:', {
+          duration: touchDuration,
+          hasMoved: this.hasMoved,
+          position: { x: this.touchStartX, y: this.touchStartY }
+        });
+        
+        // 执行命中测试
+        this.handleTap(this.touchStartX, this.touchStartY);
+      } else {
+        console.log('不是单击:', {
+          duration: touchDuration,
+          hasMoved: this.hasMoved
+        });
+      }
+      
+      // 清理状态
+      this.touchStartTime = null;
+      this.touchStartX = null;
+      this.touchStartY = null;
+      this.hasMoved = false;
+    },
+    
+    /**
+     * 处理单击
+     */
+    handleTap(x, y) {
+      console.log('处理单击:', { x, y });
+      
+      // 检查坐标有效性
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        console.warn('无效的点击坐标:', { x, y });
+        return;
+      }
+      
+      // 执行命中测试
+      const hitNode = this.hitTestNode(x, y);
+      const hitLink = this.hitTestLink(x, y);
+      
+      console.log('命中测试结果:', {
+        hitNode: hitNode ? hitNode.name : null,
+        hitLink: hitLink ? hitLink.id : null,
+        clickPos: { x, y },
+        transform: {
+          scale: this.data.scale,
+          translateX: this.data.translateX,
+          translateY: this.data.translateY
+        }
       });
+      
+      if (hitNode) {
+        console.log('点击节点:', hitNode.name);
+        this.setData({
+          selectedNode: hitNode,
+          showNodeDetail: true
+        });
+      } else if (hitLink) {
+        console.log('点击连线:', hitLink);
+        this.setData({
+          selectedLink: hitLink,
+          showLinkDetail: true
+        });
+      } else {
+        console.log('点击空白区域');
+      }
     },
     
     /**
      * 画布点击
      */
     onCanvasTap(e) {
+      console.log('画布点击事件:', e.detail);
       const { x, y } = e.detail;
+      
+      if (typeof x !== 'number' || typeof y !== 'number') {
+        console.warn('无效的点击坐标:', { x, y });
+        return;
+      }
+      
+      // 直接处理单击，去除双击逢辑
       const hitNode = this.hitTestNode(x, y);
       const hitLink = this.hitTestLink(x, y);
       
+      console.log('命中测试结果:', {
+        hitNode: hitNode ? hitNode.name : null,
+        hitLink: hitLink ? hitLink.id : null,
+        clickPos: { x, y },
+        transform: {
+          scale: this.data.scale,
+          translateX: this.data.translateX,
+          translateY: this.data.translateY
+        }
+      });
+      
       if (hitNode) {
+        console.log('点击节点:', hitNode.name);
         this.setData({
           selectedNode: hitNode,
           showNodeDetail: true
         });
       } else if (hitLink) {
+        console.log('点击连线:', hitLink);
         this.setData({
           selectedLink: hitLink,
           showLinkDetail: true
         });
+      } else {
+        console.log('点击空白区域');
       }
     },
     
@@ -365,38 +732,83 @@ Component({
      */
     hitTestNode(x, y) {
       const { nodes } = this.data.graphData;
+      if (!nodes || nodes.length === 0) {
+        console.log('hitTestNode: 没有节点数据');
+        return null;
+      }
+      
       const { scale, translateX, translateY } = this.data;
       
       // 转换坐标
       const canvasX = (x - translateX) / scale;
       const canvasY = (y - translateY) / scale;
       
-      return nodes.find(node => {
-        const radius = node.size === 'large' ? 25 : 18;
-        const distance = Math.sqrt(
-          Math.pow(canvasX - node.x, 2) + Math.pow(canvasY - node.y, 2)
-        );
-        return distance <= radius;
+      console.log('节点命中测试:', {
+        原始坐标: { x, y },
+        转换后: { canvasX, canvasY },
+        transform: { scale, translateX, translateY }
       });
+      
+      for (let node of nodes) {
+        if (node.x != null && node.y != null) {
+          const radius = node.size === 'large' ? 28 : 20; // 与绘制保持一致
+          const distance = Math.sqrt(
+            Math.pow(canvasX - node.x, 2) + Math.pow(canvasY - node.y, 2)
+          );
+          
+          console.log(`检查节点 ${node.name}:`, {
+            节点坐标: { x: node.x, y: node.y },
+            半径: radius,
+            距离: distance.toFixed(2),
+            命中: distance <= radius
+          });
+          
+          if (distance <= radius) {
+            console.log('命中节点:', node.name);
+            return node;
+          }
+        }
+      }
+      
+      return null;
     },
     
     /**
      * 连接线命中测试
      */
     hitTestLink(x, y) {
-      const { links } = this.data.graphData;
-      const { nodes } = this.data.graphData;
+      const { links, nodes } = this.data.graphData;
+      if (!links || links.length === 0 || !nodes || nodes.length === 0) {
+        console.log('hitTestLink: 没有连线或节点数据');
+        return null;
+      }
+      
       const { scale, translateX, translateY } = this.data;
       
       // 转换坐标
       const canvasX = (x - translateX) / scale;
       const canvasY = (y - translateY) / scale;
       
-      return links.find(link => {
+      console.log('连线命中测试:', {
+        原始坐标: { x, y },
+        转换后: { canvasX, canvasY },
+        连线数量: links.length
+      });
+      
+      for (let link of links) {
         const sourceNode = nodes.find(n => n.id === link.source);
         const targetNode = nodes.find(n => n.id === link.target);
         
-        if (!sourceNode || !targetNode) return false;
+        if (!sourceNode || !targetNode) {
+          console.log('连线缺少节点:', {
+            linkId: link.id,
+            source: link.source,
+            target: link.target,
+            sourceFound: !!sourceNode,
+            targetFound: !!targetNode
+          });
+          continue;
+        }
         
         // 计算点到线段的距离
         const distance = this.pointToLineDistance(
@@ -405,8 +817,21 @@ Component({
           targetNode.x, targetNode.y
         );
         
-        return distance <= (link.width * 2 + 5);
-      });
+        const hitThreshold = Math.max(10, (link.width || 2) * 2 + 5); // 增加命中阈值
+        
+        console.log(`检查连线 ${sourceNode.name} -> ${targetNode.name}:`, {
+          距离: distance.toFixed(2),
+          阈值: hitThreshold,
+          命中: distance <= hitThreshold
+        });
+        
+        if (distance <= hitThreshold) {
+          console.log('命中连线:', link);
+          return link;
+        }
+      }
+      
+      return null;
     },
     
     /**
@@ -426,6 +851,75 @@ Component({
     },
     
     /**
+     * 计算图谱内容边界
+     */
+    calculateContentBounds(nodes) {
+      if (!nodes || nodes.length === 0) {
+        return {
+          minX: 0, maxX: this.data.canvasWidth,
+          minY: 0, maxY: this.data.canvasHeight
+        };
+      }
+      
+      let minX = Infinity, maxX = -Infinity;
+      let minY = Infinity, maxY = -Infinity;
+      
+      nodes.forEach(node => {
+        if (typeof node.x === 'number' && typeof node.y === 'number') {
+          const radius = node.size === 'large' ? 28 : 20;
+          minX = Math.min(minX, node.x - radius);
+          maxX = Math.max(maxX, node.x + radius);
+          minY = Math.min(minY, node.y - radius);
+          maxY = Math.max(maxY, node.y + radius);
+        }
+      });
+      
+      // 如果没有有效节点，返回默认边界
+      if (minX === Infinity) {
+        return {
+          minX: 0, maxX: this.data.canvasWidth,
+          minY: 0, maxY: this.data.canvasHeight
+        };
+      }
+      
+      return { minX, maxX, minY, maxY };
+    },
+    
+    /**
+     * 计算居中偏移
+     */
+    calculateCenterOffset(nodes) {
+      if (!nodes || nodes.length === 0) {
+        return { x: 0, y: 0 };
+      }
+      
+      const bounds = this.calculateContentBounds(nodes);
+      const { canvasWidth, canvasHeight } = this.data;
+      
+      // 计算内容中心
+      const contentCenterX = (bounds.minX + bounds.maxX) / 2;
+      const contentCenterY = (bounds.minY + bounds.maxY) / 2;
+      
+      // 计算画布中心
+      const canvasCenterX = canvasWidth / 2;
+      const canvasCenterY = canvasHeight / 2;
+      
+      // 计算需要的偏移量
+      const offsetX = canvasCenterX - contentCenterX;
+      const offsetY = canvasCenterY - contentCenterY;
+      
+      console.log('居中计算:', {
+        contentCenter: { x: contentCenterX, y: contentCenterY },
+        canvasCenter: { x: canvasCenterX, y: canvasCenterY },
+        offset: { x: offsetX, y: offsetY },
+        bounds
+      });
+      
+      return { x: offsetX, y: offsetY };
+    },
+    
+    
+    /**
      * 处理双指缩放
      */
     handlePinchZoom(touches) {
@@ -439,8 +933,18 @@ Component({
       );
       
       if (this.lastPinchDistance) {
-        const scaleChange = currentDistance / this.lastPinchDistance;
-        const newScale = Math.max(0.5, Math.min(3, this.data.scale * scaleChange));
+        const rawScaleChange = currentDistance / this.lastPinchDistance;
+        
+        // 添加阻尼效果，减少敏感度
+        const dampingFactor = 0.1;
+        const scaleChange = 1 + (rawScaleChange - 1) * dampingFactor;
+        
+        // 限制单次缩放变化量，避免跳跃性变化
+        const maxScaleChange = 1.05;
+        const minScaleChange = 0.95;
+        const clampedScaleChange = Math.max(minScaleChange, Math.min(maxScaleChange, scaleChange));
+        
+        const newScale = Math.max(0.3, Math.min(2.5, this.data.scale * clampedScaleChange));
         
         this.setData({
           scale: newScale
@@ -463,7 +967,7 @@ Component({
      * 放大
      */
     onZoomIn() {
-      const newScale = Math.min(3, this.data.scale * 1.2);
+      const newScale = Math.min(2.5, this.data.scale * 1.1);
       this.setData({ scale: newScale }, () => {
         this.renderGraph();
       });
@@ -473,9 +977,44 @@ Component({
      * 缩小
      */
     onZoomOut() {
-      const newScale = Math.max(0.5, this.data.scale / 1.2);
+      const newScale = Math.max(0.3, this.data.scale / 1.1);
       this.setData({ scale: newScale }, () => {
         this.renderGraph();
+      });
+    },
+    
+    /**
+     * 重置视图（居中和重置缩放）
+     */
+    onResetView() {
+      const { nodes } = this.data.graphData;
+      if (!nodes || nodes.length === 0) {
+        this.setData({
+          scale: 1,
+          translateX: 0,
+          translateY: 0
+        }, () => {
+          this.renderGraph();
+        });
+        return;
+      }
+      
+      // 重新计算居中偏移
+      const centerOffset = this.calculateCenterOffset(nodes);
+      
+      this.setData({
+        scale: 1,
+        translateX: centerOffset.x,
+        translateY: centerOffset.y
+      }, () => {
+        this.renderGraph();
+      });
+      
+      // 给用户反馈
+      wx.showToast({
+        title: '已重置并居中',
+        icon: 'success',
+        duration: 1000
       });
     },
     

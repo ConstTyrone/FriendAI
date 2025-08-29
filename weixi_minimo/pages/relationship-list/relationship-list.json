@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "关系列表",
+  "navigationBarBackgroundColor": "#FFFFFF",
+  "navigationBarTextStyle": "black",
   "backgroundColor": "#f5f5f5",
   "backgroundTextStyle": "dark",
   "enablePullDownRefresh": true,

@@ -37,7 +37,8 @@ Page({
     // 状态管理
     loading: false,
     error: null,
-    batchProcessing: false
+    batchProcessing: false,
+    hasUnconfirmedRelationships: false
   },
 
   /**
@@ -50,9 +51,15 @@ Page({
     
     // 获取联系人ID
     if (options.contactId) {
+      const contactName = decodeURIComponent(options.contactName || '联系人');
       this.setData({
         contactId: parseInt(options.contactId),
-        contactName: decodeURIComponent(options.contactName || '联系人')
+        contactName: contactName
+      });
+      
+      // 设置导航栏标题
+      wx.setNavigationBarTitle({
+        title: `${contactName}的关系`
       });
       
       // 加载关系数据
@@ -94,7 +101,12 @@ Page({
    * 加载关系数据
    */
   async loadRelationships() {
-    if (!this.data.contactId) return;
+    if (!this.data.contactId) {
+      console.warn('关系列表页面: 没有联系人ID，无法加载关系数据');
+      return;
+    }
+    
+    console.log('关系列表页面: 开始加载关系数据，联系人ID:', this.data.contactId);
     
     this.setData({
       loading: true,
@@ -102,16 +114,20 @@ Page({
     });
     
     try {
-      console.log('加载联系人关系:', this.data.contactId);
+      console.log('关系列表页面: 调用dataManager.getContactRelationships');
       
       // 调用API获取关系数据
       const response = await dataManager.getContactRelationships(this.data.contactId);
       
+      console.log('关系列表页面: API响应:', response);
+      
       if (response && response.success) {
         const relationships = response.relationships || [];
+        console.log('关系列表页面: 成功获取关系数据，数量:', relationships.length);
         
         // 计算统计信息
         const stats = this.calculateStats(relationships);
+        console.log('关系列表页面: 统计信息:', stats);
         
         this.setData({
           relationships,
@@ -120,17 +136,20 @@ Page({
         
         // 应用当前筛选条件
         this.applyFilter();
+        console.log('关系列表页面: 数据加载完成');
         
       } else {
+        console.error('关系列表页面: API响应失败:', response);
         throw new Error(response?.message || '获取关系数据失败');
       }
       
     } catch (error) {
-      console.error('加载关系数据失败:', error);
+      console.error('关系列表页面: 加载关系数据失败:', error);
       this.setData({
         error: error.message || '加载失败，请重试'
       });
     } finally {
+      console.log('关系列表页面: 设置loading为false');
       this.setData({
         loading: false
       });
@@ -181,8 +200,12 @@ Page({
     const sortOption = sortOptions[currentSortIndex];
     filtered = this.sortRelationships(filtered, sortOption.value);
     
+    // 检查是否有待确认关系
+    const hasUnconfirmed = relationships.some(rel => rel.status === 'discovered');
+    
     this.setData({
-      filteredRelationships: filtered
+      filteredRelationships: filtered,
+      hasUnconfirmedRelationships: hasUnconfirmed
     });
   },
 
@@ -488,12 +511,6 @@ Page({
     }
   },
 
-  /**
-   * 返回上一页
-   */
-  onBack() {
-    wx.navigateBack();
-  },
 
   /**
    * 页面滚动
@@ -532,12 +549,6 @@ Page({
     }
   },
 
-  /**
-   * 检查是否有待确认关系
-   */
-  get hasUncofirmedRelationships() {
-    return this.data.relationships.some(rel => rel.status === 'discovered');
-  },
 
   /**
    * 切换到图谱视图

@@ -1311,10 +1311,11 @@ class DataManager {
    */
   async getContactRelationships(contactId, forceRefresh = false) {
     try {
-      console.log('获取联系人关系:', contactId, forceRefresh ? '(强制刷新)' : '');
+      console.log('DataManager: 获取联系人关系开始 - contactId:', contactId, forceRefresh ? '(强制刷新)' : '');
       
       // Mock模式下返回模拟数据
       if (this.isMockMode) {
+        console.log('DataManager: 当前为Mock模式，返回模拟关系数据');
         return this.getMockRelationships(contactId);
       }
       
@@ -1322,39 +1323,46 @@ class DataManager {
       if (!forceRefresh) {
         const cachedData = cacheManager.getRelationships(contactId);
         if (cachedData !== null) {
-          console.log('使用缓存的关系数据:', contactId);
+          console.log('DataManager: 使用缓存的关系数据:', contactId);
           return cachedData;
         }
+        console.log('DataManager: 没有缓存数据，发起API请求');
       }
       
       // 从API获取数据
-      const response = await apiClient.get(`/api/relationships/${contactId}`);
-      console.log('从API获取关系数据成功:', response);
+      const apiUrl = `/api/relationships/${contactId}`;
+      console.log('DataManager: 调用API:', apiUrl);
+      const response = await apiClient.get(apiUrl);
+      console.log('DataManager: 从API获取关系数据成功:', response);
       
       // 缓存数据
       if (response && response.success) {
         cacheManager.setRelationships(contactId, response);
-        console.log('关系数据已缓存');
+        console.log('DataManager: 关系数据已缓存');
+      } else {
+        console.warn('DataManager: API响应无效，response.success为false');
       }
       
       return response;
     } catch (error) {
-      console.error('获取关系数据失败:', error);
+      console.error('DataManager: 获取关系数据失败:', error);
+      console.error('DataManager: 错误详情:', error.message, error.status);
       
       // 先尝试使用过期的缓存数据
       const expiredCachedData = cacheManager.getRelationships(contactId);
       if (expiredCachedData !== null) {
-        console.log('使用过期缓存的关系数据（降级策略）');
+        console.log('DataManager: 使用过期缓存的关系数据（降级策略）');
         return expiredCachedData;
       }
       
       // 如果是404错误(接口未实现)或网络错误，使用Mock数据
       if (error.message.includes('Not Found') || error.message.includes('404') ||
           error.message.includes('网络') || error.message.includes('Network')) {
-        console.log('API接口未实现或网络错误，使用Mock数据');
+        console.log('DataManager: API接口未实现或网络错误，使用Mock数据');
         return this.getMockRelationships(contactId);
       }
       
+      console.log('DataManager: 无法恢复的错误，抛出异常');
       throw error;
     }
   }
@@ -1624,11 +1632,19 @@ class DataManager {
     const mockRelationshipDetail = {
       id: relationshipId,
       source_profile_id: 'mock_1',
+      source_profile_name: '张伟',
       target_profile_id: 'mock_2',
+      target_profile_name: '李娜',
       relationship_type: 'colleague',
+      relationship_subtype: '同事关系',
+      relationship_direction: 'bidirectional',
       confidence_score: 0.85,
+      relationship_strength: 'medium',
       status: 'discovered',
       evidence: {
+        match_type: 'exact',
+        matched_values: '腾讯科技 == 腾讯科技',
+        similarity: 1.0,
         matched_fields: ['company', 'location', 'industry'],
         field_scores: {
           'company': 0.95,
@@ -1636,31 +1652,33 @@ class DataManager {
           'industry': 0.82
         },
         details: {
-          'company_source': 'Mock科技有限公司',
-          'company_target': 'Mock科技有限公司',
-          'location_source': '上海市浦东新区',
-          'location_target': '上海市浦东新区张江',
+          'company_source': '腾讯科技',
+          'company_target': '腾讯科技',
+          'location_source': '深圳市南山区',
+          'location_target': '深圳市南山区科技园',
           'industry_source': '互联网科技',
           'industry_target': '软件开发'
         }
       },
+      evidence_fields: 'company',
+      matching_method: 'field_match',
       ai_analysis: '基于工作地点和公司信息的分析显示，两位联系人很可能是同事关系。相同的公司背景和相近的工作地点为这个关系提供了强有力的证据。建议确认这个关系并在工作协作中保持联系。',
-      created_at: '2024-08-06T10:30:00Z',
+      discovered_at: '2024-08-06T10:30:00Z',
       updated_at: '2024-08-06T15:45:00Z',
       sourceProfile: {
         id: 'mock_1',
-        profile_name: '张伟（Mock）',
-        company: 'Mock科技有限公司',
-        position: '技术总监',
-        location: '上海市浦东新区',
+        profile_name: '张伟',
+        company: '腾讯科技',
+        position: '产品经理',
+        location: '深圳市南山区',
         phone: '138****8888'
       },
       targetProfile: {
         id: 'mock_2',
-        profile_name: '李娜（Mock）',
-        company: 'Mock科技有限公司',
-        position: '产品经理',
-        location: '上海市浦东新区张江',
+        profile_name: '李娜',
+        company: '腾讯科技',
+        position: '技术专家',
+        location: '深圳市南山区科技园',
         phone: '139****9999'
       }
     };
@@ -1685,43 +1703,69 @@ class DataManager {
       {
         id: 1,
         source_profile_id: contactId,
+        source_profile_name: contactId === 'mock_1' ? '张伟' : '李娜',
         target_profile_id: contactId === 'mock_1' ? 'mock_2' : 'mock_1',
+        target_profile_name: contactId === 'mock_1' ? '李娜' : '张伟',
         relationship_type: 'colleague',
+        relationship_subtype: '同事关系',
+        relationship_direction: 'bidirectional',
         confidence_score: 0.85,
+        relationship_strength: 'medium',
         status: 'discovered',
         evidence: {
-          matched_fields: ['company'],
-          details: '同公司员工'
+          match_type: 'exact',
+          matched_values: '腾讯科技 == 腾讯科技',
+          similarity: 1.0
         },
-        created_at: '2024-08-06T10:30:00Z',
+        evidence_fields: 'company',
+        matching_method: 'field_match',
+        discovered_at: '2024-08-06T10:30:00Z',
+        updated_at: '2024-08-06T10:30:00Z',
         sourceProfile: {
           id: contactId,
-          profile_name: contactId === 'mock_1' ? '张伟（Mock）' : '李娜（Mock）'
+          profile_name: contactId === 'mock_1' ? '张伟' : '李娜',
+          company: '腾讯科技',
+          position: '产品经理'
         },
         targetProfile: {
           id: contactId === 'mock_1' ? 'mock_2' : 'mock_1',
-          profile_name: contactId === 'mock_1' ? '李娜（Mock）' : '张伟（Mock）'
+          profile_name: contactId === 'mock_1' ? '李娜' : '张伟',
+          company: '腾讯科技',
+          position: '技术专家'
         }
       },
       {
         id: 2,
         source_profile_id: contactId,
+        source_profile_name: contactId === 'mock_1' ? '张伟' : '李娜',
         target_profile_id: 'mock_3',
+        target_profile_name: '王强',
         relationship_type: 'same_location',
+        relationship_subtype: '同地区',
+        relationship_direction: 'bidirectional',
         confidence_score: 0.72,
+        relationship_strength: 'weak',
         status: 'discovered',
         evidence: {
-          matched_fields: ['location'],
-          details: '同一地区'
+          match_type: 'partial',
+          matched_values: '北京市朝阳区 ~ 北京市海淀区',
+          similarity: 0.8
         },
-        created_at: '2024-08-06T11:15:00Z',
+        evidence_fields: 'location',
+        matching_method: 'geo_match',
+        discovered_at: '2024-08-06T11:15:00Z',
+        updated_at: '2024-08-06T11:15:00Z',
         sourceProfile: {
           id: contactId,
-          profile_name: contactId === 'mock_1' ? '张伟（Mock）' : '李娜（Mock）'
+          profile_name: contactId === 'mock_1' ? '张伟' : '李娜',
+          company: '腾讯科技',
+          position: contactId === 'mock_1' ? '产品经理' : '设计师'
         },
         targetProfile: {
           id: 'mock_3',
-          profile_name: '王强（Mock）'
+          profile_name: '王强',
+          company: '字节跳动',
+          position: '运营专员'
         }
       }
     ];
@@ -1731,22 +1775,35 @@ class DataManager {
       mockRelationships.push({
         id: 3,
         source_profile_id: contactId,
+        source_profile_name: '张伟',
         target_profile_id: 'mock_4',
+        target_profile_name: '赵丽',
         relationship_type: 'alumni',
+        relationship_subtype: '同校校友',
+        relationship_direction: 'bidirectional',
         confidence_score: 0.91,
+        relationship_strength: 'strong',
         status: 'confirmed',
         evidence: {
-          matched_fields: ['education'],
-          details: '同校校友'
+          match_type: 'exact',
+          matched_values: '清华大学 == 清华大学',
+          similarity: 1.0
         },
-        created_at: '2024-08-05T14:20:00Z',
+        evidence_fields: 'education',
+        matching_method: 'exact_match',
+        discovered_at: '2024-08-05T14:20:00Z',
+        updated_at: '2024-08-05T16:45:00Z',
         sourceProfile: {
           id: contactId,
-          profile_name: '张伟（Mock）'
+          profile_name: '张伟',
+          company: '腾讯科技',
+          position: '产品经理'
         },
         targetProfile: {
           id: 'mock_4',
-          profile_name: '赵丽（Mock）'
+          profile_name: '赵丽',
+          company: '阿里巴巴',
+          position: '算法工程师'
         }
       });
     }

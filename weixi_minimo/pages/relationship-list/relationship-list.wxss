@@ -13,42 +13,12 @@
 /* 页面头部 - 优化紧凑布局 */
 .page-header {
   background: var(--td-bg-color-container, #ffffff);
-  padding: 0 32rpx 16rpx;
+  padding: 24rpx 32rpx 16rpx;
   margin-bottom: 16rpx;
 }
 
 .page-header.dark {
   background: var(--td-bg-color-container, #2c2c2c);
-}
-
-.header-top {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 0 32rpx;
-}
-
-.back-button {
-  font-size: 44rpx;
-  color: var(--td-text-color-secondary, #757575);
-  margin-right: 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  background: var(--td-bg-color-component, #f8f8f8);
-}
-
-.back-button:active {
-  background: var(--td-bg-color-component-disabled, #e6e6e6);
-}
-
-.page-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: var(--td-text-color-primary, #212121);
-  flex: 1;
 }
 
 /* 统计信息 - 优化紧凑布局 */

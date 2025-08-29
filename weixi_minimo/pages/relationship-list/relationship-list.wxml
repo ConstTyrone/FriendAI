@@ -2,11 +2,6 @@
 <scroll-view class="relationship-list-page {{themeClass}}" scroll-y="{{true}}" bindscroll="onPageScroll" enhanced="{{true}}" show-scrollbar="{{false}}">
   <!-- 页面头部 -->
   <view class="page-header">
-    <view class="header-top">
-      <text class="back-button" bindtap="onBack">‹ 返回</text>
-      <text class="page-title">{{contactName}}的关系</text>
-    </view>
-    
     <!-- 统计信息 -->
     <view class="stats-section" wx:if="{{stats.total_relationships > 0}}">
       <view class="stat-item">
@@ -98,7 +93,7 @@
   </view>
   
   <!-- 批量操作 -->
-  <view class="batch-actions" wx:if="{{hasUncofirmedRelationships}}">
+  <view class="batch-actions" wx:if="{{hasUnconfirmedRelationships}}">
     <view class="batch-buttons">
       <button 
         class="batch-btn primary" 
