@@ -20,7 +20,7 @@
         <text class="names">{{sourceProfile.profile_name}} ↔ {{targetProfile.profile_name}}</text>
         <view class="meta-tags">
           <text class="relation-type">{{formatRelationshipType(relationship.relationship_type)}}</text>
-          <text class="confidence-score">{{formatConfidence(relationship.confidence_score)}}%</text>
+          <text class="confidence-score">{{confidencePercentage}}%</text>
           <text class="status-tag {{relationship.status}}">{{formatStatus(relationship.status)}}</text>
         </view>
       </view>

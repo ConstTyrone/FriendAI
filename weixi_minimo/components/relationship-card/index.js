@@ -39,7 +39,8 @@ Component({
   data: {
     themeClass: '',
     sourceInitial: '',
-    targetInitial: ''
+    targetInitial: '',
+    confidencePercentage: 0
   },
 
   /**
@@ -98,6 +99,12 @@ Component({
       
       // 使用内部data而不是直接修改properties
       const updateData = {};
+      
+      // 预计算置信度百分比
+      if (relationship && relationship.confidence_score !== undefined) {
+        updateData.confidencePercentage = Math.round(relationship.confidence_score * 100);
+        console.log('预计算置信度:', relationship.confidence_score, '→', updateData.confidencePercentage);
+      }
       
       if (sourceProfile && sourceProfile.profile_name && !sourceProfile.initial) {
         const sourceInitial = this.generateInitial(sourceProfile.profile_name);
@@ -294,6 +301,7 @@ Component({
      * 格式化置信度（返回数字，不包含百分号）
      */
     formatConfidence(confidence) {
+      console.log('formatConfidence调用:', confidence, '结果:', Math.round((confidence || 0) * 100));
       return Math.round((confidence || 0) * 100);
     },
 

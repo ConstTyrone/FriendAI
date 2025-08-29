@@ -226,7 +226,7 @@
         </view>
         <view class="detail-row">
           <text class="detail-label">置信度:</text>
-          <text class="detail-value">{{formatConfidence(selectedLink.confidence)}}%</text>
+          <text class="detail-value">{{selectedLink.confidencePercentage || (selectedLink.confidence * 100).toFixed(1)}}%</text>
         </view>
         <view class="detail-row">
           <text class="detail-label">状态:</text>

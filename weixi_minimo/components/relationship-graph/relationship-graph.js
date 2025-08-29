@@ -1197,6 +1197,7 @@ Component({
      * 格式化置信度
      */
     formatConfidence(confidence) {
+      console.log('relationship-graph formatConfidence调用:', confidence, '结果:', (confidence * 100).toFixed(1));
       return (confidence * 100).toFixed(1);
     },
     
