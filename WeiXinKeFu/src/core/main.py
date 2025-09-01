@@ -43,6 +43,59 @@ app.add_middleware(
 
 logger = logging.getLogger(__name__)
 
+def normalize_confidence_score(value):
+    """
+    标准化置信度分数，确保API响应的数据一致性
+    
+    Args:
+        value: 原始置信度值
+    
+    Returns:
+        float: 标准化后的置信度分数 (0-1)
+    """
+    if value is None or value == '' or value == 'null':
+        return 0.5  # 默认置信度
+    
+    try:
+        score = float(value)
+        if score > 1:
+            score = score / 100  # 百分比转小数
+        return max(0.0, min(1.0, score))  # 确保在0-1范围内
+    except (ValueError, TypeError):
+        logger.warning(f"无法解析置信度值: {value}, 使用默认值0.5")
+        return 0.5
+
+def validate_relationship_data(relationships):
+    """
+    验证和标准化关系数据，确保前后端数据一致性
+    
+    Args:
+        relationships: 关系数据列表
+    
+    Returns:
+        list: 验证后的关系数据列表
+    """
+    if not relationships:
+        return []
+    
+    validated_relationships = []
+    for rel in relationships:
+        # 标准化置信度分数
+        if 'confidence_score' in rel:
+            rel['confidence_score'] = normalize_confidence_score(rel['confidence_score'])
+        elif 'confidence' in rel:
+            # 如果使用了旧字段名，转换为新字段名
+            rel['confidence_score'] = normalize_confidence_score(rel['confidence'])
+            del rel['confidence']  # 删除旧字段
+            
+        # 确保必需字段存在
+        if 'confidence_score' not in rel:
+            rel['confidence_score'] = 0.5
+            
+        validated_relationships.append(rel)
+    
+    return validated_relationships
+
 # 注册绑定API路由
 try:
     from .binding_api import router as binding_router
@@ -2898,10 +2951,13 @@ async def get_profile_relationships(
             if other_profile:
                 rel['other_profile'] = other_profile
         
+        # 验证和标准化关系数据
+        validated_relationships = validate_relationship_data(relationships)
+        
         return {
             "success": True,
-            "relationships": relationships,
-            "total": len(relationships)
+            "relationships": validated_relationships,
+            "total": len(validated_relationships)
         }
         
     except Exception as e:
@@ -2965,10 +3021,13 @@ async def get_all_relationships(
             if target_profile:
                 rel['targetProfile'] = target_profile
         
+        # 验证和标准化关系数据
+        validated_relationships = validate_relationship_data(relationships)
+        
         return {
             "success": True,
-            "relationships": relationships,
-            "total": len(relationships)
+            "relationships": validated_relationships,
+            "total": len(validated_relationships)
         }
         
     except Exception as e:
@@ -3092,11 +3151,14 @@ async def reanalyze_relationships(
             profile_data=profile_data
         )
         
+        # 验证和标准化关系数据
+        validated_discovered = validate_relationship_data(discovered)
+        
         return {
             "success": True,
             "message": "关系重新分析完成",
-            "discovered_count": len(discovered),
-            "relationships": discovered
+            "discovered_count": len(validated_discovered),
+            "relationships": validated_discovered
         }
         
     except Exception as e:
@@ -3272,11 +3334,14 @@ async def ai_analyze_relationships(
             profile_data=profile
         )
         
+        # 验证和标准化关系数据
+        validated_ai_relationships = validate_relationship_data(ai_relationships)
+        
         return {
             "success": True,
             "message": "AI关系分析完成",
-            "discovered_count": len(ai_relationships),
-            "relationships": ai_relationships
+            "discovered_count": len(validated_ai_relationships),
+            "relationships": validated_ai_relationships
         }
         
     except HTTPException:
@@ -3396,14 +3461,17 @@ async def batch_ai_analyze_relationships(
                     profile_data=profile
                 )
                 
+                # 验证和标准化关系数据
+                validated_ai_relationships = validate_relationship_data(ai_relationships)
+                
                 results.append({
                     'contact_id': contact_id,
                     'success': True,
-                    'discovered_count': len(ai_relationships),
-                    'relationships': ai_relationships
+                    'discovered_count': len(validated_ai_relationships),
+                    'relationships': validated_ai_relationships
                 })
                 
-                total_discovered += len(ai_relationships)
+                total_discovered += len(validated_ai_relationships)
                 
             except Exception as e:
                 logger.error(f"AI分析联系人 {contact_id} 失败: {e}")
