@@ -1,4 +1,6 @@
 import GraphDataProcessor from '../../utils/graph-data-processor';
+import AdvancedGraphRenderer from '../../utils/advanced-graph-renderer';
+import AdvancedLayoutEngine from '../../utils/advanced-layout-engine';
 
 Component({
   properties: {
@@ -90,11 +92,34 @@ Component({
       this.touchStartY = null;
       this.hasMoved = false;
       
+      // 初始化高级引擎
+      this.layoutEngine = new AdvancedLayoutEngine({
+        forceLayout: {
+          attraction: 0.12,
+          repulsion: 1200,
+          damping: 0.88,
+          iterations: 120,
+          threshold: 0.008,
+          centerForce: 0.06
+        }
+      });
+      
+      console.log('✅ 高级布局引擎初始化完成');
+      
       this.initCanvas();
     },
     
     ready() {
       this.processGraphData();
+    },
+    
+    detached() {
+      // 清理资源
+      if (this.renderer) {
+        this.renderer.destroy();
+        this.renderer = null;
+      }
+      this.layoutEngine = null;
     }
   },
   
@@ -165,6 +190,28 @@ Component({
             canvas.width = this.data.canvasWidth * dpr;
             canvas.height = this.data.canvasHeight * dpr;
             ctx.scale(dpr, dpr);
+            
+            // 初始化高级渲染引擎
+            try {
+              this.renderer = new AdvancedGraphRenderer(canvas, {
+                width: this.data.canvasWidth,
+                height: this.data.canvasHeight,
+                enableTooltips: true,
+                enableAnimations: true,
+                enableSpatialIndex: true,
+                renderLayers: {
+                  background: true,
+                  links: true,
+                  nodes: true,
+                  labels: true,
+                  interaction: true
+                }
+              });
+              console.log('✅ 高级渲染引擎初始化完成');
+            } catch (error) {
+              console.warn('⚠️ 高级渲染引擎初始化失败，使用默认渲染:', error);
+              this.renderer = null;
+            }
           }
         });
     },
@@ -201,16 +248,46 @@ Component({
       );
       console.log('处理后的图谱数据:', graphData);
       
-      // 计算布局
-      const layoutData = GraphDataProcessor.calculateLayout(
-        graphData.nodes,
-        graphData.links,
-        {
-          width: this.data.canvasWidth,
-          height: this.data.canvasHeight,
-          layoutType: this.data.layoutType
+      // 使用高级布局引擎计算布局
+      let layoutData;
+      if (this.layoutEngine) {
+        try {
+          console.log('使用高级布局引擎计算布局:', this.data.layoutType);
+          layoutData = this.layoutEngine.calculateLayout(
+            graphData.nodes,
+            graphData.links,
+            {
+              width: this.data.canvasWidth,
+              height: this.data.canvasHeight,
+              layoutType: this.data.layoutType === 'circle' ? 'radial' : this.data.layoutType
+            }
+          );
+          console.log('✅ 高级布局计算完成，节点数:', layoutData.nodes.length);
+        } catch (error) {
+          console.warn('⚠️ 高级布局引擎失败，使用默认布局:', error);
+          // 降级到默认布局
+          layoutData = GraphDataProcessor.calculateLayout(
+            graphData.nodes,
+            graphData.links,
+            {
+              width: this.data.canvasWidth,
+              height: this.data.canvasHeight,
+              layoutType: this.data.layoutType
+            }
+          );
         }
-      );
+      } else {
+        // 使用默认布局
+        layoutData = GraphDataProcessor.calculateLayout(
+          graphData.nodes,
+          graphData.links,
+          {
+            width: this.data.canvasWidth,
+            height: this.data.canvasHeight,
+            layoutType: this.data.layoutType
+          }
+        );
+      }
       
       // 计算居中偏移
       const centerOffset = this.calculateCenterOffset(layoutData.nodes);
@@ -236,19 +313,47 @@ Component({
     renderGraph() {
       if (!this.ctx || this.data.loading) return;
       
-      const ctx = this.ctx;
       const { nodes, links } = this.data.graphData;
       const { scale, translateX, translateY } = this.data;
       
       // 添加数据验证
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
         console.log('renderGraph: 没有有效的节点数据');
-        ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        this.ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
         return;
       }
       
       console.log('开始渲染图谱:', { 节点数: nodes.length, 连线数: (links || []).length });
       
+      // 使用高级渲染引擎（如果可用）
+      if (this.renderer) {
+        try {
+          console.log('使用高级渲染引擎渲染');
+          this.renderer.render({
+            nodes: nodes,
+            links: links || [],
+            transform: {
+              scale: scale,
+              translateX: translateX,
+              translateY: translateY
+            },
+            viewport: {
+              x: 0,
+              y: 0,
+              width: this.data.canvasWidth,
+              height: this.data.canvasHeight
+            }
+          });
+          console.log('✅ 高级渲染完成');
+          return;
+        } catch (error) {
+          console.warn('⚠️ 高级渲染引擎失败，使用默认渲染:', error);
+          // 继续使用默认渲染
+        }
+      }
+      
+      // 默认渲染逻辑
+      const ctx = this.ctx;
       try {
         // 清空画布
         ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
@@ -789,6 +894,26 @@ Component({
         return null;
       }
       
+      // 使用高级渲染引擎的空间索引（如果可用）
+      if (this.renderer && this.renderer.hitTestNode) {
+        try {
+          const hitResult = this.renderer.hitTestNode(x, y, {
+            scale: this.data.scale,
+            translateX: this.data.translateX,
+            translateY: this.data.translateY
+          });
+          
+          if (hitResult) {
+            console.log('✅ 高级引擎命中节点:', hitResult.name);
+            return hitResult;
+          }
+        } catch (error) {
+          console.warn('⚠️ 高级引擎命中测试失败，使用默认方法:', error);
+          // 继续使用默认方法
+        }
+      }
+      
+      // 默认命中测试逻辑
       const { scale, translateX, translateY } = this.data;
       
       // 转换坐标
@@ -835,6 +960,26 @@ Component({
         return null;
       }
       
+      // 使用高级渲染引擎的空间索引（如果可用）
+      if (this.renderer && this.renderer.hitTestLink) {
+        try {
+          const hitResult = this.renderer.hitTestLink(x, y, {
+            scale: this.data.scale,
+            translateX: this.data.translateX,
+            translateY: this.data.translateY
+          });
+          
+          if (hitResult) {
+            console.log('✅ 高级引擎命中连线:', hitResult);
+            return hitResult;
+          }
+        } catch (error) {
+          console.warn('⚠️ 高级引擎连线命中测试失败，使用默认方法:', error);
+          // 继续使用默认方法
+        }
+      }
+      
+      // 默认连线命中测试逻辑
       const { scale, translateX, translateY } = this.data;
       
       // 转换坐标
