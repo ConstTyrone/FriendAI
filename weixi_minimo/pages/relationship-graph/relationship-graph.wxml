@@ -6,7 +6,7 @@
   <view class="graph-header">
     <view class="header-info">
       <view class="graph-title">
-        <text class="title-text">{{centerNodeId ? getSelectedContactName() : '关系网络'}}</text>
+        <text class="title-text">{{selectedContactName || '关系网络'}}</text>
         <text class="title-subtitle" wx:if="{{centerNodeId}}">的社交关系图谱</text>
       </view>
       <view class="graph-stats">
@@ -21,7 +21,7 @@
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
-          <text class="stat-number">{{getConfirmedCount()}}</text>
+          <text class="stat-number">{{confirmedCount}}</text>
           <text class="stat-label">已确认</text>
         </view>
       </view>

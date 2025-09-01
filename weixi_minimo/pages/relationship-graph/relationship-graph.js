@@ -88,18 +88,20 @@ Page({
     // 计算各个部分的高度
     const statusBarHeight = systemInfo.statusBarHeight || 0;
     const navigationBarHeight = 44; // 系统导航栏高度
-    const quickActionsHeight = 24; // 快速操作栏高度 (16rpx padding * 2 + button height)
+    const headerInfoHeight = 120; // 顶部统计信息栏高度 (约240rpx转为px)
+    const footerInfoHeight = 200; // 底部信息面板高度 (约400rpx转为px)
     const tabBarHeight = this.data.isGlobalMode ? 0 : 98; // 底部导航栏高度
     const safeAreaBottom = safeArea ? (windowHeight - safeArea.bottom) : 0;
-    const padding = 16; // 容器边距
+    const padding = 32; // 容器边距 (16rpx * 2)
     
     // 计算图谱可用高度
-    const occupiedHeight = statusBarHeight + navigationBarHeight + quickActionsHeight + tabBarHeight + safeAreaBottom + padding;
+    const occupiedHeight = statusBarHeight + navigationBarHeight + headerInfoHeight + footerInfoHeight + tabBarHeight + safeAreaBottom + padding;
     const availableHeight = windowHeight - occupiedHeight;
     
-    // 确保图谱高度合理（至少占用60%的屏幕高度）
-    const minHeight = Math.max(400, windowHeight * 0.6);
-    const graphHeight = Math.max(minHeight, availableHeight);
+    // 确保图谱高度合理（至少300px，最多可用高度的80%）
+    const minHeight = Math.max(300, availableHeight * 0.5);
+    const maxHeight = Math.max(500, windowHeight * 0.8);
+    const graphHeight = Math.max(minHeight, Math.min(availableHeight, maxHeight));
     
     console.log('图谱尺寸计算:', {
       windowHeight,
@@ -184,9 +186,10 @@ Page({
           : profiles;
       }
       
-      // 处理关系类型统计
+      // 处理关系类型统计和联系人名称
       const relationshipTypes = this.processRelationshipTypes(relationships);
       const confirmedCount = this.getConfirmedCount(relationships);
+      const selectedContactName = this.getSelectedContactName();
       
       this.setData({
         profiles: profilesWithRelationships,
@@ -194,6 +197,7 @@ Page({
         filteredProfiles: profilesWithRelationships,
         relationshipTypes: relationshipTypes,
         confirmedCount: confirmedCount,
+        selectedContactName: selectedContactName,
         loading: false
       });
       
@@ -473,7 +477,12 @@ Page({
     });
     
     if (centerNodeId) {
-      this.setData({ centerNodeId });
+      const contact = profiles.find(p => p.id === centerNodeId);
+      const selectedContactName = contact ? contact.name : '未知联系人';
+      this.setData({ 
+        centerNodeId,
+        selectedContactName 
+      });
     }
   },
   
@@ -604,12 +613,15 @@ Page({
    */
   onSelectCenterContact(e) {
     const contactId = e.currentTarget.dataset.contactId;
+    const contact = this.data.profiles.find(p => p.id === contactId);
+    const selectedContactName = contact ? contact.name : '未知联系人';
+    
     this.setData({ 
       centerNodeId: contactId,
+      selectedContactName: selectedContactName,
       showCenterSelector: false 
     });
     
-    const contact = this.data.profiles.find(p => p.id === contactId);
     if (contact) {
       showToast(`已设置 ${contact.name} 为中心节点`);
       // 重新加载该节点的关系数据
@@ -632,9 +644,14 @@ Page({
    */
   onCenterChange(e) {
     const { centerNodeId } = e.detail;
-    this.setData({ centerNodeId });
-    
     const contact = this.data.profiles.find(p => p.id === centerNodeId);
+    const selectedContactName = contact ? contact.name : '未知联系人';
+    
+    this.setData({ 
+      centerNodeId,
+      selectedContactName 
+    });
+    
     if (contact) {
       showToast(`已设置 ${contact.name} 为中心节点`);
       // 重新加载该节点的关系数据
