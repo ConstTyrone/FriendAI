@@ -138,19 +138,29 @@ class AdvancedLayoutEngine {
     const otherNodes = nodes.filter(n => n.level > 0);
     
     // 中心节点固定位置
-    if (centerNode && !centerNode.x && !centerNode.y) {
+    if (centerNode && (centerNode.x === undefined || centerNode.y === undefined)) {
       centerNode.x = centerX;
       centerNode.y = centerY;
+      centerNode.vx = 0;
+      centerNode.vy = 0;
     }
     
     // 其他节点随机分布（但避免太靠近中心）
     otherNodes.forEach((node, index) => {
-      if (!node.x || !node.y) {
+      if (node.x === undefined || node.y === undefined) {
         const angle = (index / otherNodes.length) * 2 * Math.PI;
         const radius = 80 + Math.random() * 60;
         node.x = centerX + radius * Math.cos(angle) + (Math.random() - 0.5) * 40;
         node.y = centerY + radius * Math.sin(angle) + (Math.random() - 0.5) * 40;
       }
+      // 确保所有节点都有初始速度
+      if (node.vx === undefined) node.vx = 0;
+      if (node.vy === undefined) node.vy = 0;
+    });
+    
+    console.log('节点初始化完成:', {
+      centerNode: centerNode ? { x: centerNode.x, y: centerNode.y } : null,
+      otherNodes: otherNodes.map(n => ({ name: n.name, x: n.x, y: n.y }))
     });
   }
   
@@ -203,11 +213,20 @@ class AdvancedLayoutEngine {
     const { attraction, repulsion, damping, centerForce } = config;
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
     
+    // 确保所有节点都有速度属性
+    nodes.forEach(node => {
+      if (node.vx === undefined) node.vx = 0;
+      if (node.vy === undefined) node.vy = 0;
+    });
+    
     let maxMovement = 0;
+    let forceCalculatedNodes = 0;
     
     // 计算所有节点的受力
     nodes.forEach(node => {
-      if (node.fx !== null || node.fy !== null) return; // 跳过固定节点
+      // 跳过明确标记为固定的节点
+      if (node.fx !== undefined && node.fx !== null) return;
+      if (node.fy !== undefined && node.fy !== null) return;
       
       let fx = 0, fy = 0;
       
@@ -221,7 +240,8 @@ class AdvancedLayoutEngine {
         const dy = other.y - node.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 0) {
+        // 数值稳定性：避免除零和极小距离
+        if (distance > 1.0) {
           const force = attraction * conn.strength * (distance - conn.distance);
           fx += (dx / distance) * force;
           fy += (dy / distance) * force;
@@ -236,10 +256,14 @@ class AdvancedLayoutEngine {
         const dy = node.y - other.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance > 0 && distance < 200) { // 只计算近距离斥力
-          const force = repulsion / (distance * distance);
-          fx += (dx / distance) * force;
-          fy += (dy / distance) * force;
+        // 数值稳定性：最小距离保护，避免过强斥力
+        const minDistance = 10;
+        const maxDistance = 200;
+        if (distance > minDistance && distance < maxDistance) {
+          const safeDistance = Math.max(distance, minDistance);
+          const force = repulsion / (safeDistance * safeDistance);
+          fx += (dx / safeDistance) * force;
+          fy += (dy / safeDistance) * force;
         }
       });
       
@@ -277,7 +301,18 @@ class AdvancedLayoutEngine {
       // 记录最大移动距离
       const movement = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
       maxMovement = Math.max(maxMovement, movement);
+      forceCalculatedNodes++;
     });
+    
+    // 调试信息：每10次迭代输出一次状态
+    if (Math.random() < 0.1) { // 10%概率输出，避免刷屏
+      console.log('力导向迭代状态:', {
+        计算节点数: forceCalculatedNodes,
+        总节点数: nodes.length,
+        最大移动: maxMovement.toFixed(4),
+        配置: { attraction, repulsion, damping, centerForce }
+      });
+    }
     
     return maxMovement;
   }
