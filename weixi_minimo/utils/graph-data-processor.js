@@ -5,6 +5,34 @@
 
 class GraphDataProcessor {
   /**
+   * 标准化置信度分数
+   * @param {any} value - 原始置信度值
+   * @returns {number} - 标准化后的置信度分数 (0-1)
+   */
+  static normalizeConfidenceScore(value) {
+    // 处理undefined, null, 空字符串
+    if (value === undefined || value === null || value === '') {
+      return 0.5; // 默认置信度
+    }
+    
+    // 转换为数字
+    let score = parseFloat(value);
+    
+    // 处理NaN
+    if (isNaN(score)) {
+      return 0.5; // 默认置信度
+    }
+    
+    // 如果值大于1，假设是百分比形式，转换为小数
+    if (score > 1) {
+      score = score / 100;
+    }
+    
+    // 确保在0-1范围内
+    return Math.max(0, Math.min(1, score));
+  }
+
+  /**
    * 将关系数据转换为图谱数据
    * @param {Array} relationships - 关系数据数组
    * @param {Array} profiles - 联系人数据数组  
@@ -47,7 +75,8 @@ class GraphDataProcessor {
     
     // 处理关系连接
     relationships.forEach(rel => {
-      const confidence = rel.confidence_score || 0;
+      // 标准化置信度字段
+      const confidence = this.normalizeConfidenceScore(rel.confidence_score || rel.confidence);
       
       // 跳过低置信度关系
       if (confidence < minConfidence) return;

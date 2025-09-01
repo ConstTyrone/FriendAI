@@ -113,6 +113,39 @@ Page({
   },
   
   /**
+   * 标准化置信度分数
+   * @param {any} value - 原始置信度值
+   * @returns {number} - 标准化后的置信度分数 (0-1)
+   */
+  normalizeConfidenceScore(value) {
+    // 处理undefined, null, 空字符串
+    if (value === undefined || value === null || value === '') {
+      console.warn('置信度值为空，使用默认值0.5');
+      return 0.5;
+    }
+    
+    // 转换为数字
+    let score = parseFloat(value);
+    
+    // 处理NaN
+    if (isNaN(score)) {
+      console.warn('置信度值无法解析为数字:', value, '使用默认值0.5');
+      return 0.5;
+    }
+    
+    // 如果值大于1，假设是百分比形式，转换为小数
+    if (score > 1) {
+      score = score / 100;
+    }
+    
+    // 确保在0-1范围内
+    score = Math.max(0, Math.min(1, score));
+    
+    console.log('置信度标准化:', {原始值: value, 标准化后: score});
+    return score;
+  },
+
+  /**
    * 加载数据
    */
   async loadData() {
@@ -272,21 +305,32 @@ Page({
                 console.log('原始confidence_score:', relationshipsList[0].confidence_score);
               }
               
-              const relationships = relationshipsList.map(rel => ({
-                id: rel.id,
-                source_profile_id: rel.source_profile_id,
-                target_profile_id: rel.target_profile_id,
-                relationship_type: rel.relationship_type,
-                relationship_strength: rel.relationship_strength,
-                confidence_score: rel.confidence_score !== undefined ? rel.confidence_score : 0.8, // 修复逻辑错误
-                status: rel.status || 'discovered',
-                evidence_fields: rel.evidence_fields || '',
-                discovered_at: rel.discovered_at || new Date().toISOString(),
-                updated_at: rel.updated_at || new Date().toISOString(),
-                // 保存完整的profile信息
-                sourceProfile: rel.sourceProfile,
-                targetProfile: rel.targetProfile
-              }));
+              const relationships = relationshipsList.map(rel => {
+                // 标准化置信度字段 - 统一使用confidence_score
+                const confidence_score = this.normalizeConfidenceScore(rel.confidence_score || rel.confidence);
+                
+                console.log(`关系${rel.id}置信度标准化:`, {
+                  原始confidence_score: rel.confidence_score,
+                  备用confidence: rel.confidence,
+                  最终值: confidence_score
+                });
+                
+                return {
+                  id: rel.id,
+                  source_profile_id: rel.source_profile_id,
+                  target_profile_id: rel.target_profile_id,
+                  relationship_type: rel.relationship_type,
+                  relationship_strength: rel.relationship_strength,
+                  confidence_score: confidence_score, // 使用标准化后的置信度
+                  status: rel.status || 'discovered',
+                  evidence_fields: rel.evidence_fields || '',
+                  discovered_at: rel.discovered_at || new Date().toISOString(),
+                  updated_at: rel.updated_at || new Date().toISOString(),
+                  // 保存完整的profile信息
+                  sourceProfile: rel.sourceProfile,
+                  targetProfile: rel.targetProfile
+                };
+              });
               
               console.log('处理后的关系数据:', relationships);
               resolve(relationships);

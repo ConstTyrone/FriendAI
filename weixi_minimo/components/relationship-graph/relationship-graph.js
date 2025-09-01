@@ -115,6 +115,38 @@ Component({
   
   methods: {
     /**
+     * 标准化置信度分数
+     * @param {any} value - 原始置信度值
+     * @returns {number} - 标准化后的置信度分数 (0-1)
+     */
+    normalizeConfidenceScore(value) {
+      // 处理undefined, null, 空字符串
+      if (value === undefined || value === null || value === '') {
+        console.warn('置信度值为空，使用默认值0.5');
+        return 0.5;
+      }
+      
+      // 转换为数字
+      let score = parseFloat(value);
+      
+      // 处理NaN
+      if (isNaN(score)) {
+        console.warn('置信度值无法解析为数字:', value, '使用默认值0.5');
+        return 0.5;
+      }
+      
+      // 如果值大于1，假设是百分比形式，转换为小数
+      if (score > 1) {
+        score = score / 100;
+      }
+      
+      // 确保在0-1范围内
+      score = Math.max(0, Math.min(1, score));
+      
+      return score;
+    },
+
+    /**
      * 初始化画布
      */
     initCanvas() {
@@ -674,10 +706,12 @@ Component({
         });
       } else if (hitLink) {
         console.log('点击连线:', hitLink);
-        // 预计算所有显示值避免模板函数调用失败
+        // 预计算所有显示值避免模板函数调用失败  
+        const standardizedConfidence = this.normalizeConfidenceScore(hitLink.confidence_score);
         const linkWithDisplayValues = {
           ...hitLink,
-          confidencePercentage: Math.round((hitLink.confidence || hitLink.confidence_score || 0) * 100),
+          confidence_score: standardizedConfidence, // 统一使用confidence_score
+          confidencePercentage: Math.round(standardizedConfidence * 100),
           relationshipTypeName: this.getRelationshipTypeName(hitLink.relationship_type),
           relationshipStrengthName: this.getRelationshipStrengthName(hitLink.relationship_strength),
           matchedFieldsDisplay: hitLink.evidence_fields || hitLink.matchedFields || ''
@@ -726,10 +760,12 @@ Component({
         });
       } else if (hitLink) {
         console.log('点击连线:', hitLink);
-        // 预计算所有显示值避免模板函数调用失败
+        // 预计算所有显示值避免模板函数调用失败  
+        const standardizedConfidence = this.normalizeConfidenceScore(hitLink.confidence_score);
         const linkWithDisplayValues = {
           ...hitLink,
-          confidencePercentage: Math.round((hitLink.confidence || hitLink.confidence_score || 0) * 100),
+          confidence_score: standardizedConfidence, // 统一使用confidence_score
+          confidencePercentage: Math.round(standardizedConfidence * 100),
           relationshipTypeName: this.getRelationshipTypeName(hitLink.relationship_type),
           relationshipStrengthName: this.getRelationshipStrengthName(hitLink.relationship_strength),
           matchedFieldsDisplay: hitLink.evidence_fields || hitLink.matchedFields || ''
