@@ -2,30 +2,136 @@
   关系图谱页面 - 完整的关系可视化界面
 -->
 <view class="relationship-graph-page">
-  <!-- 快速操作栏 -->
-  <view class="quick-actions">
-    <t-button 
-      variant="text" 
-      icon="user" 
-      size="small"
-      bind:tap="onSelectCenter"
-    >选择中心</t-button>
+  <!-- 顶部信息栏 -->
+  <view class="graph-header">
+    <view class="header-info">
+      <view class="graph-title">
+        <text class="title-text">{{centerNodeId ? getSelectedContactName() : '关系网络'}}</text>
+        <text class="title-subtitle" wx:if="{{centerNodeId}}">的社交关系图谱</text>
+      </view>
+      <view class="graph-stats">
+        <view class="stat-item">
+          <text class="stat-number">{{profiles.length}}</text>
+          <text class="stat-label">联系人</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{relationships.length}}</text>
+          <text class="stat-label">关系</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number">{{getConfirmedCount()}}</text>
+          <text class="stat-label">已确认</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="header-actions">
+      <t-button 
+        variant="outline" 
+        icon="user-1" 
+        size="small"
+        bind:tap="onSelectCenter"
+        class="action-btn"
+      >切换中心</t-button>
+      <t-button 
+        variant="outline" 
+        icon="share" 
+        size="small"
+        bind:tap="onExport"
+        class="action-btn"
+      >导出</t-button>
+    </view>
   </view>
   
   <!-- 图谱组件 -->
   <view class="graph-container">
-    <relationship-graph
-      relationships="{{relationships}}"
-      profiles="{{profiles}}"
-      centerNodeId="{{centerNodeId}}"
-      width="{{graphWidth}}"
-      height="{{graphHeight}}"
-      bind:nodeDetail="onNodeDetail"
-      bind:centerChange="onCenterChange"
-      bind:confirmRelationship="onConfirmRelationship"
-      bind:ignoreRelationship="onIgnoreRelationship"
-      bind:fullscreen="onFullscreen"
-    />
+    <view class="graph-canvas-wrapper">
+      <relationship-graph
+        relationships="{{relationships}}"
+        profiles="{{profiles}}"
+        centerNodeId="{{centerNodeId}}"
+        width="{{graphWidth}}"
+        height="{{graphHeight}}"
+        bind:nodeDetail="onNodeDetail"
+        bind:centerChange="onCenterChange"
+        bind:confirmRelationship="onConfirmRelationship"
+        bind:ignoreRelationship="onIgnoreRelationship"
+        bind:fullscreen="onFullscreen"
+      />
+      
+      <!-- 浮动操作按钮 -->
+      <view class="floating-controls">
+        <view class="control-group">
+          <t-button 
+            variant="text" 
+            icon="zoom-in" 
+            size="large"
+            bind:tap="onZoomIn"
+            class="float-btn"
+          ></t-button>
+          <t-button 
+            variant="text" 
+            icon="zoom-out" 
+            size="large"
+            bind:tap="onZoomOut"
+            class="float-btn"
+          ></t-button>
+          <t-button 
+            variant="text" 
+            icon="refresh" 
+            size="large"
+            bind:tap="onResetView"
+            class="float-btn"
+          ></t-button>
+          <t-button 
+            variant="text" 
+            icon="fullscreen" 
+            size="large"
+            bind:tap="onFullscreen"
+            class="float-btn"
+          ></t-button>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 底部信息面板 -->
+  <view class="graph-footer">
+    <view class="legend-section">
+      <view class="legend-title">
+        <t-icon name="palette" size="small" />
+        <text>关系类型</text>
+      </view>
+      <scroll-view class="legend-list" scroll-x>
+        <view class="legend-item" wx:for="{{relationshipTypes}}" wx:key="type">
+          <view class="legend-color" style="background-color: {{item.color}};"></view>
+          <text class="legend-text">{{item.name}}</text>
+          <text class="legend-count">({{item.count}})</text>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <view class="confidence-indicator">
+      <view class="indicator-title">置信度</view>
+      <view class="confidence-scale">
+        <view class="scale-item high">
+          <view class="scale-dot"></view>
+          <text>高</text>
+        </view>
+        <view class="scale-line"></view>
+        <view class="scale-item medium">
+          <view class="scale-dot"></view>
+          <text>中</text>
+        </view>
+        <view class="scale-line"></view>
+        <view class="scale-item low">
+          <view class="scale-dot"></view>
+          <text>低</text>
+        </view>
+      </view>
+    </view>
   </view>
   
   <!-- 中心节点选择弹窗 -->

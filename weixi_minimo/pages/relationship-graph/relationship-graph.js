@@ -40,7 +40,12 @@ Page({
     graphWidth: 350,
     graphHeight: 400,
     fullscreenWidth: 375,
-    fullscreenHeight: 667
+    fullscreenHeight: 667,
+    
+    // UI数据
+    relationshipTypes: [], // 关系类型统计
+    confirmedCount: 0,     // 已确认关系数量
+    selectedContactName: '' // 当前选中的联系人名称
   },
   
   onLoad(options) {
@@ -179,10 +184,16 @@ Page({
           : profiles;
       }
       
+      // 处理关系类型统计
+      const relationshipTypes = this.processRelationshipTypes(relationships);
+      const confirmedCount = this.getConfirmedCount(relationships);
+      
       this.setData({
         profiles: profilesWithRelationships,
         relationships: relationships,
         filteredProfiles: profilesWithRelationships,
+        relationshipTypes: relationshipTypes,
+        confirmedCount: confirmedCount,
         loading: false
       });
       
@@ -478,6 +489,66 @@ Page({
   },
   
   /**
+   * 获取选中联系人的名称
+   */
+  getSelectedContactName() {
+    if (!this.data.centerNodeId) {
+      return '关系网络';
+    }
+    
+    const contact = this.data.profiles.find(p => p.id === this.data.centerNodeId);
+    return contact ? contact.name : '未知联系人';
+  },
+  
+  /**
+   * 获取已确认关系数量
+   */
+  getConfirmedCount(relationships = null) {
+    const rels = relationships || this.data.relationships;
+    return rels.filter(rel => rel.status === 'confirmed').length;
+  },
+  
+  /**
+   * 处理关系类型统计
+   */
+  processRelationshipTypes(relationships) {
+    const typeStats = {};
+    const typeColors = {
+      'colleague': '#3b82f6',    // 蓝色 - 同事
+      'friend': '#10b981',       // 绿色 - 朋友
+      'partner': '#f59e0b',      // 橙色 - 合作伙伴
+      'client': '#ef4444',       // 红色 - 客户
+      'alumni': '#8b5cf6',       // 紫色 - 校友
+      'family': '#ec4899',       // 粉色 - 家人
+      'other': '#6b7280'         // 灰色 - 其他
+    };
+    
+    const typeNames = {
+      'colleague': '同事',
+      'friend': '朋友', 
+      'partner': '合作伙伴',
+      'client': '客户',
+      'alumni': '校友',
+      'family': '家人',
+      'other': '其他'
+    };
+    
+    // 统计每种关系类型的数量
+    relationships.forEach(rel => {
+      const type = rel.relationship_type || 'other';
+      typeStats[type] = (typeStats[type] || 0) + 1;
+    });
+    
+    // 转换为数组格式
+    return Object.entries(typeStats).map(([type, count]) => ({
+      type: type,
+      name: typeNames[type] || type,
+      count: count,
+      color: typeColors[type] || typeColors.other
+    }));
+  },
+  
+  /**
    * 返回上一页
    */
   /**
@@ -694,6 +765,38 @@ Page({
    */
   onRetry() {
     this.loadData();
+  },
+  
+  /**
+   * 导出图谱
+   */
+  onExport() {
+    // TODO: 实现导出功能
+    showToast('导出功能开发中', 'none');
+  },
+  
+  /**
+   * 放大图谱
+   */
+  onZoomIn() {
+    // 通过组件事件通知图谱组件放大
+    this.selectComponent('.relationship-graph')?.zoomIn();
+  },
+  
+  /**
+   * 缩小图谱
+   */
+  onZoomOut() {
+    // 通过组件事件通知图谱组件缩小
+    this.selectComponent('.relationship-graph')?.zoomOut();
+  },
+  
+  /**
+   * 重置视图
+   */
+  onResetView() {
+    // 通过组件事件通知图谱组件重置视图
+    this.selectComponent('.relationship-graph')?.resetView();
   },
   
   /**
