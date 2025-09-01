@@ -77,9 +77,13 @@ Component({
   
   lifetimes: {
     attached() {
+      console.log('🔧 组件attached生命周期');
+      
       // 使用传入的尺寸或默认尺寸
       const width = this.data.width || 350;
       const height = this.data.height || 400;
+      
+      console.log('🔧 设置组件尺寸:', { width, height });
       
       this.setData({
         canvasWidth: width,
@@ -105,12 +109,27 @@ Component({
       });
       
       console.log('✅ 高级布局引擎初始化完成');
-      
-      this.initCanvas();
     },
     
     ready() {
-      this.processGraphData();
+      console.log('🔧 组件ready生命周期');
+      console.log('🔧 ready时的数据状态:', {
+        profiles: this.data.profiles?.length || 0,
+        relationships: this.data.relationships?.length || 0,
+        centerNodeId: this.data.centerNodeId
+      });
+      
+      // 延迟初始化Canvas，确保DOM已准备好
+      setTimeout(() => {
+        this.initCanvas();
+      }, 100);
+      
+      // 如果有数据，处理图谱数据
+      if (this.data.profiles && this.data.profiles.length > 0) {
+        setTimeout(() => {
+          this.processGraphData();
+        }, 200);
+      }
     },
     
     detached() {
@@ -124,16 +143,41 @@ Component({
   },
   
   observers: {
-    'relationships, profiles, centerNodeId': function() {
-      this.processGraphData();
+    'relationships, profiles, centerNodeId': function(relationships, profiles, centerNodeId) {
+      console.log('🔍 组件数据观察者触发:', {
+        relationships: relationships?.length || 0,
+        profiles: profiles?.length || 0,
+        centerNodeId: centerNodeId
+      });
+      
+      // 确保Canvas已经初始化再处理数据
+      if (this.canvas && this.ctx) {
+        console.log('🔍 Canvas已就绪，处理数据');
+        this.processGraphData();
+      } else {
+        console.log('🔍 Canvas未就绪，延迟处理数据');
+        // 如果Canvas还没初始化，等待一下再处理
+        setTimeout(() => {
+          if (this.canvas && this.ctx) {
+            this.processGraphData();
+          } else {
+            console.warn('⚠️ Canvas初始化超时，尝试重新初始化');
+            this.initCanvas();
+          }
+        }, 300);
+      }
     },
     'width, height': function(width, height) {
+      console.log('🔍 尺寸变化观察者触发:', { width, height });
       if (width && height) {
         this.setData({
           canvasWidth: width,
           canvasHeight: height
         });
-        this.initCanvas();
+        // 重新初始化Canvas
+        setTimeout(() => {
+          this.initCanvas();
+        }, 50);
       }
     }
   },
@@ -175,43 +219,75 @@ Component({
      * 初始化画布
      */
     initCanvas() {
+      console.log('🎨 开始初始化Canvas...', {
+        canvasWidth: this.data.canvasWidth,
+        canvasHeight: this.data.canvasHeight
+      });
+      
       const query = this.createSelectorQuery();
       query.select('.graph-canvas')
         .fields({ node: true, size: true })
         .exec((res) => {
+          console.log('🎨 Canvas查询结果:', res);
+          
           if (res[0]) {
             const canvas = res[0].node;
-            const ctx = canvas.getContext('2d');
-            this.canvas = canvas;
-            this.ctx = ctx;
+            console.log('🎨 Canvas元素获取成功:', canvas);
             
-            // 设置画布尺寸
-            const dpr = wx.getSystemInfoSync().pixelRatio;
-            canvas.width = this.data.canvasWidth * dpr;
-            canvas.height = this.data.canvasHeight * dpr;
-            ctx.scale(dpr, dpr);
-            
-            // 初始化高级渲染引擎
             try {
-              this.renderer = new AdvancedGraphRenderer(canvas, {
-                width: this.data.canvasWidth,
-                height: this.data.canvasHeight,
-                enableTooltips: true,
-                enableAnimations: true,
-                enableSpatialIndex: true,
-                renderLayers: {
-                  background: true,
-                  links: true,
-                  nodes: true,
-                  labels: true,
-                  interaction: true
-                }
+              const ctx = canvas.getContext('2d');
+              console.log('🎨 Canvas 2D上下文获取成功:', !!ctx);
+              
+              this.canvas = canvas;
+              this.ctx = ctx;
+              
+              // 设置画布尺寸
+              const dpr = wx.getSystemInfoSync().pixelRatio;
+              console.log('🎨 设置Canvas尺寸:', {
+                width: this.data.canvasWidth * dpr,
+                height: this.data.canvasHeight * dpr,
+                dpr: dpr
               });
-              console.log('✅ 高级渲染引擎初始化完成');
+              
+              canvas.width = this.data.canvasWidth * dpr;
+              canvas.height = this.data.canvasHeight * dpr;
+              ctx.scale(dpr, dpr);
+              
+              console.log('✅ Canvas初始化完成');
+              
+              // 初始化高级渲染引擎
+              try {
+                this.renderer = new AdvancedGraphRenderer(canvas, {
+                  width: this.data.canvasWidth,
+                  height: this.data.canvasHeight,
+                  enableTooltips: true,
+                  enableAnimations: true,
+                  enableSpatialIndex: true,
+                  renderLayers: {
+                    background: true,
+                    links: true,
+                    nodes: true,
+                    labels: true,
+                    interaction: true
+                  }
+                });
+                console.log('✅ 高级渲染引擎初始化完成');
+              } catch (error) {
+                console.warn('⚠️ 高级渲染引擎初始化失败，使用默认渲染:', error);
+                this.renderer = null;
+              }
+              
+              // 如果有数据，立即尝试渲染
+              if (this.data.graphData && this.data.graphData.nodes && this.data.graphData.nodes.length > 0) {
+                console.log('🎨 Canvas初始化完成后立即渲染图谱');
+                this.renderGraph();
+              }
+              
             } catch (error) {
-              console.warn('⚠️ 高级渲染引擎初始化失败，使用默认渲染:', error);
-              this.renderer = null;
+              console.error('❌ Canvas上下文获取失败:', error);
             }
+          } else {
+            console.error('❌ Canvas元素查询失败');
           }
         });
     },
@@ -220,23 +296,35 @@ Component({
      * 处理图谱数据
      */
     processGraphData() {
-      console.log('开始处理图谱数据...');
-      console.log('联系人数量:', this.data.profiles?.length);
-      console.log('关系数量:', this.data.relationships?.length);
+      console.log('📊 开始处理图谱数据...');
+      console.log('📊 输入数据检查:', {
+        profiles: this.data.profiles?.length || 0,
+        relationships: this.data.relationships?.length || 0,
+        centerNodeId: this.data.centerNodeId,
+        canvasReady: !!(this.canvas && this.ctx)
+      });
       
       if (!this.data.profiles || this.data.profiles.length === 0) {
-        console.log('没有联系人数据，停止处理');
+        console.log('❌ 没有联系人数据，停止处理');
+        this.setData({ 
+          loading: false,
+          graphData: {
+            nodes: [],
+            links: [],
+            stats: {}
+          }
+        });
         return;
       }
       
       // 即使没有关系数据也要显示联系人节点
       const relationships = this.data.relationships || [];
-      console.log('处理后的关系数据长度:', relationships.length);
+      console.log('📊 处理后的关系数据长度:', relationships.length);
       
       this.setData({ loading: true });
       
       // 使用图谱数据处理器处理数据
-      console.log('调用GraphDataProcessor处理数据...');
+      console.log('📊 调用GraphDataProcessor处理数据...');
       const graphData = GraphDataProcessor.processRelationshipData(
         relationships,
         this.data.profiles,
@@ -246,7 +334,11 @@ Component({
           minConfidence: this.data.minConfidence
         }
       );
-      console.log('处理后的图谱数据:', graphData);
+      console.log('📊 处理后的图谱数据:', {
+        nodes: graphData.nodes?.length || 0,
+        links: graphData.links?.length || 0,
+        stats: graphData.stats
+      });
       
       // 使用高级布局引擎计算布局
       let layoutData;
@@ -292,6 +384,7 @@ Component({
       // 计算居中偏移
       const centerOffset = this.calculateCenterOffset(layoutData.nodes);
       
+      console.log('📊 设置图谱数据到组件状态...');
       this.setData({
         graphData: {
           ...graphData,
@@ -303,6 +396,13 @@ Component({
         scale: 1, // 重置缩放比例
         loading: false
       }, () => {
+        console.log('📊 数据设置完成，开始渲染图谱...');
+        console.log('📊 渲染前状态检查:', {
+          canvas: !!this.canvas,
+          ctx: !!this.ctx,
+          nodes: this.data.graphData.nodes?.length || 0,
+          links: this.data.graphData.links?.length || 0
+        });
         this.renderGraph();
       });
     },
@@ -311,19 +411,49 @@ Component({
      * 渲染图谱
      */
     renderGraph() {
-      if (!this.ctx || this.data.loading) return;
+      console.log('🎨 renderGraph调用开始...');
+      console.log('🎨 渲染前置检查:', {
+        ctx: !!this.ctx,
+        canvas: !!this.canvas,
+        loading: this.data.loading
+      });
+      
+      if (!this.ctx) {
+        console.error('❌ Canvas上下文未初始化，无法渲染');
+        // 尝试重新初始化Canvas
+        if (!this.canvas) {
+          console.log('🎨 尝试重新初始化Canvas...');
+          this.initCanvas();
+          return;
+        }
+      }
+      
+      if (this.data.loading) {
+        console.log('⏳ 数据加载中，跳过渲染');
+        return;
+      }
       
       const { nodes, links } = this.data.graphData;
       const { scale, translateX, translateY } = this.data;
       
+      console.log('🎨 渲染数据检查:', {
+        nodes: nodes?.length || 0,
+        links: links?.length || 0,
+        scale,
+        translateX,
+        translateY
+      });
+      
       // 添加数据验证
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
-        console.log('renderGraph: 没有有效的节点数据');
-        this.ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        console.log('❌ 没有有效的节点数据，清空画布');
+        if (this.ctx) {
+          this.ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        }
         return;
       }
       
-      console.log('开始渲染图谱:', { 节点数: nodes.length, 连线数: (links || []).length });
+      console.log('🎨 开始渲染图谱:', { 节点数: nodes.length, 连线数: (links || []).length });
       
       // 使用高级渲染引擎（如果可用）
       if (this.renderer) {

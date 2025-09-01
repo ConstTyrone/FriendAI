@@ -79,40 +79,45 @@ Page({
   },
   
   /**
-   * 初始化页面尺寸
+   * 初始化页面尺寸 - 最大化图谱画布空间
    */
   initPageSize() {
     const systemInfo = wx.getSystemInfoSync();
     const { windowWidth, windowHeight, safeArea } = systemInfo;
     
-    // 计算各个部分的高度
+    console.log('🎯 开始计算最大化图谱尺寸...', { windowWidth, windowHeight });
+    
+    // 图谱画布最大化策略：压缩所有非核心UI元素
     const statusBarHeight = systemInfo.statusBarHeight || 0;
     const navigationBarHeight = 44; // 系统导航栏高度
-    const headerInfoHeight = 120; // 顶部统计信息栏高度 (约240rpx转为px)
-    const footerInfoHeight = 200; // 底部信息面板高度 (约400rpx转为px)
-    const tabBarHeight = this.data.isGlobalMode ? 0 : 98; // 底部导航栏高度
+    const headerInfoHeight = 50;  // 顶部信息栏极度压缩（原80→50）
+    const footerInfoHeight = 60;  // 底部信息面板极度压缩（原100→60）
+    const tabBarHeight = this.data.isGlobalMode ? 0 : 80; // 底部导航栏压缩（原98→80）
     const safeAreaBottom = safeArea ? (windowHeight - safeArea.bottom) : 0;
-    const padding = 32; // 容器边距 (16rpx * 2)
+    const padding = 8; // 最小边距（原16→8）
     
-    // 计算图谱可用高度
+    // 计算图谱可用高度 - 让图谱占据绝对主要空间
     const occupiedHeight = statusBarHeight + navigationBarHeight + headerInfoHeight + footerInfoHeight + tabBarHeight + safeAreaBottom + padding;
     const availableHeight = windowHeight - occupiedHeight;
     
-    // 确保图谱高度合理（至少300px，最多可用高度的80%）
-    const minHeight = Math.max(300, availableHeight * 0.5);
-    const maxHeight = Math.max(500, windowHeight * 0.8);
-    const graphHeight = Math.max(minHeight, Math.min(availableHeight, maxHeight));
+    // 图谱高度策略：占据屏幕80-85%的空间
+    const minHeight = Math.max(500, windowHeight * 0.75); // 至少75%屏幕高度（提升从60%）
+    const preferredHeight = Math.max(availableHeight, windowHeight * 0.82); // 优选82%屏幕高度（提升从70%）
+    const maxHeight = windowHeight * 0.85; // 最大85%屏幕高度
+    const graphHeight = Math.min(maxHeight, Math.max(minHeight, preferredHeight));
     
-    console.log('图谱尺寸计算:', {
+    console.log('🎯 图谱尺寸最大化计算:', {
       windowHeight,
       occupiedHeight,
       availableHeight,
       graphHeight,
-      minHeight
+      minHeight,
+      preferredHeight,
+      screenRatio: (graphHeight / windowHeight * 100).toFixed(1) + '%'
     });
     
     this.setData({
-      graphWidth: windowWidth - 16, // 调整边距为16px
+      graphWidth: windowWidth - 8, // 最小边距8px（原16px）
       graphHeight,
       fullscreenWidth: windowWidth,
       fullscreenHeight: windowHeight
@@ -191,6 +196,16 @@ Page({
       const confirmedCount = this.getConfirmedCount(relationships);
       const selectedContactName = this.getSelectedContactName();
       
+      console.log('🔄 设置页面数据...', {
+        profiles: profilesWithRelationships.length,
+        relationships: relationships.length,
+        filteredProfiles: profilesWithRelationships.length,
+        relationshipTypes: relationshipTypes.length,
+        confirmedCount: confirmedCount,
+        selectedContactName: selectedContactName,
+        centerNodeId: this.data.centerNodeId
+      });
+      
       this.setData({
         profiles: profilesWithRelationships,
         relationships: relationships,
@@ -199,6 +214,13 @@ Page({
         confirmedCount: confirmedCount,
         selectedContactName: selectedContactName,
         loading: false
+      });
+      
+      console.log('✅ 数据加载完成，已传递给组件');
+      console.log('🔍 检查数据传递给组件:', {
+        '组件profiles': this.data.profiles?.length || 0,
+        '组件relationships': this.data.relationships?.length || 0,
+        '画布尺寸': { width: this.data.graphWidth, height: this.data.graphHeight }
       });
       
       // 如果没有指定中心节点，自动选择关系最多的联系人
