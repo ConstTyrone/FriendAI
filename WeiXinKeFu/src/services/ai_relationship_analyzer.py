@@ -11,6 +11,9 @@ import requests
 import time
 from datetime import datetime
 
+# 导入新的置信度计算引擎
+from .confidence_calculator import AdvancedConfidenceCalculator
+
 logger = logging.getLogger(__name__)
 
 class AIRelationshipAnalyzer:
@@ -19,6 +22,10 @@ class AIRelationshipAnalyzer:
     def __init__(self):
         self.api_key = os.getenv('QWEN_API_KEY')
         self.api_endpoint = os.getenv('QWEN_API_ENDPOINT', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+        
+        # 初始化置信度计算引擎
+        self.confidence_calculator = AdvancedConfidenceCalculator()
+        logger.info("✅ 高级置信度计算引擎已初始化")
         
         if not self.api_key:
             logger.warning("未配置QWEN_API_KEY，AI增强功能将无法使用")
@@ -70,8 +77,10 @@ class AIRelationshipAnalyzer:
             # 解析AI响应
             analysis_result = self._parse_ai_response(ai_response, profile1, profile2)
             
-            # 增强分析结果
-            enhanced_result = self._enhance_analysis_with_rules(analysis_result, profile1, profile2)
+            # 使用高级置信度计算引擎重新计算置信度
+            enhanced_result = self._enhance_analysis_with_advanced_confidence(
+                analysis_result, profile1, profile2
+            )
             
             return enhanced_result
             
@@ -380,6 +389,114 @@ class AIRelationshipAnalyzer:
         except Exception as e:
             logger.error(f"增强分析失败: {e}")
             return analysis
+    
+    def _enhance_analysis_with_advanced_confidence(self, analysis: Dict, profile1: Dict, profile2: Dict) -> Dict:
+        """使用高级置信度计算引擎增强分析结果"""
+        try:
+            logger.info("🔍 使用高级置信度计算引擎重新评估关系")
+            
+            relationship_type = analysis.get('relationship_type', 'colleague')
+            evidence = analysis.get('evidence', {})
+            if isinstance(evidence, str):
+                try:
+                    evidence = json.loads(evidence)
+                except:
+                    evidence = {'raw_evidence': evidence}
+            
+            # 准备证据数据
+            enhanced_evidence = {
+                **evidence,
+                'ai_analysis_quality': True,
+                'matched_fields': analysis.get('matched_fields', []),
+                'data_completeness': self._calculate_data_completeness(profile1, profile2),
+                'cross_validated': True  # AI分析本身就是交叉验证
+            }
+            
+            # 使用高级置信度计算引擎
+            confidence_score, detailed_analysis = self.confidence_calculator.calculate_comprehensive_confidence(
+                profile1=profile1,
+                profile2=profile2,
+                relationship_type=relationship_type,
+                evidence=enhanced_evidence,
+                method='ai_inference'
+            )
+            
+            # 更新分析结果
+            enhanced_result = analysis.copy()
+            enhanced_result.update({
+                'confidence_score': confidence_score,
+                'detailed_confidence_analysis': detailed_analysis,
+                'enhanced_by_advanced_calculator': True,
+                
+                # 根据新置信度调整关系强度
+                'relationship_strength': self._determine_relationship_strength(confidence_score),
+                
+                # 增强的证据描述
+                'evidence_detailed': self._build_evidence_description(detailed_analysis),
+                
+                # 质量指标
+                'quality_indicators': detailed_analysis.get('quality_indicators', {}),
+                
+                # 改进建议
+                'improvement_suggestions': detailed_analysis.get('improvement_suggestions', [])
+            })
+            
+            logger.info(f"✅ 高级置信度计算完成 - 原始: {analysis.get('confidence_score', 0):.3f} → 新: {confidence_score:.3f}")
+            return enhanced_result
+            
+        except Exception as e:
+            logger.error(f"❌ 高级置信度计算失败: {e}")
+            # 降级到原有方法
+            return self._enhance_analysis_with_rules(analysis, profile1, profile2)
+    
+    def _calculate_data_completeness(self, profile1: Dict, profile2: Dict) -> float:
+        """计算数据完整性分数"""
+        important_fields = ['company', 'position', 'location', 'education', 'phone', 'email']
+        total_score = 0
+        
+        for profile in [profile1, profile2]:
+            profile_score = 0
+            for field in important_fields:
+                value = profile.get(field, '').strip()
+                if value and value != '未知':
+                    profile_score += 1
+            total_score += profile_score / len(important_fields)
+        
+        return total_score / 2  # 平均完整性
+    
+    def _determine_relationship_strength(self, confidence_score: float) -> str:
+        """根据置信度确定关系强度"""
+        if confidence_score >= 0.8:
+            return 'strong'
+        elif confidence_score >= 0.6:
+            return 'medium'
+        elif confidence_score >= 0.4:
+            return 'weak'
+        else:
+            return 'very_weak'
+    
+    def _build_evidence_description(self, detailed_analysis: Dict) -> str:
+        """构建详细的证据描述"""
+        description_parts = []
+        
+        # 字段分析描述
+        field_analysis = detailed_analysis.get('field_analysis', {})
+        for field, data in field_analysis.items():
+            if data.get('score', 0) > 0.5:
+                description_parts.append(f"{field}: {data.get('explanation', '匹配')}")
+        
+        # 类型适配性描述
+        type_analysis = detailed_analysis.get('type_compatibility', {})
+        if type_analysis.get('type_score', 0) > 0.5:
+            description_parts.append(f"类型适配: {type_analysis.get('explanation', '良好')}")
+        
+        # 质量指标
+        quality = detailed_analysis.get('quality_indicators', {})
+        quality_level = quality.get('overall_quality', 'unknown')
+        if quality_level != 'unknown':
+            description_parts.append(f"整体质量: {quality_level}")
+        
+        return '; '.join(description_parts) if description_parts else '基于AI分析'
     
     def _calculate_field_matches(self, profile1: Dict, profile2: Dict) -> Dict[str, float]:
         """计算字段匹配分数"""

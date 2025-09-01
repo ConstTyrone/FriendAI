@@ -11,13 +11,15 @@ from typing import List, Dict, Any, Optional, Tuple
 from difflib import SequenceMatcher
 import re
 
-# 导入AI关系分析器
+# 导入AI关系分析器和置信度计算器
 try:
     from .ai_relationship_analyzer import AIRelationshipAnalyzer
+    from .confidence_calculator import AdvancedConfidenceCalculator
     AI_AVAILABLE = True
 except ImportError as e:
     AI_AVAILABLE = False
     AIRelationshipAnalyzer = None
+    AdvancedConfidenceCalculator = None
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +36,19 @@ class RelationshipService:
         self.db = database
         self.rules_cache = {}  # 缓存检测规则
         
-        # 初始化AI分析器
+        # 初始化AI分析器和置信度计算器
         self.ai_analyzer = AIRelationshipAnalyzer() if AI_AVAILABLE else None
+        self.confidence_calculator = AdvancedConfidenceCalculator() if AI_AVAILABLE else None
+        
         if self.ai_analyzer:
-            logger.info("AI关系分析器初始化成功")
+            logger.info("✅ AI关系分析器初始化成功")
         else:
-            logger.info("AI关系分析器不可用，使用传统规则匹配")
+            logger.info("⚠️ AI关系分析器不可用，使用传统规则匹配")
+            
+        if self.confidence_calculator:
+            logger.info("✅ 高级置信度计算器初始化成功")
+        else:
+            logger.info("⚠️ 高级置信度计算器不可用，使用简单计算")
             
         self._load_detection_rules()
         
@@ -257,7 +266,7 @@ class RelationshipService:
             # 应用规则权重
             confidence_score *= rule.get('weight', 1.0)
             
-            return {
+            basic_result = {
                 'relationship_type': rule['relationship_type'],
                 'relationship_subtype': None,
                 'relationship_direction': 'bidirectional',
@@ -267,6 +276,30 @@ class RelationshipService:
                 'matching_method': rule['rule_type'],
                 'status': 'discovered'
             }
+            
+            # 如果有高级置信度计算器，使用它来增强结果
+            if self.confidence_calculator:
+                try:
+                    enhanced_confidence, detailed_analysis = self.confidence_calculator.calculate_comprehensive_confidence(
+                        profile1=source,
+                        profile2=target,
+                        relationship_type=rule['relationship_type'],
+                        evidence=evidence,
+                        method='rule_based'
+                    )
+                    
+                    basic_result.update({
+                        'confidence_score': enhanced_confidence,
+                        'detailed_confidence_analysis': detailed_analysis,
+                        'enhanced_by_advanced_calculator': True
+                    })
+                    
+                    logger.debug(f"🔧 规则匹配置信度增强: {confidence_score:.3f} → {enhanced_confidence:.3f}")
+                    
+                except Exception as e:
+                    logger.warning(f"高级置信度计算失败，使用基础计算: {e}")
+            
+            return basic_result
             
         return None
     
