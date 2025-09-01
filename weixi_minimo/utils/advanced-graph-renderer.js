@@ -127,20 +127,47 @@ class AdvancedGraphRenderer {
       return;
     }
     
+    // 检查微信小程序离屏Canvas支持
+    if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) {
+      console.warn('⚠️ 微信小程序离屏Canvas不支持，禁用分层渲染');
+      this.config.enableLayeredRendering = false;
+      return;
+    }
+    
     const { width, height } = this.canvas;
+    let successCount = 0;
     
     Object.keys(this.layers).forEach(layerName => {
       try {
         // 尝试创建离屏Canvas
-        const offscreenCanvas = wx.createOffscreenCanvas ? 
-          wx.createOffscreenCanvas({ width, height }) : 
-          null;
+        const offscreenCanvas = wx.createOffscreenCanvas({ 
+          type: '2d',
+          width, 
+          height 
+        });
         
         if (offscreenCanvas) {
           this.layers[layerName].canvas = offscreenCanvas;
-          const ctx = offscreenCanvas.getContext('2d');
+          
+          // 微信小程序离屏Canvas的context获取
+          let ctx = null;
+          try {
+            // 微信小程序可能不需要参数
+            ctx = offscreenCanvas.getContext();
+          } catch (error) {
+            console.warn(`⚠️ 无参数方式获取离屏Canvas ${layerName} context失败:`, error);
+            
+            // 尝试其他方式
+            try {
+              ctx = offscreenCanvas.getContext('2d');
+            } catch (error2) {
+              console.warn(`⚠️ 标准方式获取离屏Canvas ${layerName} context失败:`, error2);
+            }
+          }
+          
           if (ctx) {
             this.layers[layerName].ctx = ctx;
+            successCount++;
           } else {
             console.warn(`⚠️ 离屏Canvas ${layerName} context 获取失败，禁用该层`);
             this.layers[layerName].ctx = null;
@@ -154,6 +181,14 @@ class AdvancedGraphRenderer {
         this.layers[layerName].ctx = null;
       }
     });
+    
+    // 如果没有任何层成功初始化，禁用分层渲染
+    if (successCount === 0) {
+      console.warn('⚠️ 所有离屏Canvas层初始化失败，禁用分层渲染');
+      this.config.enableLayeredRendering = false;
+    } else {
+      console.log(`✅ 成功初始化 ${successCount}/${Object.keys(this.layers).length} 个渲染层`);
+    }
   }
   
   /**
