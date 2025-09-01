@@ -6,17 +6,42 @@
 class AdvancedGraphRenderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
+    this.ctx = null;
     
     // 兼容微信小程序 Canvas context 获取
+    if (!canvas) {
+      console.error('⚠️ Canvas 对象为空');
+      throw new Error('Canvas 对象无效');
+    }
+    
     try {
+      // 尝试获取 2D context
       this.ctx = canvas.getContext('2d');
+      
       if (!this.ctx) {
-        throw new Error('无法获取2D上下文');
+        // 微信小程序可能需要异步获取context
+        console.warn('⚠️ 同步获取 Canvas context 失败，尝试异步获取');
+        
+        // 如果是微信小程序的Canvas，可能需要特殊处理
+        if (typeof canvas.createRenderingContext === 'function') {
+          try {
+            this.ctx = canvas.createRenderingContext('2d');
+          } catch (asyncError) {
+            console.warn('⚠️ 异步获取 Canvas context 也失败:', asyncError);
+          }
+        }
+        
+        if (!this.ctx) {
+          throw new Error('无法获取2D上下文');
+        }
       }
+      
+      console.log('✅ Canvas context 初始化成功');
     } catch (error) {
-      console.warn('⚠️ Canvas context 获取失败:', error);
-      // 在微信小程序中可能需要不同的方式获取context
-      throw new Error('Canvas context 初始化失败');
+      console.error('⚠️ Canvas context 获取失败:', error);
+      // 创建一个简单的降级处理
+      this.ctx = null;
+      throw new Error(`Canvas context 初始化失败: ${error.message}`);
     }
     
     // 渲染配置
@@ -96,23 +121,37 @@ class AdvancedGraphRenderer {
   initLayers() {
     if (!this.config.enableLayeredRendering) return;
     
+    if (!this.canvas || !this.ctx) {
+      console.warn('⚠️ 主Canvas无效，禁用分层渲染');
+      this.config.enableLayeredRendering = false;
+      return;
+    }
+    
     const { width, height } = this.canvas;
     
     Object.keys(this.layers).forEach(layerName => {
-      const offscreenCanvas = wx.createOffscreenCanvas ? 
-        wx.createOffscreenCanvas({ width, height }) : 
-        null;
-      
-      if (offscreenCanvas) {
-        this.layers[layerName].canvas = offscreenCanvas;
-        // 兼容微信小程序的离屏Canvas
-        try {
-          this.layers[layerName].ctx = offscreenCanvas.getContext('2d');
-        } catch (error) {
-          console.warn(`⚠️ 离屏Canvas ${layerName} context 获取失败:`, error);
-          // 降级到主Canvas
-          this.layers[layerName].ctx = this.ctx;
+      try {
+        // 尝试创建离屏Canvas
+        const offscreenCanvas = wx.createOffscreenCanvas ? 
+          wx.createOffscreenCanvas({ width, height }) : 
+          null;
+        
+        if (offscreenCanvas) {
+          this.layers[layerName].canvas = offscreenCanvas;
+          const ctx = offscreenCanvas.getContext('2d');
+          if (ctx) {
+            this.layers[layerName].ctx = ctx;
+          } else {
+            console.warn(`⚠️ 离屏Canvas ${layerName} context 获取失败，禁用该层`);
+            this.layers[layerName].ctx = null;
+          }
+        } else {
+          console.warn(`⚠️ 离屏Canvas ${layerName} 创建失败，禁用该层`);
+          this.layers[layerName].ctx = null;
         }
+      } catch (error) {
+        console.warn(`⚠️ 初始化层 ${layerName} 失败:`, error);
+        this.layers[layerName].ctx = null;
       }
     });
   }
@@ -306,12 +345,31 @@ class AdvancedGraphRenderer {
     const startTime = this.getHighResTime();
     
     // 清空主画布
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (!this.ctx || !this.canvas) {
+      console.warn('⚠️ Canvas context 或 canvas 为空，无法渲染');
+      return;
+    }
     
-    if (this.config.enableLayeredRendering) {
-      this.renderLayered();
-    } else {
-      this.renderDirect();
+    try {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    } catch (error) {
+      console.warn('⚠️ 主画布 clearRect 失败:', error);
+      return;
+    }
+    
+    try {
+      if (this.config.enableLayeredRendering) {
+        this.renderLayered();
+      } else {
+        this.renderDirect();
+      }
+    } catch (error) {
+      console.warn('⚠️ 高级渲染失败，尝试简化渲染:', error);
+      try {
+        this.renderSimple();
+      } catch (fallbackError) {
+        console.error('⚠️ 所有渲染方式都失败了:', fallbackError);
+      }
     }
     
     // 性能统计
@@ -344,10 +402,15 @@ class AdvancedGraphRenderer {
    */
   renderLayer(layerName) {
     const layer = this.layers[layerName];
-    if (!layer.dirty || !layer.canvas) return;
+    if (!layer.dirty || !layer.canvas || !layer.ctx) return;
     
     const layerCtx = layer.ctx;
-    layerCtx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+    try {
+      layerCtx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+    } catch (error) {
+      console.warn(`⚠️ 层 ${layerName} clearRect失败:`, error);
+      return;
+    }
     
     switch (layerName) {
       case 'background':
@@ -655,16 +718,83 @@ class AdvancedGraphRenderer {
    * 直接渲染（回退模式）
    */
   renderDirect() {
+    if (!this.ctx) {
+      console.warn('⚠️ 直接渲染失败：Canvas context 无效');
+      return;
+    }
+    
     const { scale, translateX, translateY } = this.renderState;
     
-    this.ctx.save();
-    this.ctx.scale(scale, scale);
-    this.ctx.translate(translateX, translateY);
+    try {
+      this.ctx.save();
+      this.ctx.scale(scale, scale);
+      this.ctx.translate(translateX, translateY);
+      
+      this.renderLinks(this.ctx);
+      this.renderNodes(this.ctx);
+      
+      this.ctx.restore();
+    } catch (error) {
+      console.warn('⚠️ 直接渲染过程中发生错误:', error);
+      this.ctx.restore(); // 确保状态恢复
+    }
+  }
+  
+  /**
+   * 简化的回退渲染（当所有高级功能失败时使用）
+   */
+  renderSimple() {
+    if (!this.ctx || !this.dataCache.nodes || !this.dataCache.links) {
+      console.warn('⚠️ 简化渲染失败：缺少必要数据');
+      return;
+    }
     
-    this.renderLinks(this.ctx);
-    this.renderNodes(this.ctx);
-    
-    this.ctx.restore();
+    try {
+      const ctx = this.ctx;
+      const { scale, translateX, translateY } = this.renderState;
+      
+      ctx.save();
+      ctx.scale(scale, scale);
+      ctx.translate(translateX, translateY);
+      
+      // 绘制连线（简化版）
+      ctx.strokeStyle = '#cccccc';
+      ctx.lineWidth = 1;
+      this.dataCache.links.forEach(link => {
+        if (link.source && link.target) {
+          ctx.beginPath();
+          ctx.moveTo(link.source.x, link.source.y);
+          ctx.lineTo(link.target.x, link.target.y);
+          ctx.stroke();
+        }
+      });
+      
+      // 绘制节点（简化版）
+      this.dataCache.nodes.forEach(node => {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 16, 0, 2 * Math.PI);
+        ctx.fillStyle = node.level === 0 ? '#2196F3' : '#4CAF50';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // 绘制标签
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(node.name || '', node.x, node.y + 25);
+      });
+      
+      ctx.restore();
+    } catch (error) {
+      console.warn('⚠️ 简化渲染也失败了:', error);
+      try {
+        this.ctx.restore();
+      } catch (restoreError) {
+        console.warn('⚠️ Canvas 状态恢复失败:', restoreError);
+      }
+    }
   }
   
   // 设置渲染状态
@@ -714,6 +844,48 @@ class AdvancedGraphRenderer {
     
     // 降级到 Date.now()
     return Date.now();
+  }
+  
+  /**
+   * 静态工厂方法 - 安全创建渲染器实例
+   */
+  static createSafeRenderer(canvas, options = {}) {
+    try {
+      return new AdvancedGraphRenderer(canvas, options);
+    } catch (error) {
+      console.error('⚠️ 高级渲染器创建失败:', error);
+      
+      // 返回一个简单的降级渲染器
+      return {
+        isActive: false,
+        error: error.message,
+        
+        // 提供基本的渲染接口
+        render() {
+          console.warn('⚠️ 渲染器不可用，请检查Canvas配置');
+        },
+        
+        updateData() {
+          console.warn('⚠️ 渲染器不可用，无法更新数据');
+        },
+        
+        hitTest() {
+          return null;
+        },
+        
+        setRenderState() {
+          // 空操作
+        },
+        
+        destroy() {
+          // 空操作
+        },
+        
+        getPerformanceInfo() {
+          return { fps: 0, renderTime: 0, frameCount: 0 };
+        }
+      };
+    }
   }
 }
 
