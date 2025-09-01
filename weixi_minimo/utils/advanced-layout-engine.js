@@ -47,7 +47,7 @@ class AdvancedLayoutEngine {
    * 计算布局
    */
   calculateLayout(nodes, links, layoutType = 'force', options = {}) {
-    const startTime = performance.now();
+    const startTime = this.getHighResTime();
     
     // 合并配置
     const config = { ...this.config, ...options };
@@ -77,7 +77,7 @@ class AdvancedLayoutEngine {
         result = this.forceDirectedLayout(nodes, links, config);
     }
     
-    console.log(`${layoutType}布局计算耗时: ${(performance.now() - startTime).toFixed(2)}ms`);
+    console.log(`${layoutType}布局计算耗时: ${(this.getHighResTime() - startTime).toFixed(2)}ms`);
     
     return result;
   }
@@ -642,6 +642,19 @@ class AdvancedLayoutEngine {
     });
     
     return { nodes, links };
+  }
+
+  /**
+   * 获取高精度时间戳（毫秒） - 兼容微信小程序
+   */
+  getHighResTime() {
+    // 微信小程序环境下 performance 对象可能不存在
+    if (typeof performance !== 'undefined' && performance.now) {
+      return performance.now();
+    }
+    
+    // 降级到 Date.now()
+    return Date.now();
   }
 }
 

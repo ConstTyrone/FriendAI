@@ -6,7 +6,18 @@
 class AdvancedGraphRenderer {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    
+    // 兼容微信小程序 Canvas context 获取
+    try {
+      this.ctx = canvas.getContext('2d');
+      if (!this.ctx) {
+        throw new Error('无法获取2D上下文');
+      }
+    } catch (error) {
+      console.warn('⚠️ Canvas context 获取失败:', error);
+      // 在微信小程序中可能需要不同的方式获取context
+      throw new Error('Canvas context 初始化失败');
+    }
     
     // 渲染配置
     this.config = {
@@ -56,9 +67,9 @@ class AdvancedGraphRenderer {
       animation: null
     };
     
-    // 性能监控
+    // 性能监控 - 延迟初始化
     this.performance = {
-      lastFrameTime: 0,
+      lastFrameTime: 0, // 稍后初始化
       frameCount: 0,
       fps: 0,
       renderTime: 0
@@ -74,6 +85,9 @@ class AdvancedGraphRenderer {
     
     this.initLayers();
     this.bindEvents();
+    
+    // 初始化性能监控时间戳
+    this.performance.lastFrameTime = this.getHighResTime();
   }
   
   /**
@@ -91,7 +105,14 @@ class AdvancedGraphRenderer {
       
       if (offscreenCanvas) {
         this.layers[layerName].canvas = offscreenCanvas;
-        this.layers[layerName].ctx = offscreenCanvas.getContext('2d');
+        // 兼容微信小程序的离屏Canvas
+        try {
+          this.layers[layerName].ctx = offscreenCanvas.getContext('2d');
+        } catch (error) {
+          console.warn(`⚠️ 离屏Canvas ${layerName} context 获取失败:`, error);
+          // 降级到主Canvas
+          this.layers[layerName].ctx = this.ctx;
+        }
       }
     });
   }
@@ -108,7 +129,7 @@ class AdvancedGraphRenderer {
    * 更新图谱数据
    */
   updateData(nodes, links) {
-    const startTime = performance.now();
+    const startTime = this.getHighResTime();
     
     // 数据预处理
     this.dataCache.nodes = this.preprocessNodes(nodes);
@@ -125,7 +146,7 @@ class AdvancedGraphRenderer {
       this.layers[layer].dirty = true;
     });
     
-    console.log(`数据更新耗时: ${(performance.now() - startTime).toFixed(2)}ms`);
+    console.log(`数据更新耗时: ${(this.getHighResTime() - startTime).toFixed(2)}ms`);
     
     // 触发重绘
     this.render();
@@ -282,7 +303,7 @@ class AdvancedGraphRenderer {
    * 主渲染函数
    */
   render() {
-    const startTime = performance.now();
+    const startTime = this.getHighResTime();
     
     // 清空主画布
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -603,11 +624,11 @@ class AdvancedGraphRenderer {
    * 性能统计更新
    */
   updatePerformanceStats(startTime) {
-    const renderTime = performance.now() - startTime;
+    const renderTime = this.getHighResTime() - startTime;
     this.performance.renderTime = renderTime;
     this.performance.frameCount++;
     
-    const now = performance.now();
+    const now = this.getHighResTime();
     if (now - this.performance.lastFrameTime >= 1000) {
       this.performance.fps = this.performance.frameCount;
       this.performance.frameCount = 0;
@@ -680,6 +701,19 @@ class AdvancedGraphRenderer {
         this.layers[layer].canvas = null;
       }
     });
+  }
+
+  /**
+   * 获取高精度时间戳（毫秒） - 兼容微信小程序
+   */
+  getHighResTime() {
+    // 微信小程序环境下 performance 对象可能不存在
+    if (typeof performance !== 'undefined' && performance.now) {
+      return performance.now();
+    }
+    
+    // 降级到 Date.now()
+    return Date.now();
   }
 }
 
