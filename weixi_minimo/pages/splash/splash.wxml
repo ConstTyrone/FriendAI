@@ -1,0 +1,102 @@
+<!-- 启动页面 -->
+<view class="splash-container">
+  <!-- 背景动画层 -->
+  <view class="background-layer">
+    <!-- 渐变背景 -->
+    <view class="gradient-bg"></view>
+    
+    <!-- 粒子动画 -->
+    <view class="particles-container">
+      <view 
+        class="particle" 
+        wx:for="{{particles}}" 
+        wx:key="id"
+        style="left: {{item.x}}%; top: {{item.y}}%; width: {{item.size}}px; height: {{item.size}}px; animation-duration: {{item.duration}}s; animation-delay: {{item.delay}}s;"
+      ></view>
+    </view>
+    
+    <!-- 光晕效果 -->
+    <view class="glow-effect"></view>
+  </view>
+
+  <!-- 主内容区域 -->
+  <view class="content-layer">
+    <!-- Logo区域 -->
+    <view class="logo-section" animation="{{logoAnimation}}">
+      <view class="logo-container">
+        <!-- AI图标 -->
+        <view class="logo-icon">
+          <view class="icon-inner">
+            <view class="ai-symbol">
+              <text class="symbol-text">AI</text>
+            </view>
+            <view class="orbit-ring"></view>
+            <view class="orbit-ring ring-2"></view>
+          </view>
+        </view>
+        
+        <!-- 连接线条动画 -->
+        <view class="connection-lines">
+          <view class="line line-1"></view>
+          <view class="line line-2"></view>
+          <view class="line line-3"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标题区域 -->
+    <view class="title-section" animation="{{textAnimation}}">
+      <text class="app-title">FriendAI</text>
+      <text class="app-subtitle">AI驱动的智能社交关系管理</text>
+      
+      <!-- 特性标签 -->
+      <view class="features-tags">
+        <view class="feature-tag">
+          <text class="tag-text">🤖 智能分析</text>
+        </view>
+        <view class="feature-tag">
+          <text class="tag-text">🔗 关系挖掘</text>
+        </view>
+        <view class="feature-tag">
+          <text class="tag-text">📱 轻松管理</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 进度区域 -->
+    <view class="progress-section" wx:if="{{showProgress}}">
+      <view class="progress-container">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{progress}}%;"></view>
+          <view class="progress-glow" style="left: {{progress}}%;"></view>
+        </view>
+        
+        <text class="loading-text">{{loadingText}}</text>
+        <text class="progress-text">{{progress}}%</text>
+      </view>
+    </view>
+
+    <!-- 跳过按钮 -->
+    <view class="skip-section" wx:if="{{animationRunning}}">
+      <view class="skip-button" bind:tap="onSkip">
+        <text class="skip-text">跳过</text>
+        <view class="skip-icon">→</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 装饰元素 -->
+  <view class="decoration-layer">
+    <!-- 几何装饰 -->
+    <view class="geo-decoration geo-1"></view>
+    <view class="geo-decoration geo-2"></view>
+    <view class="geo-decoration geo-3"></view>
+    
+    <!-- 波浪装饰 -->
+    <view class="wave-decoration">
+      <view class="wave wave-1"></view>
+      <view class="wave wave-2"></view>
+      <view class="wave wave-3"></view>
+    </view>
+  </view>
+</view>

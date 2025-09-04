@@ -1,6 +1,7 @@
 {
   "darkmode": true,
   "pages": [
+    "pages/splash/splash",
     "pages/settings/settings",
     "pages/contact-list/contact-list",
     "pages/contact-detail/contact-detail",

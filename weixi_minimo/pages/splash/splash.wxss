@@ -1,0 +1,559 @@
+/* 启动页面样式 */
+.splash-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* 背景动画层 */
+.background-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+.gradient-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    45deg,
+    #4facfe 0%,
+    #00f2fe 25%,
+    #667eea 50%,
+    #764ba2 75%,
+    #f093fb 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 50% 100%; }
+  75% { background-position: 50% 0%; }
+}
+
+/* 粒子动画 */
+.particles-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.particle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: particleFloat infinite ease-in-out;
+  backdrop-filter: blur(2px);
+}
+
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotateX(0deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-20px) rotateX(180deg);
+    opacity: 1;
+  }
+}
+
+/* 光晕效果 */
+.glow-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  margin-left: -150px;
+  margin-top: -150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+}
+
+/* 主内容区域 */
+.content-layer {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 40rpx;
+  text-align: center;
+}
+
+/* Logo区域 */
+.logo-section {
+  margin-bottom: 60rpx;
+  opacity: 0;
+  transform: translateY(50rpx) scale(0.8);
+}
+
+.logo-container {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  margin: 0 auto;
+}
+
+.logo-icon {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-inner {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.9) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 10rpx 30rpx rgba(0,0,0,0.2),
+    inset 0 2rpx 4rpx rgba(255,255,255,0.3);
+  animation: iconRotate 10s linear infinite;
+}
+
+@keyframes iconRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ai-symbol {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #667eea;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.1);
+}
+
+.symbol-text {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 轨道环 */
+.orbit-ring {
+  position: absolute;
+  border: 2rpx solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  animation: ringRotate 8s linear infinite;
+}
+
+.orbit-ring {
+  width: 140rpx;
+  height: 140rpx;
+  top: -10rpx;
+  left: -10rpx;
+}
+
+.orbit-ring.ring-2 {
+  width: 180rpx;
+  height: 180rpx;
+  top: -30rpx;
+  left: -30rpx;
+  border-color: rgba(255,255,255,0.2);
+  animation-duration: 12s;
+  animation-direction: reverse;
+}
+
+@keyframes ringRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 连接线条 */
+.connection-lines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+.line {
+  position: absolute;
+  width: 60rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: lineGlow 2s ease-in-out infinite;
+}
+
+.line-1 {
+  top: 20rpx;
+  left: 50rpx;
+  transform: rotate(45deg);
+  animation-delay: 0s;
+}
+
+.line-2 {
+  top: 80rpx;
+  right: 50rpx;
+  transform: rotate(-45deg);
+  animation-delay: 0.7s;
+}
+
+.line-3 {
+  bottom: 20rpx;
+  left: 50%;
+  margin-left: -30rpx;
+  animation-delay: 1.4s;
+}
+
+@keyframes lineGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* 标题区域 */
+.title-section {
+  margin-bottom: 80rpx;
+  opacity: 0;
+  transform: translateY(30rpx);
+}
+
+.app-title {
+  display: block;
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 20rpx;
+  text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.3);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.8) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: titleGlow 3s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+  0%, 100% { 
+    text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.3);
+  }
+  50% { 
+    text-shadow: 0 6rpx 20rpx rgba(255,255,255,0.4);
+  }
+}
+
+.app-subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 40rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.2);
+}
+
+/* 特性标签 */
+.features-tags {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin-top: 30rpx;
+}
+
+.feature-tag {
+  padding: 12rpx 24rpx;
+  background: rgba(255,255,255,0.15);
+  border-radius: 30rpx;
+  backdrop-filter: blur(10px);
+  border: 1rpx solid rgba(255,255,255,0.2);
+  animation: tagFloat 3s ease-in-out infinite;
+}
+
+.feature-tag:nth-child(1) { animation-delay: 0s; }
+.feature-tag:nth-child(2) { animation-delay: 1s; }
+.feature-tag:nth-child(3) { animation-delay: 2s; }
+
+@keyframes tagFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8rpx); }
+}
+
+.tag-text {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.1);
+}
+
+/* 进度区域 */
+.progress-section {
+  margin-top: 60rpx;
+  width: 100%;
+  max-width: 500rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.progress-container {
+  position: relative;
+  text-align: center;
+}
+
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 6rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10rpx;
+  overflow: hidden;
+  margin-bottom: 30rpx;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  border-radius: 10rpx;
+  transition: width 0.3s ease-out;
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  animation: progressShine 1.5s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-glow {
+  position: absolute;
+  top: -2rpx;
+  width: 10rpx;
+  height: 10rpx;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10rpx #4facfe;
+  transition: left 0.3s ease-out;
+}
+
+.loading-text {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 10rpx;
+}
+
+.progress-text {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.6);
+  font-family: 'Monaco', monospace;
+}
+
+/* 跳过按钮 */
+.skip-section {
+  position: absolute;
+  top: 80rpx;
+  right: 40rpx;
+}
+
+.skip-button {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 16rpx 24rpx;
+  background: rgba(255,255,255,0.1);
+  border-radius: 40rpx;
+  border: 1rpx solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.skip-button:active {
+  transform: scale(0.95);
+  background: rgba(255,255,255,0.2);
+}
+
+.skip-text {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.9);
+}
+
+.skip-icon {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.7);
+  animation: arrowBounce 1s ease-in-out infinite;
+}
+
+@keyframes arrowBounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6rpx); }
+}
+
+/* 装饰层 */
+.decoration-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* 几何装饰 */
+.geo-decoration {
+  position: absolute;
+  border: 1rpx solid rgba(255,255,255,0.1);
+  animation: geoFloat 6s ease-in-out infinite;
+}
+
+.geo-1 {
+  width: 80rpx;
+  height: 80rpx;
+  top: 15%;
+  left: 10%;
+  border-radius: 50%;
+  animation-delay: 0s;
+}
+
+.geo-2 {
+  width: 60rpx;
+  height: 60rpx;
+  top: 25%;
+  right: 15%;
+  transform: rotate(45deg);
+  animation-delay: 2s;
+}
+
+.geo-3 {
+  width: 100rpx;
+  height: 2rpx;
+  bottom: 20%;
+  left: 20%;
+  background: rgba(255,255,255,0.1);
+  animation-delay: 4s;
+}
+
+@keyframes geoFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-20rpx) rotate(180deg);
+    opacity: 0.6;
+  }
+}
+
+/* 波浪装饰 */
+.wave-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200rpx;
+  overflow: hidden;
+}
+
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 200%;
+  height: 200rpx;
+  margin-left: -100%;
+  background: rgba(255,255,255,0.05);
+  border-radius: 100%;
+  animation: waveMove 8s ease-in-out infinite;
+}
+
+.wave-1 {
+  animation-delay: 0s;
+}
+
+.wave-2 {
+  background: rgba(255,255,255,0.03);
+  animation-delay: 2s;
+  animation-duration: 10s;
+}
+
+.wave-3 {
+  background: rgba(255,255,255,0.02);
+  animation-delay: 4s;
+  animation-duration: 12s;
+}
+
+@keyframes waveMove {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0px);
+  }
+  25% {
+    transform: translateX(-40%) translateY(-10rpx);
+  }
+  50% {
+    transform: translateX(-60%) translateY(-5rpx);
+  }
+  75% {
+    transform: translateX(-45%) translateY(-15rpx);
+  }
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .splash-container {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(
+      45deg,
+      #2d3748 0%,
+      #4a5568 25%,
+      #2b6cb0 50%,
+      #553c9a 75%,
+      #805ad5 100%
+    );
+  }
+}
