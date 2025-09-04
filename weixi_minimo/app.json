@@ -1,7 +1,6 @@
 {
   "darkmode": true,
   "pages": [
-    "pages/splash/splash",
     "pages/settings/settings",
     "pages/contact-list/contact-list",
     "pages/contact-detail/contact-detail",
@@ -12,7 +11,8 @@
     "pages/matches/matches",
     "pages/relationship-list/relationship-list",
     "pages/relationship-detail/relationship-detail",
-    "pages/relationship-graph/relationship-graph"
+    "pages/relationship-graph/relationship-graph",
+    "pages/splash/splash"
   ],
   "themeLocation": "theme.json",
   "usingComponents": {

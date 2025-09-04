@@ -243,6 +243,14 @@
           </view>
           <text class="option-arrow">🔧</text>
         </view>
+        
+        <view class="option-item" bind:tap="onShowSplashScreen">
+          <view class="option-content">
+            <text class="option-title">启动动画演示</text>
+            <text class="option-note">查看应用启动动画效果</text>
+          </view>
+          <text class="option-arrow">✨</text>
+        </view>
       </view>
     </view>
   </view>

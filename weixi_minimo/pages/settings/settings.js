@@ -886,6 +886,25 @@ Page({
   },
 
   /**
+   * 启动动画演示
+   */
+  onShowSplashScreen() {
+    wx.showModal({
+      title: '✨ 启动动画演示',
+      content: '即将展示应用启动动画。动画将自动播放约3秒。',
+      confirmText: '开始演示',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          wx.navigateTo({
+            url: '/pages/splash/splash'
+          });
+        }
+      }
+    });
+  },
+
+  /**
    * 系统诊断
    */
   async onSystemDiagnosis() {

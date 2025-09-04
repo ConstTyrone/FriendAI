@@ -37,6 +37,9 @@ App({
     // 检查更新
     this.checkForUpdate();
     
+    // 检查是否需要显示启动动画
+    this.checkSplashScreen();
+    
     // 初始化认证状态
     this.initAuth();
     
@@ -459,5 +462,33 @@ App({
     }
     
     return true;
+  },
+
+  /**
+   * 检查是否需要显示启动动画
+   */
+  checkSplashScreen() {
+    try {
+      // 检查是否是第一次启动或需要显示启动动画
+      const lastSplashTime = wx.getStorageSync('last_splash_time') || 0;
+      const currentTime = Date.now();
+      
+      // 间隔超过24小时或从未显示过，则显示启动动画
+      const shouldShowSplash = (currentTime - lastSplashTime) > 24 * 60 * 60 * 1000;
+      
+      if (shouldShowSplash) {
+        console.log('需要显示启动动画');
+        wx.setStorageSync('last_splash_time', currentTime);
+        
+        // 延迟一点时间显示，避免与其他初始化冲突
+        setTimeout(() => {
+          wx.reLaunch({
+            url: '/pages/splash/splash'
+          });
+        }, 100);
+      }
+    } catch (error) {
+      console.error('检查启动动画失败:', error);
+    }
   }
 });
