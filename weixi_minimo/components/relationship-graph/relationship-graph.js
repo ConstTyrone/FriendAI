@@ -77,13 +77,9 @@ Component({
   
   lifetimes: {
     attached() {
-      console.log('🔧 组件attached生命周期');
-      
       // 使用传入的尺寸或默认尺寸
       const width = this.data.width || 350;
       const height = this.data.height || 400;
-      
-      console.log('🔧 设置组件尺寸:', { width, height });
       
       this.setData({
         canvasWidth: width,
@@ -107,18 +103,9 @@ Component({
           centerForce: 0.06
         }
       });
-      
-      console.log('✅ 高级布局引擎初始化完成');
     },
     
     ready() {
-      console.log('🔧 组件ready生命周期');
-      console.log('🔧 ready时的数据状态:', {
-        profiles: this.data.profiles?.length || 0,
-        relationships: this.data.relationships?.length || 0,
-        centerNodeId: this.data.centerNodeId
-      });
-      
       // 延迟初始化Canvas，确保DOM已准备好
       this.initCanvasWithRetry();
     },
@@ -135,15 +122,8 @@ Component({
   
   observers: {
     'relationships, profiles, centerNodeId': function(relationships, profiles, centerNodeId) {
-      console.log('🔍 组件数据观察者触发:', {
-        relationships: relationships?.length || 0,
-        profiles: profiles?.length || 0,
-        centerNodeId: centerNodeId
-      });
-      
       // 确保有数据才处理
       if (!profiles || profiles.length === 0) {
-        console.log('🔍 没有数据，跳过处理');
         return;
       }
       
@@ -152,16 +132,12 @@ Component({
       
       // 确保Canvas已经初始化再处理数据
       if (this.canvas && this.ctx) {
-        console.log('🔍 Canvas已就绪，立即处理数据');
         this._pendingDataUpdate = false;
         this.processGraphData();
-      } else {
-        console.log('🔍 Canvas未就绪，等待Canvas初始化完成');
-        // Canvas未就绪时不做任何操作，等待initCanvas完成后处理
       }
+      // Canvas未就绪时等待initCanvas完成后处理
     },
     'width, height': function(width, height) {
-      console.log('🔍 尺寸变化观察者触发:', { width, height });
       if (width && height) {
         this.setData({
           canvasWidth: width,
@@ -215,27 +191,21 @@ Component({
       const maxRetries = 3;
       const retryDelay = [100, 300, 500]; // 递增延迟
       
-      console.log(`🎨 尝试初始化Canvas (第${retryCount + 1}次)...`);
-      
       this.initCanvas().then((success) => {
         if (success) {
-          console.log('✅ Canvas初始化成功');
-          
           // 如果有待处理的数据更新，立即处理
           if (this._pendingDataUpdate) {
-            console.log('🔄 处理待处理的数据更新');
             this._pendingDataUpdate = false;
             setTimeout(() => {
               this.processGraphData();
             }, 50);
           }
         } else if (retryCount < maxRetries) {
-          console.log(`❌ Canvas初始化失败，${retryDelay[retryCount]}ms后重试...`);
           setTimeout(() => {
             this.initCanvasWithRetry(retryCount + 1);
           }, retryDelay[retryCount]);
         } else {
-          console.error('❌ Canvas初始化彻底失败，已达到最大重试次数');
+          console.error('Canvas初始化失败');
           this.setData({ loading: false, error: 'Canvas初始化失败' });
         }
       });
@@ -246,47 +216,28 @@ Component({
      */
     initCanvas() {
       return new Promise((resolve) => {
-        console.log('🎨 开始初始化Canvas...', {
-          canvasWidth: this.data.canvasWidth,
-          canvasHeight: this.data.canvasHeight
-        });
-        
         const query = this.createSelectorQuery();
         query.select('.graph-canvas')
           .fields({ node: true, size: true })
           .exec((res) => {
-            console.log('🎨 Canvas查询结果:', res);
-            
             if (res && res[0] && res[0].node) {
               const canvas = res[0].node;
-              console.log('🎨 Canvas元素获取成功:', canvas);
               
               try {
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
-                  console.error('❌ Canvas 2D上下文获取失败');
                   resolve(false);
                   return;
                 }
-                
-                console.log('🎨 Canvas 2D上下文获取成功');
                 
                 this.canvas = canvas;
                 this.ctx = ctx;
                 
                 // 设置画布尺寸
                 const dpr = wx.getSystemInfoSync().pixelRatio || 1;
-                console.log('🎨 设置Canvas尺寸:', {
-                  width: this.data.canvasWidth * dpr,
-                  height: this.data.canvasHeight * dpr,
-                  dpr: dpr
-                });
-                
                 canvas.width = this.data.canvasWidth * dpr;
                 canvas.height = this.data.canvasHeight * dpr;
                 ctx.scale(dpr, dpr);
-                
-                console.log('✅ Canvas基础初始化完成');
                 
                 // 初始化高级渲染引擎（可选）
                 try {
@@ -304,21 +255,17 @@ Component({
                       interaction: true
                     }
                   });
-                  console.log('✅ 高级渲染引擎初始化完成');
                 } catch (error) {
-                  console.warn('⚠️ 高级渲染引擎初始化失败，使用默认渲染:', error);
                   this.renderer = null;
                 }
                 
-                // 标记初始化成功
                 resolve(true);
                 
               } catch (error) {
-                console.error('❌ Canvas上下文获取失败:', error);
+                console.error('Canvas上下文获取失败:', error);
                 resolve(false);
               }
             } else {
-              console.error('❌ Canvas元素查询失败:', res);
               resolve(false);
             }
           });
@@ -329,16 +276,7 @@ Component({
      * 处理图谱数据
      */
     processGraphData() {
-      console.log('📊 开始处理图谱数据...');
-      console.log('📊 输入数据检查:', {
-        profiles: this.data.profiles?.length || 0,
-        relationships: this.data.relationships?.length || 0,
-        centerNodeId: this.data.centerNodeId,
-        canvasReady: !!(this.canvas && this.ctx)
-      });
-      
       if (!this.data.profiles || this.data.profiles.length === 0) {
-        console.log('❌ 没有联系人数据，停止处理');
         this.setData({ 
           loading: false,
           graphData: {
@@ -356,12 +294,9 @@ Component({
       
       // 即使没有关系数据也要显示联系人节点
       const relationships = this.data.relationships || [];
-      console.log('📊 处理后的关系数据长度:', relationships.length);
-      
       this.setData({ loading: true });
       
       // 使用图谱数据处理器处理数据
-      console.log('📊 调用GraphDataProcessor处理数据...');
       const graphData = GraphDataProcessor.processRelationshipData(
         relationships,
         this.data.profiles,
@@ -371,17 +306,11 @@ Component({
           minConfidence: this.data.minConfidence
         }
       );
-      console.log('📊 处理后的图谱数据:', {
-        nodes: graphData.nodes?.length || 0,
-        links: graphData.links?.length || 0,
-        stats: graphData.stats
-      });
       
       // 使用高级布局引擎计算布局
       let layoutData;
       if (this.layoutEngine) {
         try {
-          console.log('使用高级布局引擎计算布局:', this.data.layoutType);
           layoutData = this.layoutEngine.calculateLayout(
             graphData.nodes,
             graphData.links,
@@ -391,9 +320,7 @@ Component({
               layoutType: this.data.layoutType === 'circle' ? 'radial' : this.data.layoutType
             }
           );
-          console.log('✅ 高级布局计算完成，节点数:', layoutData.nodes.length);
         } catch (error) {
-          console.warn('⚠️ 高级布局引擎失败，使用默认布局:', error);
           // 降级到默认布局
           layoutData = GraphDataProcessor.calculateLayout(
             graphData.nodes,
@@ -421,7 +348,6 @@ Component({
       // 计算居中偏移
       const centerOffset = this.calculateCenterOffset(layoutData.nodes);
       
-      console.log('📊 设置图谱数据到组件状态...');
       this.setData({
         graphData: {
           ...graphData,
@@ -433,13 +359,6 @@ Component({
         scale: 1, // 重置缩放比例
         loading: false
       }, () => {
-        console.log('📊 数据设置完成，开始渲染图谱...');
-        console.log('📊 渲染前状态检查:', {
-          canvas: !!this.canvas,
-          ctx: !!this.ctx,
-          nodes: this.data.graphData.nodes?.length || 0,
-          links: this.data.graphData.links?.length || 0
-        });
         this.renderGraph();
       });
     },
@@ -447,67 +366,43 @@ Component({
     /**
      * 渲染图谱
      */
-    renderGraph() {
-      console.log('🎨 renderGraph调用开始...');
-      console.log('🎨 渲染前置检查:', {
-        ctx: !!this.ctx,
-        canvas: !!this.canvas,
-        loading: this.data.loading
-      });
-      
+    renderGraph() {      
       if (!this.ctx) {
-        console.error('❌ Canvas上下文未初始化，无法渲染');
         // 尝试重新初始化Canvas
         if (!this.canvas) {
-          console.log('🎨 尝试重新初始化Canvas...');
           this.initCanvasWithRetry();
           return;
         } else {
-          console.log('🎨 Canvas存在但上下文丢失，尝试重新获取上下文...');
           try {
             this.ctx = this.canvas.getContext('2d');
             if (!this.ctx) {
-              console.error('❌ 重新获取Canvas上下文失败');
               return;
             }
           } catch (error) {
-            console.error('❌ 重新获取Canvas上下文异常:', error);
+            console.error('重新获取Canvas上下文异常:', error);
             return;
           }
         }
       }
       
       if (this.data.loading) {
-        console.log('⏳ 数据加载中，跳过渲染');
         return;
       }
       
       const { nodes, links } = this.data.graphData;
       const { scale, translateX, translateY } = this.data;
       
-      console.log('🎨 渲染数据检查:', {
-        nodes: nodes?.length || 0,
-        links: links?.length || 0,
-        scale,
-        translateX,
-        translateY
-      });
-      
       // 添加数据验证
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
-        console.log('❌ 没有有效的节点数据，清空画布');
         if (this.ctx) {
           this.ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
         }
         return;
       }
       
-      console.log('🎨 开始渲染图谱:', { 节点数: nodes.length, 连线数: (links || []).length });
-      
       // 使用高级渲染引擎（如果可用）
       if (this.renderer) {
         try {
-          console.log('使用高级渲染引擎渲染');
           this.renderer.render({
             nodes: nodes,
             links: links || [],
@@ -523,10 +418,8 @@ Component({
               height: this.data.canvasHeight
             }
           });
-          console.log('✅ 高级渲染完成');
           return;
         } catch (error) {
-          console.warn('⚠️ 高级渲染引擎失败，使用默认渲染:', error);
           // 继续使用默认渲染
         }
       }
@@ -534,8 +427,6 @@ Component({
       // 默认渲染逻辑
       const ctx = this.ctx;
       try {
-        console.log('🎨 开始默认渲染逻辑');
-        
         // 清空画布
         ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
         
@@ -544,49 +435,39 @@ Component({
         ctx.translate(translateX, translateY);
         ctx.scale(scale, scale);
         
-        console.log('🎨 应用变换完成:', { translateX, translateY, scale });
-        
         // 绘制连接线
         if (links && Array.isArray(links) && links.length > 0) {
-          console.log(`🎨 开始绘制 ${links.length} 条连线`);
           links.forEach((link, index) => {
             try {
               this.drawLink(ctx, link, nodes);
             } catch (error) {
-              console.error(`绘制连线 ${index} 失败:`, error, link);
+              console.error(`绘制连线 ${index} 失败:`, error);
             }
           });
-        } else {
-          console.log('🎨 没有连线需要绘制');
         }
         
         // 绘制节点
         if (nodes && Array.isArray(nodes) && nodes.length > 0) {
-          console.log(`🎨 开始绘制 ${nodes.length} 个节点`);
           nodes.forEach((node, index) => {
             try {
               this.drawNode(ctx, node);
             } catch (error) {
-              console.error(`绘制节点 ${index} 失败:`, error, node);
+              console.error(`绘制节点 ${index} 失败:`, error);
             }
           });
-          console.log('✅ 节点绘制完成');
-        } else {
-          console.log('🎨 没有节点需要绘制');
         }
         
       } catch (error) {
-        console.error('❌ renderGraph 渲染失败:', error);
+        console.error('renderGraph 渲染失败:', error);
         // 尝试清空画布，避免残留内容
         try {
           ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
         } catch (clearError) {
-          console.error('清空画布也失败:', clearError);
+          console.error('清空画布失败:', clearError);
         }
       } finally {
         try {
           ctx.restore();
-          console.log('✅ 渲染状态恢复完成');
         } catch (restoreError) {
           console.error('渲染状态恢复失败:', restoreError);
         }
@@ -598,23 +479,20 @@ Component({
      */
     drawNode(ctx, node) {
       if (!ctx || !node) {
-        console.warn('drawNode: 缺少必要参数', { ctx: !!ctx, node: !!node });
         return;
       }
       
       const { x, y, name, size, color, level } = node;
       
-      // 验证坐标 - 更严格的验证
+      // 验证坐标
       if (typeof x !== 'number' || typeof y !== 'number' || 
           isNaN(x) || isNaN(y) || 
           !isFinite(x) || !isFinite(y)) {
-        console.warn('drawNode: 无效的节点坐标', { x, y, name, node });
         return;
       }
       
       // 验证节点名称
       if (!name || typeof name !== 'string') {
-        console.warn('drawNode: 无效的节点名称', { name, node });
         return;
       }
       
@@ -632,7 +510,7 @@ Component({
         // 绘制节点圆圈（带渐变）
         let fillColor;
         
-        // 验证渐变参数
+        // 创建渐变
         const gradientValid = typeof x === 'number' && typeof y === 'number' && 
                             typeof radius === 'number' && 
                             !isNaN(x) && !isNaN(y) && !isNaN(radius) && 
@@ -640,7 +518,6 @@ Component({
         
         if (gradientValid) {
           try {
-            // 确保渐变参数都是有效的数值
             const x1 = x - radius * 0.3;
             const y1 = y - radius * 0.3;
             const r1 = 0;
@@ -661,11 +538,9 @@ Component({
             }
             fillColor = gradient;
           } catch (error) {
-            console.warn('渐变创建失败，使用纯色填充:', error);
             fillColor = level === 0 ? '#06ae56' : (this.validateColor(color) || '#4caf50');
           }
         } else {
-          // 参数无效，直接使用纯色
           fillColor = level === 0 ? '#06ae56' : (this.validateColor(color) || '#4caf50');
         }
         
@@ -714,12 +589,6 @@ Component({
     drawLink(ctx, link, nodes) {
       // 参数验证
       if (!ctx || !link || !nodes || !Array.isArray(nodes)) {
-        console.warn('drawLink: 缺少必要参数', { 
-          ctx: !!ctx, 
-          link: !!link, 
-          nodes: !!nodes, 
-          nodesIsArray: Array.isArray(nodes) 
-        });
         return;
       }
       
@@ -727,14 +596,6 @@ Component({
       const targetNode = nodes.find(n => n.id === link.target);
       
       if (!sourceNode || !targetNode) {
-        console.warn('drawLink: 找不到连线的节点', {
-          linkId: link.id,
-          source: link.source,
-          target: link.target,
-          sourceFound: !!sourceNode,
-          targetFound: !!targetNode,
-          nodesCount: nodes.length
-        });
         return;
       }
       
@@ -744,10 +605,6 @@ Component({
           typeof targetNode.x !== 'number' || typeof targetNode.y !== 'number' ||
           isNaN(sourceNode.x) || isNaN(sourceNode.y) || 
           isNaN(targetNode.x) || isNaN(targetNode.y)) {
-        console.warn('drawLink: 节点坐标无效', {
-          source: { x: sourceNode.x, y: sourceNode.y },
-          target: { x: targetNode.x, y: targetNode.y }
-        });
         return;
       }
       
@@ -853,7 +710,6 @@ Component({
           
           return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
         } catch (e) {
-          console.warn('颜色处理失败:', validColor, e);
           return '#388e3c'; // 默认深绿色
         }
       }
@@ -1070,8 +926,6 @@ Component({
           selectedLink: linkWithDisplayValues,
           showLinkDetail: true
         });
-      } else {
-        console.log('点击空白区域');
       }
     },
     
@@ -1079,11 +933,9 @@ Component({
      * 画布点击
      */
     onCanvasTap(e) {
-      console.log('画布点击事件:', e.detail);
       const { x, y } = e.detail;
       
       if (typeof x !== 'number' || typeof y !== 'number') {
-        console.warn('无效的点击坐标:', { x, y });
         return;
       }
       
@@ -1091,25 +943,12 @@ Component({
       const hitNode = this.hitTestNode(x, y);
       const hitLink = this.hitTestLink(x, y);
       
-      console.log('命中测试结果:', {
-        hitNode: hitNode ? hitNode.name : null,
-        hitLink: hitLink ? hitLink.id : null,
-        clickPos: { x, y },
-        transform: {
-          scale: this.data.scale,
-          translateX: this.data.translateX,
-          translateY: this.data.translateY
-        }
-      });
-      
       if (hitNode) {
-        console.log('点击节点:', hitNode.name);
         this.setData({
           selectedNode: hitNode,
           showNodeDetail: true
         });
       } else if (hitLink) {
-        console.log('点击连线:', hitLink);
         // 预计算所有显示值避免模板函数调用失败  
         const standardizedConfidence = this.normalizeConfidenceScore(hitLink.confidence_score);
         const linkWithDisplayValues = {
@@ -1124,8 +963,6 @@ Component({
           selectedLink: linkWithDisplayValues,
           showLinkDetail: true
         });
-      } else {
-        console.log('点击空白区域');
       }
     },
     
@@ -1135,7 +972,6 @@ Component({
     hitTestNode(x, y) {
       const { nodes } = this.data.graphData;
       if (!nodes || nodes.length === 0) {
-        console.log('hitTestNode: 没有节点数据');
         return null;
       }
       
@@ -1149,11 +985,9 @@ Component({
           });
           
           if (hitResult) {
-            console.log('✅ 高级引擎命中节点:', hitResult.name);
             return hitResult;
           }
         } catch (error) {
-          console.warn('⚠️ 高级引擎命中测试失败，使用默认方法:', error);
           // 继续使用默认方法
         }
       }
@@ -1165,28 +999,14 @@ Component({
       const canvasX = (x - translateX) / scale;
       const canvasY = (y - translateY) / scale;
       
-      console.log('节点命中测试:', {
-        原始坐标: { x, y },
-        转换后: { canvasX, canvasY },
-        transform: { scale, translateX, translateY }
-      });
-      
       for (let node of nodes) {
         if (node.x != null && node.y != null) {
-          const radius = node.size === 'large' ? 28 : 20; // 与绘制保持一致
+          const radius = node.size === 'large' ? 28 : 20;
           const distance = Math.sqrt(
             Math.pow(canvasX - node.x, 2) + Math.pow(canvasY - node.y, 2)
           );
           
-          console.log(`检查节点 ${node.name}:`, {
-            节点坐标: { x: node.x, y: node.y },
-            半径: radius,
-            距离: distance.toFixed(2),
-            命中: distance <= radius
-          });
-          
           if (distance <= radius) {
-            console.log('命中节点:', node.name);
             return node;
           }
         }
@@ -1201,7 +1021,6 @@ Component({
     hitTestLink(x, y) {
       const { links, nodes } = this.data.graphData;
       if (!links || links.length === 0 || !nodes || nodes.length === 0) {
-        console.log('hitTestLink: 没有连线或节点数据');
         return null;
       }
       
@@ -1215,11 +1034,9 @@ Component({
           });
           
           if (hitResult) {
-            console.log('✅ 高级引擎命中连线:', hitResult);
             return hitResult;
           }
         } catch (error) {
-          console.warn('⚠️ 高级引擎连线命中测试失败，使用默认方法:', error);
           // 继续使用默认方法
         }
       }
@@ -1231,24 +1048,11 @@ Component({
       const canvasX = (x - translateX) / scale;
       const canvasY = (y - translateY) / scale;
       
-      console.log('连线命中测试:', {
-        原始坐标: { x, y },
-        转换后: { canvasX, canvasY },
-        连线数量: links.length
-      });
-      
       for (let link of links) {
         const sourceNode = nodes.find(n => n.id === link.source);
         const targetNode = nodes.find(n => n.id === link.target);
         
         if (!sourceNode || !targetNode) {
-          console.log('连线缺少节点:', {
-            linkId: link.id,
-            source: link.source,
-            target: link.target,
-            sourceFound: !!sourceNode,
-            targetFound: !!targetNode
-          });
           continue;
         }
         
@@ -1259,16 +1063,9 @@ Component({
           targetNode.x, targetNode.y
         );
         
-        const hitThreshold = Math.max(10, (link.width || 2) * 2 + 5); // 增加命中阈值
-        
-        console.log(`检查连线 ${sourceNode.name} -> ${targetNode.name}:`, {
-          距离: distance.toFixed(2),
-          阈值: hitThreshold,
-          命中: distance <= hitThreshold
-        });
+        const hitThreshold = Math.max(10, (link.width || 2) * 2 + 5);
         
         if (distance <= hitThreshold) {
-          console.log('命中连线:', link);
           return link;
         }
       }
