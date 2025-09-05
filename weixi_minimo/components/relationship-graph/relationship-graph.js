@@ -259,7 +259,16 @@ Component({
      * 处理图谱数据
      */
     processGraphData() {
+      console.log('🔍 processGraphData 开始处理数据:', {
+        profiles: this.data.profiles?.length || 0,
+        relationships: this.data.relationships?.length || 0,
+        canvasWidth: this.data.canvasWidth,
+        canvasHeight: this.data.canvasHeight,
+        ctx: !!this.ctx
+      });
+      
       if (!this.data.profiles || this.data.profiles.length === 0) {
+        console.log('⚠️ 没有联系人数据，清空画布');
         this.setData({ 
           loading: false,
           graphData: {
@@ -280,6 +289,7 @@ Component({
       this.setData({ loading: true });
       
       // 使用图谱数据处理器处理数据
+      console.log('📊 调用GraphDataProcessor.processRelationshipData...');
       const graphData = GraphDataProcessor.processRelationshipData(
         relationships,
         this.data.profiles,
@@ -289,6 +299,11 @@ Component({
           minConfidence: this.data.minConfidence
         }
       );
+      
+      console.log('📊 GraphDataProcessor返回结果:', {
+        nodes: graphData.nodes?.length || 0,
+        links: graphData.links?.length || 0
+      });
       
       // 使用高级布局引擎计算布局
       let layoutData;
@@ -331,6 +346,12 @@ Component({
       // 计算居中偏移
       const centerOffset = this.calculateCenterOffset(layoutData.nodes);
       
+      console.log('✅ 设置最终图谱数据:', {
+        nodes: layoutData.nodes?.length || 0,
+        links: layoutData.links?.length || 0,
+        centerOffset
+      });
+      
       this.setData({
         graphData: {
           ...graphData,
@@ -342,6 +363,7 @@ Component({
         scale: 1, // 重置缩放比例
         loading: false
       }, () => {
+        console.log('📊 开始渲染图谱...');
         this.renderGraph();
       });
     },
@@ -349,16 +371,25 @@ Component({
     /**
      * 渲染图谱
      */
-    renderGraph() {      
+    renderGraph() {
+      console.log('🎨 renderGraph 开始渲染:', {
+        ctx: !!this.ctx,
+        canvas: !!this.canvas,
+        loading: this.data.loading,
+        graphData: !!this.data.graphData
+      });
+      
       if (!this.ctx) {
         // 尝试重新初始化Canvas
         if (!this.canvas) {
+          console.log('⚠️ Canvas不存在，尝试重新初始化');
           this.initCanvasWithRetry();
           return;
         } else {
           try {
             this.ctx = this.canvas.getContext('2d');
             if (!this.ctx) {
+              console.error('❌ 无法获取Canvas上下文');
               return;
             }
           } catch (error) {
@@ -369,14 +400,22 @@ Component({
       }
       
       if (this.data.loading) {
+        console.log('⏳ 数据加载中，跳过渲染');
         return;
       }
       
       const { nodes, links } = this.data.graphData;
       const { scale, translateX, translateY } = this.data;
       
+      console.log('📊 渲染数据检查:', {
+        nodes: nodes?.length || 0,
+        links: links?.length || 0,
+        transform: { scale, translateX, translateY }
+      });
+      
       // 添加数据验证
       if (!nodes || !Array.isArray(nodes) || nodes.length === 0) {
+        console.log('⚠️ 没有节点数据，清空画布');
         if (this.ctx) {
           this.ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
         }
@@ -408,18 +447,22 @@ Component({
       }
       
       // 默认渲染逻辑
+      console.log('🖼️ 使用默认渲染逻辑');
       const ctx = this.ctx;
       try {
         // 清空画布
         ctx.clearRect(0, 0, this.data.canvasWidth, this.data.canvasHeight);
+        console.log('✅ 画布已清空，尺寸:', this.data.canvasWidth, 'x', this.data.canvasHeight);
         
         // 应用变换
         ctx.save();
         ctx.translate(translateX, translateY);
         ctx.scale(scale, scale);
+        console.log('✅ 画布变换已应用');
         
         // 绘制连接线
         if (links && Array.isArray(links) && links.length > 0) {
+          console.log('🔗 开始绘制', links.length, '条连线');
           links.forEach((link, index) => {
             try {
               this.drawLink(ctx, link, nodes);
@@ -427,17 +470,23 @@ Component({
               console.error(`绘制连线 ${index} 失败:`, error);
             }
           });
+        } else {
+          console.log('⚠️ 没有连线数据');
         }
         
         // 绘制节点
         if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+          console.log('⭕ 开始绘制', nodes.length, '个节点');
           nodes.forEach((node, index) => {
             try {
               this.drawNode(ctx, node);
+              console.log(`✅ 节点 ${index} (${node.name}) 绘制完成`);
             } catch (error) {
               console.error(`绘制节点 ${index} 失败:`, error);
             }
           });
+        } else {
+          console.log('⚠️ 没有节点数据');
         }
         
       } catch (error) {
