@@ -65,9 +65,10 @@ yarn-error.log*
 miniprogram_npm/
 project.private.config.json
 
-# Test files (commented out - we want to include test scripts)
-# test_*.py
-# *.test.py
+# Test files and outputs
+test_*.py
+*.test.py
+test_*.md
 
 # Temporary files
 *.tmp
@@ -101,3 +102,12 @@ coverage.xml
 *.cer
 private/
 secrets/
+
+# Archive and cleanup
+archive/
+*.txt
+sync_*.sh
+
+# macOS
+.DS_Store
+**/.DS_Store
