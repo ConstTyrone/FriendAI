@@ -239,25 +239,8 @@ Component({
                 canvas.height = this.data.canvasHeight * dpr;
                 ctx.scale(dpr, dpr);
                 
-                // 初始化高级渲染引擎（可选）
-                try {
-                  this.renderer = new AdvancedGraphRenderer(canvas, {
-                    width: this.data.canvasWidth,
-                    height: this.data.canvasHeight,
-                    enableTooltips: true,
-                    enableAnimations: true,
-                    enableSpatialIndex: true,
-                    renderLayers: {
-                      background: true,
-                      links: true,
-                      nodes: true,
-                      labels: true,
-                      interaction: true
-                    }
-                  });
-                } catch (error) {
-                  this.renderer = null;
-                }
+                // 暂时禁用高级渲染引擎以避免离屏Canvas兼容性问题
+                this.renderer = null;
                 
                 resolve(true);
                 

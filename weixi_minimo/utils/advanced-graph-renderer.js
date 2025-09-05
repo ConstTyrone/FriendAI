@@ -152,17 +152,10 @@ class AdvancedGraphRenderer {
           // 微信小程序离屏Canvas的context获取
           let ctx = null;
           try {
-            // 微信小程序可能不需要参数
-            ctx = offscreenCanvas.getContext();
+            // 直接使用标准方式，避免undefined参数
+            ctx = offscreenCanvas.getContext('2d');
           } catch (error) {
-            console.warn(`⚠️ 无参数方式获取离屏Canvas ${layerName} context失败:`, error);
-            
-            // 尝试其他方式
-            try {
-              ctx = offscreenCanvas.getContext('2d');
-            } catch (error2) {
-              console.warn(`⚠️ 标准方式获取离屏Canvas ${layerName} context失败:`, error2);
-            }
+            console.warn(`⚠️ 离屏Canvas ${layerName} context获取失败:`, error);
           }
           
           if (ctx) {
