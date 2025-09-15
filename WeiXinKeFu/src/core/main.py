@@ -14,6 +14,10 @@ from .routes.wechat import router as wechat_router
 from .routes.auth import router as auth_router
 from .routes.utils import router as utils_router
 from .routes.profiles import router as profiles_router
+from .routes.intents import router as intents_router
+from .routes.relationships import router as relationships_router
+from .routes.ai_services import router as ai_services_router
+from .routes.notifications import router as notifications_router
 
 # 配置日志
 logging.basicConfig(
@@ -43,6 +47,10 @@ app.include_router(wechat_router, tags=["微信回调"])
 app.include_router(auth_router, tags=["用户认证"])
 app.include_router(utils_router, tags=["工具和监控"])
 app.include_router(profiles_router, tags=["用户画像"])
+app.include_router(intents_router, tags=["意图管理"])
+app.include_router(relationships_router, tags=["关系管理"])
+app.include_router(ai_services_router, tags=["AI服务"])
+app.include_router(notifications_router, tags=["通知管理"])
 
 # 注册绑定API路由
 try:
@@ -53,4 +61,4 @@ except Exception as e:
     logger.warning(f"绑定API路由注册失败: {e}")
 
 logger.info("FastAPI应用启动完成 - 重构版本")
-logger.info("已注册路由模块: wechat, auth, utils, profiles")
+logger.info("已注册路由模块: wechat, auth, utils, profiles, intents, relationships, ai_services, notifications")
