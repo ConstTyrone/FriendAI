@@ -17,6 +17,8 @@ class WeWorkClient:
         self.config = config
         self._access_token = None
         self._token_expires_at = 0
+        self._cursor_file = "data/kf_cursors.json"  # 本地cursor备份文件
+
         # 导入Redis状态管理器
         try:
             from .redis_state_manager import state_manager
@@ -27,6 +29,8 @@ class WeWorkClient:
             self.state_manager = None
             # 降级方案：内存存储
             self._kf_cursors = {}
+            # 尝试从本地文件恢复
+            self._load_cursors_from_file()
 
     def get_access_token(self):
         """获取access_token"""
@@ -204,13 +208,20 @@ class WeWorkClient:
                 if msg_list:
                     all_messages.extend(msg_list)
 
-                # 更新cursor - 使用Redis持久化
+                # 更新cursor - 使用Redis持久化,失败时降级到本地文件
                 if next_cursor:
                     current_cursor = next_cursor
                     if self.state_manager:
-                        self.state_manager.set_cursor(cursor_key, next_cursor)
+                        try:
+                            self.state_manager.set_cursor(cursor_key, next_cursor)
+                        except Exception as redis_error:
+                            logger.warning(f"⚠️ Redis保存cursor失败: {redis_error}")
+                            # 降级方案: 保存到本地文件
+                            self._save_cursor_to_file(cursor_key, next_cursor)
                     else:
+                        # 内存存储 + 本地文件备份
                         self._kf_cursors[cursor_key] = next_cursor
+                        self._save_cursor_to_file(cursor_key, next_cursor)
                     logger.info(f"📱 更新cursor: {next_cursor}")
 
                 # 如果没有更多消息，退出循环
@@ -262,7 +273,9 @@ class WeWorkClient:
             # 根据消息类型添加具体内容
             msg_type = kf_msg.get("msgtype")
             if msg_type == "text":
-                converted_msg["Content"] = kf_msg.get("text", {}).get("content", "")
+                text_obj = kf_msg.get("text", {})
+                converted_msg["Content"] = text_obj.get("content", "")
+                converted_msg["MenuId"] = text_obj.get("menu_id", "")  # 支持菜单消息回复
             elif msg_type == "image":
                 converted_msg["MediaId"] = kf_msg.get("image", {}).get("media_id", "")
             elif msg_type == "voice":
@@ -283,6 +296,18 @@ class WeWorkClient:
                 # 处理聊天记录消息
                 merged_msg_content = kf_msg.get("merged_msg", {})
                 converted_msg["merged_msg"] = merged_msg_content
+            elif msg_type == "channels_shop_product":
+                # 视频号商品消息
+                converted_msg["channels_shop_product"] = kf_msg.get("channels_shop_product", {})
+            elif msg_type == "channels_shop_order":
+                # 视频号订单消息
+                converted_msg["channels_shop_order"] = kf_msg.get("channels_shop_order", {})
+            elif msg_type == "channels":
+                # 视频号消息
+                converted_msg["channels"] = kf_msg.get("channels", {})
+            elif msg_type == "note":
+                # 笔记消息（暂无详细内容）
+                pass
             elif msg_type == "event":
                 event_content = kf_msg.get("event", {})
                 converted_msg["Event"] = event_content.get("event_type", "")
@@ -297,45 +322,334 @@ class WeWorkClient:
             logger.error(f"消息转换失败: {e}", exc_info=True)
             return None
 
-    def send_text_message(self, external_userid, open_kfid, content):
-        """发送文本消息到微信客服用户"""
+    def _send_message(self, payload):
+        """统一的消息发送接口"""
         try:
-            # 获取access_token
             access_token = self.get_access_token()
             if not access_token:
                 raise Exception("无法获取access_token")
 
-            # 构造请求URL
             url = f"https://qyapi.weixin.qq.com/cgi-bin/kf/send_msg?access_token={access_token}"
 
-            # 构造请求参数
-            payload = {
-                "touser": external_userid,
-                "open_kfid": open_kfid,
-                "msgtype": "text",
-                "text": {
-                    "content": content
-                }
-            }
-
-            logger.info(f"发送文本消息: {url}")
+            logger.info(f"发送消息: {url}")
             logger.info(f"请求参数: {payload}")
 
-            # 发送POST请求
             response = requests.post(url, json=payload)
             result = response.json()
 
             logger.info(f"发送消息接口返回: {result}")
 
-            # 检查是否有错误
             if result.get("errcode") != 0:
                 raise Exception(f"发送消息接口调用失败: {result.get('errmsg')}")
 
             return result
 
         except Exception as e:
-            logger.error(f"发送文本消息失败: {e}", exc_info=True)
-            raise Exception(f"发送文本消息失败: {e}")
+            logger.error(f"发送消息失败: {e}", exc_info=True)
+            raise Exception(f"发送消息失败: {e}")
+
+    def send_text_message(self, external_userid, open_kfid, content, msgid=None):
+        """发送文本消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "text",
+            "text": {
+                "content": content
+            }
+        }
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def upload_temp_media(self, file_path, media_type='image'):
+        """
+        上传临时素材到微信服务器
+
+        Args:
+            file_path: 文件路径
+            media_type: 素材类型 (image/voice/video/file)
+
+        Returns:
+            media_id: 素材ID，用于发送消息
+        """
+        access_token = self.get_access_token()
+        url = f"https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token={access_token}&type={media_type}"
+
+        try:
+            with open(file_path, 'rb') as f:
+                files = {'media': f}
+                response = requests.post(url, files=files)
+                result = response.json()
+
+                if result.get('errcode') == 0 or 'media_id' in result:
+                    media_id = result.get('media_id')
+                    logger.info(f"✅ 上传临时素材成功: media_id={media_id}, type={media_type}")
+                    return media_id
+                else:
+                    error_msg = f"上传临时素材失败: {result.get('errmsg', '未知错误')}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+        except Exception as e:
+            logger.error(f"上传临时素材异常: {e}")
+            raise
+
+    def send_image_message(self, external_userid, open_kfid, media_id, msgid=None):
+        """发送图片消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "image",
+            "image": {
+                "media_id": media_id
+            }
+        }
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_voice_message(self, external_userid, open_kfid, media_id, msgid=None):
+        """发送语音消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "voice",
+            "voice": {
+                "media_id": media_id
+            }
+        }
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_video_message(self, external_userid, open_kfid, media_id, msgid=None):
+        """发送视频消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "video",
+            "video": {
+                "media_id": media_id
+            }
+        }
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_file_message(self, external_userid, open_kfid, media_id, msgid=None):
+        """发送文件消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "file",
+            "file": {
+                "media_id": media_id
+            }
+        }
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_link_message(self, external_userid, open_kfid, title, url, thumb_media_id, desc=None, msgid=None):
+        """发送图文链接消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "link",
+            "link": {
+                "title": title,
+                "url": url,
+                "thumb_media_id": thumb_media_id
+            }
+        }
+        if desc:
+            payload["link"]["desc"] = desc
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_miniprogram_message(self, external_userid, open_kfid, appid, thumb_media_id, pagepath, title=None, msgid=None):
+        """发送小程序消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "miniprogram",
+            "miniprogram": {
+                "appid": appid,
+                "thumb_media_id": thumb_media_id,
+                "pagepath": pagepath
+            }
+        }
+        if title:
+            payload["miniprogram"]["title"] = title
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_menu_message(self, external_userid, open_kfid, menu_items, head_content=None, tail_content=None, msgid=None):
+        """
+        发送菜单消息
+
+        Args:
+            external_userid: 用户ID
+            open_kfid: 客服账号ID
+            menu_items: 菜单项列表,格式示例:
+                [
+                    {"type": "click", "click": {"id": "101", "content": "满意"}},
+                    {"type": "view", "view": {"url": "https://...", "content": "查看详情"}},
+                    {"type": "miniprogram", "miniprogram": {"appid": "...", "pagepath": "...", "content": "打开小程序"}},
+                    {"type": "text", "text": {"content": "纯文本", "no_newline": 0}}
+                ]
+            head_content: 起始文本
+            tail_content: 结束文本
+            msgid: 消息ID
+        """
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "msgmenu",
+            "msgmenu": {
+                "list": menu_items
+            }
+        }
+        if head_content:
+            payload["msgmenu"]["head_content"] = head_content
+        if tail_content:
+            payload["msgmenu"]["tail_content"] = tail_content
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_location_message(self, external_userid, open_kfid, latitude, longitude, name=None, address=None, msgid=None):
+        """发送地理位置消息"""
+        payload = {
+            "touser": external_userid,
+            "open_kfid": open_kfid,
+            "msgtype": "location",
+            "location": {
+                "latitude": latitude,
+                "longitude": longitude
+            }
+        }
+        if name:
+            payload["location"]["name"] = name
+        if address:
+            payload["location"]["address"] = address
+        if msgid:
+            payload["msgid"] = msgid
+        return self._send_message(payload)
+
+    def send_welcome_message(self, welcome_code, content=None, menu_items=None, msgid=None):
+        """
+        发送欢迎语 (事件响应消息)
+
+        重要限制:
+        - 仅可在收到enter_session事件后20秒内调用
+        - 每个welcome_code只能使用一次
+        - 仅支持文本和菜单消息
+
+        Args:
+            welcome_code: 事件回调返回的welcome_code
+            content: 欢迎文本内容 (与menu_items二选一)
+            menu_items: 菜单项列表 (与content二选一)
+            msgid: 消息ID
+
+        Returns:
+            dict: API返回结果
+        """
+        try:
+            access_token = self.get_access_token()
+            if not access_token:
+                raise Exception("无法获取access_token")
+
+            url = f"https://qyapi.weixin.qq.com/cgi-bin/kf/send_msg_on_event?access_token={access_token}"
+
+            # 构造请求参数
+            if menu_items:
+                # 菜单消息
+                payload = {
+                    "code": welcome_code,
+                    "msgtype": "msgmenu",
+                    "msgmenu": {
+                        "list": menu_items
+                    }
+                }
+            else:
+                # 文本消息
+                payload = {
+                    "code": welcome_code,
+                    "msgtype": "text",
+                    "text": {
+                        "content": content or "您好,欢迎咨询!"
+                    }
+                }
+
+            if msgid:
+                payload["msgid"] = msgid
+
+            logger.info(f"发送欢迎语: code={welcome_code}")
+            logger.info(f"请求参数: {payload}")
+
+            response = requests.post(url, json=payload)
+            result = response.json()
+
+            logger.info(f"欢迎语接口返回: {result}")
+
+            if result.get("errcode") != 0:
+                raise Exception(f"发送欢迎语失败: {result.get('errmsg')}")
+
+            return result
+
+        except Exception as e:
+            logger.error(f"发送欢迎语失败: {e}", exc_info=True)
+            raise Exception(f"发送欢迎语失败: {e}")
+
+    def _save_cursor_to_file(self, cursor_key, cursor_value):
+        """保存cursor到本地文件(降级方案)"""
+        try:
+            import os
+            # 确保data目录存在
+            os.makedirs("data", exist_ok=True)
+
+            # 读取现有数据
+            cursors = {}
+            if os.path.exists(self._cursor_file):
+                try:
+                    with open(self._cursor_file, 'r', encoding='utf-8') as f:
+                        cursors = json.load(f)
+                except:
+                    pass
+
+            # 更新cursor
+            cursors[cursor_key] = {
+                "cursor": cursor_value,
+                "updated_at": time.time()
+            }
+
+            # 写入文件
+            with open(self._cursor_file, 'w', encoding='utf-8') as f:
+                json.dump(cursors, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"💾 已将cursor保存到本地文件: {cursor_key}")
+
+        except Exception as e:
+            logger.error(f"保存cursor到文件失败: {e}")
+
+    def _load_cursors_from_file(self):
+        """从本地文件加载cursor(降级方案)"""
+        try:
+            import os
+            if os.path.exists(self._cursor_file):
+                with open(self._cursor_file, 'r', encoding='utf-8') as f:
+                    cursors = json.load(f)
+
+                # 加载到内存
+                for key, data in cursors.items():
+                    self._kf_cursors[key] = data.get("cursor", "")
+
+                logger.info(f"📂 从本地文件加载了 {len(cursors)} 个cursor")
+        except Exception as e:
+            logger.warning(f"从文件加载cursor失败: {e}")
 
 
 wework_client = WeWorkClient(config)

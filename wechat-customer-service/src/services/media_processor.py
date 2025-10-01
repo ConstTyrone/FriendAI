@@ -1105,22 +1105,43 @@ class MediaProcessor:
     def _extract_word_content(self, file_path: str) -> Optional[str]:
         """提取Word文档内容"""
         try:
-            # TODO: 需要安装python-docx库
-            # pip install python-docx
-            
-            # from docx import Document
-            # doc = Document(file_path)
-            # text_content = []
-            # for paragraph in doc.paragraphs:
-            #     text_content.append(paragraph.text)
-            # return '\n'.join(text_content)
-            
-            logger.info("Word文档解析功能待实现（需要安装python-docx）")
-            return "[Word文档解析功能待实现]"
-            
+            try:
+                from docx import Document
+            except ImportError:
+                logger.warning("python-docx未安装，无法解析Word文档。请运行: pip install python-docx")
+                return "[Word文档解析功能需要安装python-docx库]"
+
+            logger.info(f"📄 开始解析Word文档: {file_path}")
+            doc = Document(file_path)
+
+            text_content = []
+
+            # 提取段落内容
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_content.append(paragraph.text)
+
+            # 提取表格内容
+            for table in doc.tables:
+                table_text = []
+                for row in table.rows:
+                    row_text = []
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            row_text.append(cell.text.strip())
+                    if row_text:
+                        table_text.append(" | ".join(row_text))
+
+                if table_text:
+                    text_content.append("\n[表格内容]\n" + "\n".join(table_text))
+
+            result = '\n'.join(text_content)
+            logger.info(f"✅ Word文档解析成功，提取了 {len(result)} 个字符")
+            return result
+
         except Exception as e:
             logger.error(f"Word文档处理失败: {e}")
-            return None
+            return f"[Word文档解析失败: {str(e)}]"
     
     def _extract_pdf_content(self, file_path: str) -> Optional[str]:
         """提取PDF文档内容 - 使用ETL4LM接口"""
@@ -1146,29 +1167,68 @@ class MediaProcessor:
             return f"[PDF处理异常: {str(e)}]"
     
     def _extract_excel_content(self, file_path: str) -> Optional[str]:
-        """提取Excel文档内容"""
+        """提取Excel文档内容 (支持.xlsx和.xls)"""
         try:
-            # TODO: 需要安装openpyxl或xlrd库
-            # pip install openpyxl xlrd
-            
-            # import openpyxl
-            # workbook = openpyxl.load_workbook(file_path)
-            # text_content = []
-            # for sheet_name in workbook.sheetnames:
-            #     sheet = workbook[sheet_name]
-            #     text_content.append(f"=== {sheet_name} ===")
-            #     for row in sheet.iter_rows(values_only=True):
-            #         row_text = '\t'.join([str(cell) if cell is not None else '' for cell in row])
-            #         if row_text.strip():
-            #             text_content.append(row_text)
-            # return '\n'.join(text_content)
-            
-            logger.info("Excel文档解析功能待实现（需要安装openpyxl）")
-            return "[Excel文档解析功能待实现]"
-            
+            file_ext = os.path.splitext(file_path)[1].lower()
+
+            # 优先使用openpyxl处理.xlsx文件
+            if file_ext == '.xlsx':
+                try:
+                    import openpyxl
+                except ImportError:
+                    logger.warning("openpyxl未安装，无法解析xlsx文件。请运行: pip install openpyxl")
+                    return "[Excel(.xlsx)解析功能需要安装openpyxl库]"
+
+                logger.info(f"📊 使用openpyxl解析Excel: {file_path}")
+                workbook = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+                text_content = []
+
+                for sheet_name in workbook.sheetnames:
+                    sheet = workbook[sheet_name]
+                    text_content.append(f"\n=== 工作表: {sheet_name} ===\n")
+
+                    for row in sheet.iter_rows(values_only=True):
+                        row_text = ' | '.join([str(cell) if cell is not None else '' for cell in row])
+                        if row_text.strip():
+                            text_content.append(row_text)
+
+                workbook.close()
+                result = '\n'.join(text_content)
+                logger.info(f"✅ Excel(.xlsx)解析成功，提取了 {len(result)} 个字符")
+                return result
+
+            # 使用xlrd处理.xls文件
+            elif file_ext == '.xls':
+                try:
+                    import xlrd
+                except ImportError:
+                    logger.warning("xlrd未安装，无法解析xls文件。请运行: pip install xlrd")
+                    return "[Excel(.xls)解析功能需要安装xlrd库]"
+
+                logger.info(f"📊 使用xlrd解析Excel: {file_path}")
+                workbook = xlrd.open_workbook(file_path)
+                text_content = []
+
+                for sheet in workbook.sheets():
+                    text_content.append(f"\n=== 工作表: {sheet.name} ===\n")
+
+                    for row_idx in range(sheet.nrows):
+                        row = sheet.row(row_idx)
+                        row_text = ' | '.join([str(cell.value) if cell.value else '' for cell in row])
+                        if row_text.strip():
+                            text_content.append(row_text)
+
+                result = '\n'.join(text_content)
+                logger.info(f"✅ Excel(.xls)解析成功，提取了 {len(result)} 个字符")
+                return result
+
+            else:
+                logger.warning(f"不支持的Excel格式: {file_ext}")
+                return f"[不支持的Excel格式: {file_ext}]"
+
         except Exception as e:
             logger.error(f"Excel文档处理失败: {e}")
-            return None
+            return f"[Excel文档解析失败: {str(e)}]"
 
 # 全局多媒体处理器实例
 media_processor = MediaProcessor()

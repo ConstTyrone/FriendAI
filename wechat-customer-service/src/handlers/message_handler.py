@@ -9,8 +9,12 @@ from typing import Dict, Any
 from .message_classifier import classifier
 from .message_formatter import text_extractor
 from ..services.ai_service import chat_service
+from ..services.image_service import image_service
 
 logger = logging.getLogger(__name__)
+
+# 图片生成关键词
+IMAGE_GENERATION_KEYWORDS = ['画', '生成图片', '画一张', '画一个', '生成一张', '帮我画', '给我画']
 
 def parse_message(xml_data: str) -> Dict[str, Any]:
     """解析XML消息数据"""
@@ -27,23 +31,32 @@ def parse_message(xml_data: str) -> Dict[str, Any]:
         logger.error(f"消息解析失败: {e}")
         return {}
 
-def process_message_and_reply(message: Dict[str, Any]) -> str:
-    """
-    处理消息并生成AI回复
+def is_image_generation_request(text: str) -> bool:
+    """检测是否为图片生成请求"""
+    return any(keyword in text for keyword in IMAGE_GENERATION_KEYWORDS)
 
-    流程: 消息 → 分类 → 转换为纯文本 → AI对话 → 返回回复
+def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) -> dict:
+    """
+    处理消息并生成AI回复或图片
+
+    流程: 消息 → 分类 → 转换为纯文本 → 检测生图指令 → AI对话/生成图片 → 返回回复
 
     Args:
         message: 消息字典
+        open_kfid: 客服账号ID（用于发送图片）
 
     Returns:
-        str: AI回复内容，如果失败返回空字符串
+        dict: {
+            'type': 'text' | 'image',
+            'content': str,  # 文本内容或图片路径
+            'error': str     # 错误信息（可选）
+        }
     """
     try:
         user_id = message.get('FromUserName')
         if not user_id:
             logger.warning("消息中缺少用户ID，跳过处理")
-            return ""
+            return {'type': 'text', 'content': ''}
 
         print(f"📨 收到消息 - 用户: {user_id}")
 
@@ -56,7 +69,32 @@ def process_message_and_reply(message: Dict[str, Any]) -> str:
         print(f"📝 已提取文本内容: {text_content[:100]}...")
         logger.info(f"提取的文本内容: {text_content[:300]}...")
 
-        # 步骤3: AI对话回复
+        # 步骤3: 检测是否为图片生成请求
+        if is_image_generation_request(text_content):
+            print(f"🎨 检测到图片生成请求")
+            logger.info(f"检测到图片生成请求: {text_content}")
+
+            # 调用图片生成服务
+            image_result = image_service.generate_image(prompt=text_content)
+
+            if image_result.get('success', False):
+                image_path = image_result.get('image_path', '')
+                print(f"✅ 图片生成成功: {image_path}")
+                logger.info(f"图片生成成功: {image_path}")
+                return {
+                    'type': 'image',
+                    'content': image_path
+                }
+            else:
+                error_msg = image_result.get('error', '图片生成失败')
+                print(f"❌ 图片生成失败: {error_msg}")
+                logger.error(f"图片生成失败: {error_msg}")
+                return {
+                    'type': 'text',
+                    'content': f"抱歉，图片生成失败: {error_msg}"
+                }
+
+        # 步骤4: 普通AI对话回复
         print(f"🤖 正在生成AI回复...")
         chat_result = chat_service.chat(
             user_message=text_content,
@@ -67,17 +105,26 @@ def process_message_and_reply(message: Dict[str, Any]) -> str:
             reply = chat_result.get('reply', '')
             print(f"✅ AI回复成功: {reply[:100]}...")
             logger.info(f"AI回复内容: {reply}")
-            return reply
+            return {
+                'type': 'text',
+                'content': reply
+            }
         else:
             error_msg = chat_result.get('error', '未知错误')
             print(f"❌ AI回复失败: {error_msg}")
             logger.error(f"AI回复失败: {error_msg}")
-            return "抱歉，我现在遇到了一些问题，请稍后再试。"
+            return {
+                'type': 'text',
+                'content': "抱歉，我现在遇到了一些问题，请稍后再试。"
+            }
 
     except Exception as e:
         logger.error(f"消息处理过程中发生错误: {e}", exc_info=True)
         print(f"❌ 消息处理失败: {e}")
-        return "抱歉，处理您的消息时出现了错误，请稍后再试。"
+        return {
+            'type': 'text',
+            'content': "抱歉，处理您的消息时出现了错误，请稍后再试。"
+        }
 
 def classify_and_handle_message(message: Dict[str, Any]) -> None:
     """
@@ -100,6 +147,89 @@ def classify_and_handle_message(message: Dict[str, Any]) -> None:
 
     except Exception as e:
         logger.error(f"消息处理失败: {e}", exc_info=True)
+
+def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
+    """
+    根据事件类型进行不同处理
+
+    Args:
+        event_content: 事件内容
+        open_kfid: 客服账号ID
+    """
+    from ..services.wework_client import wework_client
+
+    event_type = event_content.get('event_type', '')
+
+    if event_type == 'enter_session':
+        # 用户进入会话事件
+        external_userid = event_content.get('external_userid', '')
+        welcome_code = event_content.get('welcome_code', '')
+        scene = event_content.get('scene', '')
+        scene_param = event_content.get('scene_param', '')
+
+        logger.info(f"👋 用户进入会话: {external_userid}, 场景: {scene}, 参数: {scene_param}")
+
+        if welcome_code:
+            # 发送欢迎语
+            logger.info(f"✨ 发送欢迎语, welcome_code: {welcome_code}")
+            try:
+                # 根据场景定制欢迎语
+                welcome_text = "您好,欢迎咨询!我是AI智能助手,很高兴为您服务。"
+
+                # 如果是视频号场景,添加特定欢迎语
+                wechat_channels = event_content.get('wechat_channels', {})
+                if wechat_channels:
+                    channel_name = wechat_channels.get('nickname', '') or wechat_channels.get('shop_nickname', '')
+                    if channel_name:
+                        welcome_text = f"您好,欢迎从视频号《{channel_name}》咨询!我是AI智能助手,很高兴为您服务。"
+
+                result = wework_client.send_welcome_message(welcome_code, content=welcome_text)
+
+                if result.get('errcode') == 0:
+                    logger.info(f"✅ 欢迎语发送成功")
+                    print(f"✅ 已向用户 {external_userid} 发送欢迎语")
+                else:
+                    error_msg = result.get('errmsg', '未知错误')
+                    logger.warning(f"⚠️ 欢迎语发送失败: {error_msg}")
+                    print(f"⚠️ 欢迎语发送失败: {error_msg}")
+            except Exception as e:
+                logger.error(f"❌ 发送欢迎语异常: {e}", exc_info=True)
+                print(f"❌ 发送欢迎语异常: {e}")
+
+        # 检查视频号场景
+        wechat_channels = event_content.get('wechat_channels', {})
+        if wechat_channels:
+            channel_scene = wechat_channels.get('scene', 0)
+            channel_name = wechat_channels.get('nickname', '') or wechat_channels.get('shop_nickname', '')
+            logger.info(f"📺 来自视频号: {channel_name}, 场景值: {channel_scene}")
+
+    elif event_type == 'msg_send_fail':
+        # 消息发送失败事件
+        external_userid = event_content.get('external_userid', '')
+        fail_msgid = event_content.get('fail_msgid', '')
+        fail_type = event_content.get('fail_type', 0)
+
+        fail_type_map = {
+            0: "未知原因",
+            10: "用户拒收",
+            11: "企业未有成员登录企业微信App",
+            13: "安全限制"
+        }
+        fail_reason = fail_type_map.get(fail_type, f"错误码{fail_type}")
+
+        logger.warning(f"❌ 消息发送失败: 用户={external_userid}, msgid={fail_msgid}, 原因={fail_reason}")
+        print(f"⚠️ 消息发送失败: {fail_reason}")
+
+    elif event_type == 'user_recall_msg':
+        # 用户撤回消息事件
+        external_userid = event_content.get('external_userid', '')
+        recall_msgid = event_content.get('recall_msgid', '')
+
+        logger.info(f"↩️ 用户撤回消息: 用户={external_userid}, msgid={recall_msgid}")
+        print(f"📝 用户撤回了消息: {recall_msgid}")
+
+    else:
+        logger.info(f"❓ 收到未处理的事件类型: {event_type}")
 
 def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
     """
@@ -167,18 +297,40 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
             if converted_msg:
                 print(f"📝 处理消息: {latest_msg.get('msgid', '')}")
 
-                # 处理消息并获取AI回复
-                ai_reply = process_message_and_reply(converted_msg)
+                # 如果是事件消息,调用事件处理函数
+                if converted_msg.get('MsgType') == 'event':
+                    event_content = converted_msg.get('EventContent', {})
+                    handle_event_by_type(event_content, open_kfid)
+                    # 事件处理完成,不需要AI回复
+                    return
 
-                # 发送AI回复给用户
-                if ai_reply:
+                # 处理消息并获取AI回复或图片
+                reply_result = process_message_and_reply(converted_msg, open_kfid)
+
+                # 发送回复给用户
+                if reply_result and reply_result.get('content'):
                     external_userid = latest_msg.get('external_userid', '')
                     if external_userid:
                         try:
-                            print("📤 发送AI回复给用户...")
-                            wework_client.send_text_message(external_userid, open_kfid, ai_reply)
-                            print("✅ AI回复已发送给用户")
-                            logger.info(f"AI回复已发送给用户 {external_userid}")
+                            reply_type = reply_result.get('type', 'text')
+                            content = reply_result.get('content', '')
+
+                            if reply_type == 'image':
+                                # 发送图片消息
+                                print("🖼️ 上传并发送图片给用户...")
+                                # 上传图片获取media_id
+                                media_id = wework_client.upload_temp_media(content, 'image')
+                                # 发送图片消息
+                                wework_client.send_image_message(external_userid, open_kfid, media_id)
+                                print("✅ 图片已发送给用户")
+                                logger.info(f"图片已发送给用户 {external_userid}")
+                            else:
+                                # 发送文本消息
+                                print("📤 发送AI回复给用户...")
+                                wework_client.send_text_message(external_userid, open_kfid, content)
+                                print("✅ AI回复已发送给用户")
+                                logger.info(f"AI回复已发送给用户 {external_userid}")
+
                         except Exception as send_error:
                             logger.error(f"发送消息给用户失败: {send_error}")
                             print(f"❌ 发送消息失败: {send_error}")
@@ -186,7 +338,7 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
                         logger.warning("缺少用户ID，无法发送回复")
                         print("⚠️ 缺少用户ID，无法发送回复")
                 else:
-                    print("⚠️ 没有生成AI回复，不发送")
+                    print("⚠️ 没有生成回复内容，不发送")
             else:
                 logger.error("消息转换失败")
                 print("❌ 消息转换失败")

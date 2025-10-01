@@ -11,8 +11,8 @@ class MessageClassifier:
         """消息分类主函数"""
         msg_type = message.get('MsgType', '').lower()
         content = message.get('Content', '')
-        
-        
+
+
         if msg_type == 'text':
             return self.classify_text_message(content)
         elif msg_type == 'image':
@@ -31,6 +31,14 @@ class MessageClassifier:
             return 'miniprogram'
         elif msg_type == 'merged_msg':
             return 'chat_record'
+        elif msg_type == 'channels_shop_product':
+            return 'channels_product'
+        elif msg_type == 'channels_shop_order':
+            return 'channels_order'
+        elif msg_type == 'channels':
+            return 'channels_video'
+        elif msg_type == 'note':
+            return 'note'
         elif msg_type == 'event':
             return 'event'
         else:

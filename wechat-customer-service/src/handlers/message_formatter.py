@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class MessageTextExtractor:
     """消息文本提取器 - 将各种类型的消息转换为纯文本，用于用户画像提取"""
-    
+
     def __init__(self):
         pass
     
@@ -35,6 +35,10 @@ class MessageTextExtractor:
             'link': self._extract_link_content,
             'miniprogram': self._extract_miniprogram_content,
             'chat_record': self._extract_chat_record_content,
+            'channels_product': self._extract_channels_product_content,
+            'channels_order': self._extract_channels_order_content,
+            'channels_video': self._extract_channels_video_content,
+            'note': self._extract_note_content,
             'event': self._extract_event_content,
             'command': self._extract_command_content
         }
@@ -69,11 +73,11 @@ class MessageTextExtractor:
         """提取图片消息信息并进行OCR识别"""
         context = self._get_user_context(message)
         media_id = message.get('MediaId', '')
-        
+
         # 使用ETL4LM接口进行图片OCR识别
         try:
             from ..services.media_processor import media_processor
-            
+
             logger.info(f"🖼️ 开始图片OCR识别: {media_id}")
             ocr_text = media_processor.process_image_ocr(media_id)
             
@@ -94,9 +98,9 @@ class MessageTextExtractor:
         context = self._get_user_context(message)
         media_id = message.get('MediaId', '')
         filename = message.get('Title', '')
-        
+
         logger.info(f"📁 处理文件消息: MediaId={media_id}, Title='{filename}'")
-        
+
         # 微信客服的文件消息可能没有文件名，我们需要先下载文件来识别类型
         if not filename or filename.strip() == '':
             # 没有文件名，先尝试下载文件来识别类型
@@ -192,7 +196,7 @@ class MessageTextExtractor:
         """提取语音消息内容（通过语音识别转文字）"""
         context = self._get_user_context(message)
         media_id = message.get('MediaId', '')
-        
+
         # 使用多媒体处理器进行语音转文字
         from ..services.media_processor import media_processor
         logger.info(f"🎤 开始处理语音消息: {media_id}")
@@ -214,7 +218,7 @@ class MessageTextExtractor:
         """提取视频消息信息"""
         context = self._get_user_context(message)
         media_id = message.get('MediaId', '')
-        
+
         # TODO: 实现视频内容分析（可选功能）
         return f"{context}发送了一个视频（MediaID: {media_id}）。注：视频内容分析功能待实现。"
     
@@ -428,11 +432,69 @@ class MessageTextExtractor:
             logger.error(f"处理聊天记录链接失败: {e}")
             return "[分享了链接，解析失败]"
     
+    def _extract_channels_product_content(self, message: Dict[str, Any]) -> str:
+        """提取视频号商品消息"""
+        context = self._get_user_context(message)
+        product_data = message.get('channels_shop_product', {})
+
+        product_id = product_data.get('product_id', '')
+        title = product_data.get('title', '无标题')
+        price = product_data.get('sales_price', '0')
+        shop_name = product_data.get('shop_nickname', '未知店铺')
+
+        # 价格从分转换为元
+        try:
+            price_yuan = f"{int(price) / 100:.2f}元"
+        except:
+            price_yuan = "未知价格"
+
+        return f"{context}分享了视频号商品：《{title}》\n店铺：{shop_name}\n价格：{price_yuan}\n商品ID：{product_id}"
+
+    def _extract_channels_order_content(self, message: Dict[str, Any]) -> str:
+        """提取视频号订单消息"""
+        context = self._get_user_context(message)
+        order_data = message.get('channels_shop_order', {})
+
+        order_id = order_data.get('order_id', '')
+        product_titles = order_data.get('product_titles', '无商品')
+        price_wording = order_data.get('price_wording', '未知价格')
+        state = order_data.get('state', '未知状态')
+        shop_name = order_data.get('shop_nickname', '未知店铺')
+
+        return f"{context}分享了视频号订单\n订单号：{order_id}\n商品：{product_titles}\n价格：{price_wording}\n状态：{state}\n店铺：{shop_name}"
+
+    def _extract_channels_video_content(self, message: Dict[str, Any]) -> str:
+        """提取视频号消息"""
+        context = self._get_user_context(message)
+        channels_data = message.get('channels', {})
+
+        sub_type = channels_data.get('sub_type', 0)
+        nickname = channels_data.get('nickname', '未知视频号')
+        title = channels_data.get('title', '')
+
+        type_map = {
+            1: "视频号动态",
+            2: "视频号直播",
+            3: "视频号名片"
+        }
+        type_name = type_map.get(sub_type, f"视频号消息(类型{sub_type})")
+
+        result = f"{context}分享了{type_name}\n视频号：{nickname}"
+        if title:
+            result += f"\n标题：{title}"
+
+        return result
+
+    def _extract_note_content(self, message: Dict[str, Any]) -> str:
+        """提取笔记消息"""
+        context = self._get_user_context(message)
+        return f"{context}分享了一条笔记（笔记详细内容暂不支持获取）"
+
     def _extract_event_content(self, message: Dict[str, Any]) -> str:
         """提取事件信息"""
         context = self._get_user_context(message)
         event = message.get('Event', '未知事件')
-        
+
         return f"{context}触发了系统事件：{event}"
     
     def _extract_command_content(self, message: Dict[str, Any]) -> str:
