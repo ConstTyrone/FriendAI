@@ -249,7 +249,7 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
     处理微信客服事件消息 - 简化版本，只获取最新一条消息（无验证码绑定）
     """
     try:
-        # 防重复处理机制
+        # 防重复处理机制 - 使用Redis持久化
         corp_id = message.get('ToUserName', '')
         open_kfid = message.get('OpenKfId', '')
         token = message.get('Token', '')
@@ -257,16 +257,31 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
 
         event_id = f"{corp_id}_{open_kfid}_{token}_{create_time}"
 
-        # 简单的内存去重（生产环境建议使用Redis）
-        if not hasattr(handle_wechat_kf_event, '_processed_events'):
-            handle_wechat_kf_event._processed_events = set()
+        # 导入Redis状态管理器
+        try:
+            from ..services.redis_state_manager import state_manager
 
-        if event_id in handle_wechat_kf_event._processed_events:
-            print(f"⚠️ 事件 {event_id} 已经处理过，跳过重复处理")
-            logger.info(f"事件 {event_id} 已经处理过，跳过重复处理")
-            return
+            # 使用Redis去重
+            if state_manager.is_event_processed(event_id):
+                print(f"⚠️ 事件 {event_id} 已经处理过，跳过重复处理")
+                logger.info(f"事件 {event_id} 已经处理过，跳过重复处理")
+                return
 
-        handle_wechat_kf_event._processed_events.add(event_id)
+            # 标记事件已处理
+            state_manager.mark_event_processed(event_id)
+
+        except Exception as e:
+            logger.warning(f"⚠️ Redis去重失败，使用内存去重: {e}")
+            # 降级方案：内存去重
+            if not hasattr(handle_wechat_kf_event, '_processed_events'):
+                handle_wechat_kf_event._processed_events = set()
+
+            if event_id in handle_wechat_kf_event._processed_events:
+                print(f"⚠️ 事件 {event_id} 已经处理过，跳过重复处理")
+                logger.info(f"事件 {event_id} 已经处理过，跳过重复处理")
+                return
+
+            handle_wechat_kf_event._processed_events.add(event_id)
 
         print(f"[微信客服事件] 企业ID: {corp_id}, 事件: kf_msg_or_event, 客服账号: {open_kfid}")
         print(f"Token: {token}, 时间: {create_time}")

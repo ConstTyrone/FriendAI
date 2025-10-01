@@ -14,8 +14,16 @@ class WeWorkClient:
         self.config = config
         self._access_token = None
         self._token_expires_at = 0
-        # 用于存储不同客服账号的消息游标
-        self._kf_cursors = {}
+        # 导入Redis状态管理器
+        try:
+            from .redis_state_manager import state_manager
+            self.state_manager = state_manager
+            logger.info("✅ WeWorkClient已集成Redis状态管理")
+        except Exception as e:
+            logger.warning(f"⚠️ Redis状态管理器加载失败，将使用内存存储: {e}")
+            self.state_manager = None
+            # 降级方案：内存存储
+            self._kf_cursors = {}
 
     def get_access_token(self):
         """获取access_token"""
@@ -158,7 +166,11 @@ class WeWorkClient:
             all_messages = []
 
             # 循环拉取所有消息，直到has_more=0
-            current_cursor = self._kf_cursors.get(cursor_key, "")
+            # 使用Redis或内存获取游标
+            if self.state_manager:
+                current_cursor = self.state_manager.get_cursor(cursor_key) or ""
+            else:
+                current_cursor = self._kf_cursors.get(cursor_key, "")
 
             while True:
                 # 构造请求参数
@@ -198,10 +210,13 @@ class WeWorkClient:
                 if msg_list:
                     all_messages.extend(msg_list)
 
-                # 更新cursor
+                # 更新cursor - 使用Redis持久化
                 if next_cursor:
                     current_cursor = next_cursor
-                    self._kf_cursors[cursor_key] = next_cursor
+                    if self.state_manager:
+                        self.state_manager.set_cursor(cursor_key, next_cursor)
+                    else:
+                        self._kf_cursors[cursor_key] = next_cursor
                     logger.info(f"📱 更新cursor: {next_cursor}")
 
                 # 如果没有更多消息，退出循环

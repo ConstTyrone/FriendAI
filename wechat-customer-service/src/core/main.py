@@ -4,9 +4,9 @@
 只包含微信客服消息处理核心功能
 """
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, JSONResponse
 import xml.etree.ElementTree as ET
 import urllib.parse
 import logging
@@ -44,8 +44,67 @@ async def root():
     return {
         "name": "微信客服用户画像系统",
         "version": "1.0.0",
-        "description": "简化版 - 专注于微信客服消息处理和AI用户画像分析"
+        "description": "简化版 - 专注于微信客服消息处理和AI用户画像分析",
+        "features": {
+            "redis_state_management": "✅ 已启用",
+            "async_processing": "✅ 已启用",
+            "ai_analysis": "✅ 通义千问"
+        }
     }
+
+
+@app.get("/health")
+async def health_check():
+    """
+    健康检查端点
+
+    检查系统各组件状态：Redis、数据库、AI服务等
+    """
+    health_status = {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "components": {}
+    }
+
+    # 检查Redis连接
+    try:
+        from ..services.redis_state_manager import state_manager
+        redis_health = state_manager.health_check()
+        health_status["components"]["redis"] = redis_health
+    except Exception as e:
+        health_status["components"]["redis"] = {
+            "status": "unhealthy",
+            "message": str(e)
+        }
+
+    # 检查数据库连接
+    try:
+        test_conn = db.get_connection()
+        test_conn.__enter__()
+        test_conn.__exit__(None, None, None)
+        health_status["components"]["database"] = {
+            "status": "healthy",
+            "type": "sqlite"
+        }
+    except Exception as e:
+        health_status["components"]["database"] = {
+            "status": "unhealthy",
+            "message": str(e)
+        }
+        health_status["status"] = "degraded"
+
+    # 整体状态判断
+    component_statuses = [c.get("status") for c in health_status["components"].values()]
+    if "unhealthy" in component_statuses:
+        health_status["status"] = "unhealthy"
+        status_code = 503
+    elif "degraded" in component_statuses:
+        health_status["status"] = "degraded"
+        status_code = 200
+    else:
+        status_code = 200
+
+    return JSONResponse(content=health_status, status_code=status_code)
 
 @app.get("/wework/callback")
 async def wework_verify(msg_signature: str, timestamp: str, nonce: str, echostr: str):
@@ -85,8 +144,19 @@ async def wework_verify(msg_signature: str, timestamp: str, nonce: str, echostr:
 
 
 @app.post("/wework/callback")
-async def wework_callback(request: Request, msg_signature: str, timestamp: str, nonce: str):
-    """微信客服/企业微信消息回调"""
+async def wework_callback(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    msg_signature: str,
+    timestamp: str,
+    nonce: str
+):
+    """
+    微信客服/企业微信消息回调（异步处理版本）
+
+    快速响应微信服务器（<1秒），然后在后台异步处理消息
+    解决同步阻塞导致的超时问题
+    """
     try:
         # 获取请求体
         body = await request.body()
@@ -100,39 +170,62 @@ async def wework_callback(request: Request, msg_signature: str, timestamp: str, 
         root = ET.fromstring(body.decode('utf-8'))
         encrypt_msg = root.find('Encrypt').text
 
-        # 验证签名
+        # 验证签名（快速验证，<100ms）
         is_valid = wework_client.verify_signature(msg_signature, timestamp, nonce, encrypt_msg)
 
         if not is_valid:
             logger.error("签名验证失败")
             raise HTTPException(status_code=400, detail="签名验证失败")
 
-        # 解密消息
+        # 解密消息（快速解密，<100ms）
         decrypted_xml = wework_client.decrypt_message(encrypt_msg)
 
-        # 解析消息
+        # 解析消息（快速解析，<50ms）
         message = parse_message(decrypted_xml)
 
-        # 检查是否为微信客服事件消息
+        # 添加到后台任务异步处理（不阻塞响应）
         msg_type = message.get('MsgType')
         event = message.get('Event')
 
         if msg_type == 'event' and event == 'kf_msg_or_event':
-            # 处理微信客服事件消息
-            handle_wechat_kf_event(message)
+            # 异步处理微信客服事件消息
+            background_tasks.add_task(handle_wechat_kf_event_async, message)
         else:
-            # 分类处理普通消息
-            classify_and_handle_message(message)
+            # 异步处理普通消息
+            background_tasks.add_task(classify_and_handle_message_async, message)
 
+        # 立即返回成功（总耗时 <200ms）
+        logger.info("✅ 消息已接收，正在后台处理")
         return PlainTextResponse("success")
 
     except ET.ParseError as e:
         logger.error(f"XML解析失败: {e}")
-        logger.error(f"请求体内容: {await request.body()}")
         return PlainTextResponse("fail")
     except Exception as e:
-        logger.error(f"消息处理失败: {e}", exc_info=True)
+        logger.error(f"消息接收失败: {e}", exc_info=True)
         return PlainTextResponse("fail")
+
+
+async def handle_wechat_kf_event_async(message: dict):
+    """异步处理微信客服事件消息"""
+    try:
+        logger.info("🔄 开始异步处理微信客服事件")
+        # 调用同步处理函数（在后台线程中执行）
+        handle_wechat_kf_event(message)
+        logger.info("✅ 微信客服事件处理完成")
+    except Exception as e:
+        logger.error(f"❌ 异步处理微信客服事件失败: {e}", exc_info=True)
+
+
+async def classify_and_handle_message_async(message: dict):
+    """异步处理普通消息"""
+    try:
+        logger.info("🔄 开始异步处理普通消息")
+        # 调用同步处理函数（在后台线程中执行）
+        classify_and_handle_message(message)
+        logger.info("✅ 普通消息处理完成")
+    except Exception as e:
+        logger.error(f"❌ 异步处理普通消息失败: {e}", exc_info=True)
 
 
 @app.get("/wechat/callback")

@@ -28,7 +28,7 @@ class Config:
 
         # 语音识别配置（可选）
         self.asr_appkey = os.getenv('ASR_APPKEY', 'NM5zdrGkIl8xqSzO')  # 预配置AppKey
-        self.asr_token = os.getenv('ASR_TOKEN', '')  # 手动Token（向后兼容）
+        self.asr_token = os.getenv('ASR_TOKEN', 'be3d7dfd4e51401db4c122e2d74b06ba')  # 手动Token（向后兼容）
         self.asr_url = os.getenv('ASR_URL', 'wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1')
 
         # 阿里云AccessKey配置（用于自动获取ASR Token）
@@ -38,6 +38,12 @@ class Config:
 
         # FFmpeg配置（可选）
         self.ffmpeg_path = os.getenv('FFMPEG_PATH', 'ffmpeg')
+
+        # Redis配置（用于状态管理和消息去重）
+        self.redis_host = os.getenv('REDIS_HOST', 'localhost')
+        self.redis_port = int(os.getenv('REDIS_PORT', '6379'))
+        self.redis_db = int(os.getenv('REDIS_DB', '0'))
+        self.redis_password = os.getenv('REDIS_PASSWORD', None)
 
         # ETL4LM服务配置（预配置）
         self.etl_base_url = os.getenv('ETL_BASE_URL', 'http://110.16.193.170:50103')
