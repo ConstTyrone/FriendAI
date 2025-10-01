@@ -1,6 +1,7 @@
 # ai_service.py
 """
 AI对话服务 - 使用通义千问提供智能对话回复
+对话历史通过Redis持久化存储，支持服务重启后恢复上下文
 """
 import requests
 import json
@@ -19,8 +20,6 @@ class ChatService:
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
-        # 对话历史（可选，用于上下文记忆）
-        self.conversation_history = {}
 
     def chat(self, user_message: str, user_id: str = None, system_prompt: str = None) -> dict:
         """
@@ -57,11 +56,17 @@ class ChatService:
                     "content": "你是一个友好、专业的AI助手，请用简洁、清晰的语言回答用户的问题。"
                 })
 
-            # 添加历史对话（如果有用户ID且有历史记录）
-            if user_id and user_id in self.conversation_history:
-                # 只保留最近5轮对话
-                history = self.conversation_history[user_id][-10:]  # 5轮对话=10条消息
-                messages.extend(history)
+            # 从Redis获取历史对话（如果有用户ID）
+            if user_id:
+                try:
+                    from .redis_state_manager import state_manager
+                    # 获取最近10轮对话（20条消息）
+                    history = state_manager.get_conversation_history(user_id, max_messages=20)
+                    if history:
+                        messages.extend(history)
+                        logger.info(f"从Redis加载对话历史: user_id={user_id}, count={len(history)}")
+                except Exception as e:
+                    logger.warning(f"获取对话历史失败，将不使用历史上下文: {e}")
 
             # 添加当前用户消息
             messages.append({
@@ -102,24 +107,17 @@ class ChatService:
             if 'choices' in result and len(result['choices']) > 0:
                 ai_reply = result['choices'][0]['message']['content']
 
-                # 保存对话历史（如果有用户ID）
+                # 保存对话历史到Redis（如果有用户ID）
                 if user_id:
-                    if user_id not in self.conversation_history:
-                        self.conversation_history[user_id] = []
-
-                    # 添加本轮对话
-                    self.conversation_history[user_id].append({
-                        "role": "user",
-                        "content": user_message
-                    })
-                    self.conversation_history[user_id].append({
-                        "role": "assistant",
-                        "content": ai_reply
-                    })
-
-                    # 限制历史长度（最多保留10轮对话=20条消息）
-                    if len(self.conversation_history[user_id]) > 20:
-                        self.conversation_history[user_id] = self.conversation_history[user_id][-20:]
+                    try:
+                        from .redis_state_manager import state_manager
+                        # 保存用户消息
+                        state_manager.add_conversation_message(user_id, "user", user_message)
+                        # 保存AI回复
+                        state_manager.add_conversation_message(user_id, "assistant", ai_reply)
+                        logger.info(f"对话历史已保存到Redis: user_id={user_id}")
+                    except Exception as e:
+                        logger.warning(f"保存对话历史失败: {e}")
 
                 logger.info(f"AI回复成功: {ai_reply[:100]}...")
 
@@ -152,9 +150,12 @@ class ChatService:
 
     def clear_history(self, user_id: str):
         """清除指定用户的对话历史"""
-        if user_id in self.conversation_history:
-            del self.conversation_history[user_id]
+        try:
+            from .redis_state_manager import state_manager
+            state_manager.clear_conversation_history(user_id)
             logger.info(f"已清除用户 {user_id} 的对话历史")
+        except Exception as e:
+            logger.error(f"清除对话历史失败: {e}")
 
 # 创建全局对话服务实例
 chat_service = ChatService()

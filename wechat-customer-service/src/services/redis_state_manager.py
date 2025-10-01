@@ -1,10 +1,11 @@
 # redis_state_manager.py
 """
 Redis状态管理器
-用于持久化存储消息游标和事件去重标记，解决服务重启后状态丢失问题
+用于持久化存储消息游标、事件去重标记和对话历史，解决服务重启后状态丢失问题
 """
 import redis
 import logging
+import json
 import os
 from typing import Optional
 from ..config.config import config
@@ -150,6 +151,117 @@ class RedisStateManager:
 
         except Exception as e:
             logger.error(f"标记事件失败: {e}")
+
+    # ========== 对话历史管理 ==========
+
+    def get_conversation_history(self, user_id: str, max_messages: int = 20) -> list:
+        """
+        获取用户对话历史
+
+        Args:
+            user_id: 用户ID
+            max_messages: 最多返回多少条消息（默认20条=10轮对话）
+
+        Returns:
+            list: 对话消息列表，格式 [{"role": "user", "content": "..."}, ...]
+        """
+        try:
+            if self._redis_available:
+                # 从Redis获取
+                key = f"chat:history:{user_id}"
+                # 获取最近的max_messages条消息
+                messages_json = self.redis_client.lrange(key, -max_messages, -1)
+
+                # 解析JSON
+                messages = []
+                for msg_json in messages_json:
+                    try:
+                        messages.append(json.loads(msg_json))
+                    except json.JSONDecodeError:
+                        logger.warning(f"解析对话历史失败: {msg_json}")
+                        continue
+
+                logger.debug(f"从Redis获取对话历史: user_id={user_id}, count={len(messages)}")
+                return messages
+            else:
+                # 降级：内存存储
+                if not hasattr(self, '_memory_conversation_history'):
+                    self._memory_conversation_history = {}
+
+                history = self._memory_conversation_history.get(user_id, [])
+                logger.debug(f"从内存获取对话历史: user_id={user_id}, count={len(history)}")
+                return history[-max_messages:] if history else []
+
+        except Exception as e:
+            logger.error(f"获取对话历史失败: {e}")
+            return []
+
+    def add_conversation_message(self, user_id: str, role: str, content: str, ttl: int = 86400 * 7):
+        """
+        添加一条对话消息到历史
+
+        Args:
+            user_id: 用户ID
+            role: 角色（user/assistant/system）
+            content: 消息内容
+            ttl: 过期时间（秒），默认7天
+        """
+        try:
+            message = {
+                "role": role,
+                "content": content
+            }
+            message_json = json.dumps(message, ensure_ascii=False)
+
+            if self._redis_available:
+                # 保存到Redis
+                key = f"chat:history:{user_id}"
+                self.redis_client.rpush(key, message_json)
+
+                # 设置过期时间
+                self.redis_client.expire(key, ttl)
+
+                # 限制历史长度（最多保留100条消息=50轮对话）
+                list_len = self.redis_client.llen(key)
+                if list_len > 100:
+                    # 删除最旧的消息，保留最新的100条
+                    self.redis_client.ltrim(key, -100, -1)
+
+                logger.debug(f"添加对话消息到Redis: user_id={user_id}, role={role}")
+            else:
+                # 降级：内存存储
+                if not hasattr(self, '_memory_conversation_history'):
+                    self._memory_conversation_history = {}
+
+                if user_id not in self._memory_conversation_history:
+                    self._memory_conversation_history[user_id] = []
+
+                self._memory_conversation_history[user_id].append(message)
+
+                # 限制历史长度
+                if len(self._memory_conversation_history[user_id]) > 100:
+                    self._memory_conversation_history[user_id] = \
+                        self._memory_conversation_history[user_id][-100:]
+
+                logger.debug(f"添加对话消息到内存: user_id={user_id}, role={role}")
+
+        except Exception as e:
+            logger.error(f"添加对话消息失败: {e}")
+
+    def clear_conversation_history(self, user_id: str):
+        """清除指定用户的对话历史"""
+        try:
+            if self._redis_available:
+                key = f"chat:history:{user_id}"
+                self.redis_client.delete(key)
+                logger.info(f"清除对话历史: user_id={user_id}")
+            else:
+                if hasattr(self, '_memory_conversation_history') and \
+                   user_id in self._memory_conversation_history:
+                    del self._memory_conversation_history[user_id]
+                    logger.info(f"清除对话历史(内存): user_id={user_id}")
+        except Exception as e:
+            logger.error(f"清除对话历史失败: {e}")
 
     # ========== 辅助方法 ==========
 
