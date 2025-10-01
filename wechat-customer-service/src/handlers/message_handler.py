@@ -60,6 +60,38 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
 
         print(f"📨 收到消息 - 用户: {user_id}")
 
+        # 步骤0: 检测是否为菜单点击消息
+        menu_id = message.get('MenuId', '')
+        if menu_id:
+            print(f"🎯 检测到菜单点击: {menu_id}")
+            logger.info(f"用户点击菜单: {menu_id}")
+
+            # 根据菜单ID模拟用户输入
+            if menu_id == 'chat_help':
+                # 我有问题要问: 返回提示语
+                return {
+                    'type': 'text',
+                    'content': '您好!我是AI智能助手,请告诉我您的问题,我会尽力为您解答。'
+                }
+            elif menu_id == 'draw_cat':
+                # 画一只可爱的小猫: 直接触发图片生成
+                print(f"🐱 用户点击: 画一只可爱的小猫")
+                # 修改消息内容为画图指令
+                message['Content'] = '画一只可爱的小猫'
+                message['MenuId'] = ''  # 清除MenuId,避免重复处理
+                # 继续正常流程处理
+            elif menu_id == 'draw_landscape':
+                # 画一幅唯美的山水画: 直接触发图片生成
+                print(f"🌄 用户点击: 画一幅唯美的山水画")
+                message['Content'] = '画一幅唯美的山水画'
+                message['MenuId'] = ''  # 清除MenuId
+                # 继续正常流程处理
+            else:
+                return {
+                    'type': 'text',
+                    'content': '收到您的选择,请问有什么可以帮助您的？'
+                }
+
         # 步骤1: 分类消息类型
         message_type = classifier.classify_message(message)
         print(f"🔍 消息分类: {message_type}")
@@ -74,8 +106,21 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
             print(f"🎨 检测到图片生成请求")
             logger.info(f"检测到图片生成请求: {text_content}")
 
+            # 清理prompt: 提取实际的图片描述内容,去掉用户上下文
+            # text_content格式: "用户[xxx]于xxxx发送了以下文本消息：\n实际内容"
+            clean_prompt = text_content
+            if "发送了以下文本消息：\n" in text_content:
+                clean_prompt = text_content.split("发送了以下文本消息：\n", 1)[1]
+            elif "：" in text_content and "\n" in text_content:
+                # 其他格式的消息,尝试提取冒号后的内容
+                parts = text_content.split("\n", 1)
+                if len(parts) > 1:
+                    clean_prompt = parts[1]
+
+            logger.info(f"清理后的图片生成prompt: {clean_prompt}")
+
             # 调用图片生成服务
-            image_result = image_service.generate_image(prompt=text_content)
+            image_result = image_service.generate_image(prompt=clean_prompt)
 
             if image_result.get('success', False):
                 image_path = image_result.get('image_path', '')
@@ -170,31 +215,42 @@ def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
         logger.info(f"👋 用户进入会话: {external_userid}, 场景: {scene}, 参数: {scene_param}")
 
         if welcome_code:
-            # 发送欢迎语
-            logger.info(f"✨ 发送欢迎语, welcome_code: {welcome_code}")
+            # 发送欢迎语菜单
+            logger.info(f"✨ 发送欢迎语菜单, welcome_code: {welcome_code}")
             try:
                 # 根据场景定制欢迎语
-                welcome_text = "您好,欢迎咨询!我是AI智能助手,很高兴为您服务。"
+                welcome_text = "您好,欢迎咨询!我是AI智能助手,可以为您提供以下服务:"
 
                 # 如果是视频号场景,添加特定欢迎语
                 wechat_channels = event_content.get('wechat_channels', {})
                 if wechat_channels:
                     channel_name = wechat_channels.get('nickname', '') or wechat_channels.get('shop_nickname', '')
                     if channel_name:
-                        welcome_text = f"您好,欢迎从视频号《{channel_name}》咨询!我是AI智能助手,很高兴为您服务。"
+                        welcome_text = f"您好,欢迎从视频号《{channel_name}》咨询!我是AI智能助手,可以为您提供以下服务:"
 
-                result = wework_client.send_welcome_message(welcome_code, content=welcome_text)
+                # 构建功能菜单 - 具体明确的选项
+                menu_items = [
+                    {"type": "click", "click": {"id": "chat_help", "content": "💬 我有问题要问"}},
+                    {"type": "click", "click": {"id": "draw_cat", "content": "🐱 画一只可爱的小猫"}},
+                    {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
+                ]
+
+                result = wework_client.send_welcome_message(
+                    welcome_code,
+                    content=welcome_text,
+                    menu_items=menu_items
+                )
 
                 if result.get('errcode') == 0:
-                    logger.info(f"✅ 欢迎语发送成功")
-                    print(f"✅ 已向用户 {external_userid} 发送欢迎语")
+                    logger.info(f"✅ 欢迎语菜单发送成功")
+                    print(f"✅ 已向用户 {external_userid} 发送欢迎语菜单")
                 else:
                     error_msg = result.get('errmsg', '未知错误')
-                    logger.warning(f"⚠️ 欢迎语发送失败: {error_msg}")
-                    print(f"⚠️ 欢迎语发送失败: {error_msg}")
+                    logger.warning(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
+                    print(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
             except Exception as e:
-                logger.error(f"❌ 发送欢迎语异常: {e}", exc_info=True)
-                print(f"❌ 发送欢迎语异常: {e}")
+                logger.error(f"❌ 发送欢迎语菜单异常: {e}", exc_info=True)
+                print(f"❌ 发送欢迎语菜单异常: {e}")
 
         # 检查视频号场景
         wechat_channels = event_content.get('wechat_channels', {})

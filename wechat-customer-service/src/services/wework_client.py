@@ -574,6 +574,9 @@ class WeWorkClient:
                         "list": menu_items
                     }
                 }
+                # 如果提供了content,作为菜单的头部文本
+                if content:
+                    payload["msgmenu"]["head_content"] = content
             else:
                 # 文本消息
                 payload = {
