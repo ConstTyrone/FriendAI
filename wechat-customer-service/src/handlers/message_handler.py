@@ -9,12 +9,9 @@ from typing import Dict, Any
 from .message_classifier import classifier
 from .message_formatter import text_extractor
 from ..services.ai_service import chat_service
-from ..services.image_service import image_service
+from ..services.emoticon_service import emoticon_service
 
 logger = logging.getLogger(__name__)
-
-# 图片生成关键词
-IMAGE_GENERATION_KEYWORDS = ['画', '生成图片', '画一张', '画一个', '生成一张', '帮我画', '给我画']
 
 def parse_message(xml_data: str) -> Dict[str, Any]:
     """解析XML消息数据"""
@@ -31,9 +28,6 @@ def parse_message(xml_data: str) -> Dict[str, Any]:
         logger.error(f"消息解析失败: {e}")
         return {}
 
-def is_image_generation_request(text: str) -> bool:
-    """检测是否为图片生成请求"""
-    return any(keyword in text for keyword in IMAGE_GENERATION_KEYWORDS)
 
 def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) -> dict:
     """
@@ -71,19 +65,18 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
                 # 我有问题要问: 返回提示语
                 return {
                     'type': 'text',
-                    'content': '您好!我是AI智能助手,请告诉我您的问题,我会尽力为您解答。'
+                    'content': '您好!我是AI智能助手,请告诉我您的问题,我会尽力为您解答。\n\n💡 小提示: 发送"表情包：开心"可以生成表情包哦~'
                 }
-            elif menu_id == 'draw_cat':
-                # 画一只可爱的小猫: 直接触发图片生成
-                print(f"🐱 用户点击: 画一只可爱的小猫")
-                # 修改消息内容为画图指令
-                message['Content'] = '画一只可爱的小猫'
+            elif menu_id == 'emoticon_happy':
+                # 表情包：开心
+                print(f"😊 用户点击: 表情包-开心")
+                message['Content'] = '表情包：开心'
                 message['MenuId'] = ''  # 清除MenuId,避免重复处理
                 # 继续正常流程处理
-            elif menu_id == 'draw_landscape':
-                # 画一幅唯美的山水画: 直接触发图片生成
-                print(f"🌄 用户点击: 画一幅唯美的山水画")
-                message['Content'] = '画一幅唯美的山水画'
+            elif menu_id == 'emoticon_tired':
+                # 表情包：累了
+                print(f"😴 用户点击: 表情包-累了")
+                message['Content'] = '表情包：累了'
                 message['MenuId'] = ''  # 清除MenuId
                 # 继续正常流程处理
             else:
@@ -101,42 +94,30 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
         print(f"📝 已提取文本内容: {text_content[:100]}...")
         logger.info(f"提取的文本内容: {text_content[:300]}...")
 
-        # 步骤3: 检测是否为图片生成请求
-        if is_image_generation_request(text_content):
-            print(f"🎨 检测到图片生成请求")
-            logger.info(f"检测到图片生成请求: {text_content}")
+        # 步骤3: 检测是否为表情包生成请求
+        if emoticon_service.detect_emoticon_request(text_content):
+            print(f"🎨 检测到表情包生成请求")
+            logger.info(f"检测到表情包生成请求: {text_content}")
 
-            # 清理prompt: 提取实际的图片描述内容,去掉用户上下文
-            # text_content格式: "用户[xxx]于xxxx发送了以下文本消息：\n实际内容"
-            clean_prompt = text_content
-            if "发送了以下文本消息：\n" in text_content:
-                clean_prompt = text_content.split("发送了以下文本消息：\n", 1)[1]
-            elif "：" in text_content and "\n" in text_content:
-                # 其他格式的消息,尝试提取冒号后的内容
-                parts = text_content.split("\n", 1)
-                if len(parts) > 1:
-                    clean_prompt = parts[1]
+            # 调用表情包生成服务
+            emoticon_result = emoticon_service.create_emoticon(text_content)
 
-            logger.info(f"清理后的图片生成prompt: {clean_prompt}")
-
-            # 调用图片生成服务
-            image_result = image_service.generate_image(prompt=clean_prompt)
-
-            if image_result.get('success', False):
-                image_path = image_result.get('image_path', '')
-                print(f"✅ 图片生成成功: {image_path}")
-                logger.info(f"图片生成成功: {image_path}")
+            if emoticon_result.get('success', False):
+                image_path = emoticon_result.get('image_path', '')
+                emotion = emoticon_result.get('emotion', '')
+                print(f"✅ 表情包生成成功: {emotion} - {image_path}")
+                logger.info(f"表情包生成成功: {emotion} - {image_path}")
                 return {
                     'type': 'image',
                     'content': image_path
                 }
             else:
-                error_msg = image_result.get('error', '图片生成失败')
-                print(f"❌ 图片生成失败: {error_msg}")
-                logger.error(f"图片生成失败: {error_msg}")
+                error_msg = emoticon_result.get('error', '表情包生成失败')
+                print(f"❌ 表情包生成失败: {error_msg}")
+                logger.error(f"表情包生成失败: {error_msg}")
                 return {
                     'type': 'text',
-                    'content': f"抱歉，图片生成失败: {error_msg}"
+                    'content': f"抱歉，表情包生成失败: {error_msg}"
                 }
 
         # 步骤4: 普通AI对话回复
@@ -227,8 +208,8 @@ def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
         # 构建功能菜单 - 具体明确的选项
         menu_items = [
             {"type": "click", "click": {"id": "chat_help", "content": "💬 我有问题要问"}},
-            {"type": "click", "click": {"id": "draw_cat", "content": "🐱 画一只可爱的小猫"}},
-            {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
+            {"type": "click", "click": {"id": "emoticon_happy", "content": "😊 表情包：开心"}},
+            {"type": "click", "click": {"id": "emoticon_tired", "content": "😴 表情包：累了"}}
         ]
 
         # 只有当有welcome_code时才发送欢迎菜单

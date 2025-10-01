@@ -19,9 +19,12 @@ class Config:
         self.qwen_api_key = os.getenv('QWEN_API_KEY')
         self.qwen_api_endpoint = os.getenv('QWEN_API_ENDPOINT', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
 
-        # 图片生成服务配置
+        # 图片生成服务配置（用于表情包生成）
         self.image_api_url = os.getenv('IMAGE_API_URL', 'https://genaiapi.cloudsway.net/v1/ai/hiMUPFhuWCQtVMpp/chat/completions')
         self.image_api_token = os.getenv('IMAGE_API_TOKEN', '405O8mEjMUXeJlht83JA')
+
+        # 表情包服务配置
+        self.emoticon_enabled = os.getenv('EMOTICON_ENABLED', 'true').lower() == 'true'  # 是否启用表情包功能
 
         # 数据库配置
         self.database_path = os.getenv('DATABASE_PATH', 'wechat_profiles.db')
