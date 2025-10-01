@@ -214,43 +214,52 @@ def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
 
         logger.info(f"👋 用户进入会话: {external_userid}, 场景: {scene}, 参数: {scene_param}")
 
-        if welcome_code:
-            # 发送欢迎语菜单
-            logger.info(f"✨ 发送欢迎语菜单, welcome_code: {welcome_code}")
-            try:
-                # 根据场景定制欢迎语
-                welcome_text = "您好,欢迎咨询!我是AI智能助手,可以为您提供以下服务:"
+        # 准备欢迎语内容和菜单
+        welcome_text = "您好,欢迎咨询!我是AI智能助手,可以为您提供以下服务:"
 
-                # 如果是视频号场景,添加特定欢迎语
-                wechat_channels = event_content.get('wechat_channels', {})
-                if wechat_channels:
-                    channel_name = wechat_channels.get('nickname', '') or wechat_channels.get('shop_nickname', '')
-                    if channel_name:
-                        welcome_text = f"您好,欢迎从视频号《{channel_name}》咨询!我是AI智能助手,可以为您提供以下服务:"
+        # 如果是视频号场景,添加特定欢迎语
+        wechat_channels = event_content.get('wechat_channels', {})
+        if wechat_channels:
+            channel_name = wechat_channels.get('nickname', '') or wechat_channels.get('shop_nickname', '')
+            if channel_name:
+                welcome_text = f"您好,欢迎从视频号《{channel_name}》咨询!我是AI智能助手,可以为您提供以下服务:"
 
-                # 构建功能菜单 - 具体明确的选项
-                menu_items = [
-                    {"type": "click", "click": {"id": "chat_help", "content": "💬 我有问题要问"}},
-                    {"type": "click", "click": {"id": "draw_cat", "content": "🐱 画一只可爱的小猫"}},
-                    {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
-                ]
+        # 构建功能菜单 - 具体明确的选项
+        menu_items = [
+            {"type": "click", "click": {"id": "chat_help", "content": "💬 我有问题要问"}},
+            {"type": "click", "click": {"id": "draw_cat", "content": "🐱 画一只可爱的小猫"}},
+            {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
+        ]
 
+        try:
+            if welcome_code:
+                # 有welcome_code时,使用事件响应消息
+                logger.info(f"✨ 使用welcome_code发送欢迎语菜单")
                 result = wework_client.send_welcome_message(
                     welcome_code,
                     content=welcome_text,
                     menu_items=menu_items
                 )
+            else:
+                # 没有welcome_code时,使用普通菜单消息
+                logger.info(f"✨ 使用普通消息发送欢迎语菜单")
+                result = wework_client.send_menu_message(
+                    external_userid,
+                    open_kfid,
+                    menu_items,
+                    head_content=welcome_text
+                )
 
-                if result.get('errcode') == 0:
-                    logger.info(f"✅ 欢迎语菜单发送成功")
-                    print(f"✅ 已向用户 {external_userid} 发送欢迎语菜单")
-                else:
-                    error_msg = result.get('errmsg', '未知错误')
-                    logger.warning(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
-                    print(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
-            except Exception as e:
-                logger.error(f"❌ 发送欢迎语菜单异常: {e}", exc_info=True)
-                print(f"❌ 发送欢迎语菜单异常: {e}")
+            if result.get('errcode') == 0:
+                logger.info(f"✅ 欢迎语菜单发送成功")
+                print(f"✅ 已向用户 {external_userid} 发送欢迎语菜单")
+            else:
+                error_msg = result.get('errmsg', '未知错误')
+                logger.warning(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
+                print(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
+        except Exception as e:
+            logger.error(f"❌ 发送欢迎语菜单异常: {e}", exc_info=True)
+            print(f"❌ 发送欢迎语菜单异常: {e}")
 
         # 检查视频号场景
         wechat_channels = event_content.get('wechat_channels', {})
