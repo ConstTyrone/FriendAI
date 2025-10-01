@@ -11,9 +11,11 @@ import xml.etree.ElementTree as ET
 import urllib.parse
 import logging
 import sys
+import time
 
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
+from ..database.database_simple import db
 
 # 配置日志
 logging.basicConfig(

@@ -4,10 +4,13 @@ import base64
 import time
 import requests
 import json
+import logging
 from typing import Optional
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from ..config.config import config
+
+logger = logging.getLogger(__name__)
 
 class WeWorkClient:
     def __init__(self, config):
@@ -48,9 +51,6 @@ class WeWorkClient:
 
     def verify_signature(self, signature, timestamp, nonce, encrypt_msg=None):
         """验证签名"""
-        import logging
-        logger = logging.getLogger(__name__)
-
         # 微信客服/企业微信签名验证需要将token、timestamp、nonce按字典序排序
         params = [self.config.token, timestamp, nonce]
 
@@ -72,9 +72,6 @@ class WeWorkClient:
 
     def decrypt_message(self, encrypt_msg):
         """解密消息"""
-        import logging
-        logger = logging.getLogger(__name__)
-
         try:
             # Base64解码
             msg_bytes = base64.b64decode(encrypt_msg)
@@ -148,9 +145,6 @@ class WeWorkClient:
             limit: 每次拉取的消息数量，默认1000（最大值）
             get_latest_only: 是否只返回最新消息，默认True
         """
-        import logging
-        logger = logging.getLogger(__name__)
-
         logger.info(f"🔍 sync_kf_messages被调用，参数: limit={limit}, get_latest_only={get_latest_only}")
 
         try:
@@ -251,9 +245,6 @@ class WeWorkClient:
 
     def _convert_kf_message(self, kf_msg):
         """将微信客服消息格式转换为内部消息格式（简化版，无需绑定）"""
-        import logging
-        logger = logging.getLogger(__name__)
-
         try:
             logger.info(f"🔍 原始微信客服消息结构: {kf_msg}")
 
@@ -308,9 +299,6 @@ class WeWorkClient:
 
     def send_text_message(self, external_userid, open_kfid, content):
         """发送文本消息到微信客服用户"""
-        import logging
-        logger = logging.getLogger(__name__)
-
         try:
             # 获取access_token
             access_token = self.get_access_token()
