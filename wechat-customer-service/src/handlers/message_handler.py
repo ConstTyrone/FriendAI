@@ -16,10 +16,6 @@ logger = logging.getLogger(__name__)
 # 图片生成关键词
 IMAGE_GENERATION_KEYWORDS = ['画', '生成图片', '画一张', '画一个', '生成一张', '帮我画', '给我画']
 
-# 记录用户是否已收到过欢迎菜单（内存存储，重启后清空）
-# 生产环境建议使用Redis: key = f"user_welcomed:{external_userid}"
-_user_welcomed = set()
-
 def parse_message(xml_data: str) -> Dict[str, Any]:
     """解析XML消息数据"""
     try:
@@ -58,45 +54,11 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
     """
     try:
         user_id = message.get('FromUserName')
-        external_userid = message.get('external_userid', user_id)  # 使用external_userid
-        if not external_userid:
+        if not user_id:
             logger.warning("消息中缺少用户ID，跳过处理")
             return {'type': 'text', 'content': ''}
 
-        print(f"📨 收到消息 - 用户: {external_userid}")
-
-        # 步骤-1: 检测是否为用户首次发消息,如果是则发送欢迎菜单
-        if external_userid not in _user_welcomed and open_kfid:
-            from ..services.wework_client import wework_client
-
-            _user_welcomed.add(external_userid)  # 标记用户已接收欢迎消息
-            logger.info(f"🎉 检测到用户 {external_userid} 首次发送消息，发送欢迎菜单")
-
-            # 准备欢迎语和菜单
-            welcome_text = "您好,欢迎咨询!我是AI智能助手,可以为您提供以下服务:"
-            menu_items = [
-                {"type": "click", "click": {"id": "chat_help", "content": "💬 我有问题要问"}},
-                {"type": "click", "click": {"id": "draw_cat", "content": "🐱 画一只可爱的小猫"}},
-                {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
-            ]
-
-            try:
-                # 用户主动发送消息后，可以使用普通消息接口发送菜单
-                result = wework_client.send_menu_message(
-                    external_userid,
-                    open_kfid,
-                    menu_items,
-                    head_content=welcome_text
-                )
-
-                if result.get('errcode') == 0:
-                    logger.info(f"✅ 首次消息欢迎菜单发送成功")
-                    print(f"✅ 已向用户 {external_userid} 发送欢迎菜单")
-                else:
-                    error_msg = result.get('errmsg', '未知错误')
-                    logger.warning(f"⚠️ 欢迎菜单发送失败: {error_msg}")
-            except Exception as e:
-                logger.error(f"❌ 发送首次欢迎菜单异常: {e}", exc_info=True)
+        print(f"📨 收到消息 - 用户: {user_id}")
 
         # 步骤0: 检测是否为菜单点击消息
         menu_id = message.get('MenuId', '')
@@ -269,10 +231,9 @@ def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
             {"type": "click", "click": {"id": "draw_landscape", "content": "🌄 画一幅唯美的山水画"}}
         ]
 
-        try:
-            if welcome_code:
-                # 有welcome_code时,使用事件响应消息发送菜单
-                # welcome_code只在用户48小时内未收过欢迎语且未发过消息时才有
+        # 只有当有welcome_code时才发送欢迎菜单
+        if welcome_code:
+            try:
                 logger.info(f"✨ 使用welcome_code发送欢迎语菜单")
                 result = wework_client.send_welcome_message(
                     welcome_code,
@@ -287,17 +248,13 @@ def handle_event_by_type(event_content: Dict[str, Any], open_kfid: str) -> None:
                     error_msg = result.get('errmsg', '未知错误')
                     logger.warning(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
                     print(f"⚠️ 欢迎语菜单发送失败: {error_msg}")
-            else:
-                # 没有welcome_code时,不能发送菜单消息
-                # 因为菜单消息需要在48小时窗口内（用户主动发消息后）才能发送
-                # 这里只发送简单的文本欢迎语,等用户发消息后再通过消息回复发送菜单
-                logger.info(f"📝 无welcome_code,发送文本欢迎语（菜单将在用户首次发消息后展示）")
-                print(f"📝 用户 {external_userid} 进入会话,等待用户发送消息...")
-                # 不发送任何消息,等用户主动发送
-
-        except Exception as e:
-            logger.error(f"❌ 处理欢迎消息异常: {e}", exc_info=True)
-            print(f"❌ 处理欢迎消息异常: {e}")
+            except Exception as e:
+                logger.error(f"❌ 发送欢迎语菜单异常: {e}", exc_info=True)
+                print(f"❌ 发送欢迎语菜单异常: {e}")
+        else:
+            # 没有welcome_code时不发送菜单
+            logger.info(f"📝 无welcome_code,跳过欢迎菜单发送")
+            print(f"📝 用户 {external_userid} 进入会话（无welcome_code）")
 
         # 检查视频号场景
         wechat_channels = event_content.get('wechat_channels', {})
