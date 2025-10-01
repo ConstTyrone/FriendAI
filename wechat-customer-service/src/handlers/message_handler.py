@@ -1,16 +1,16 @@
 # message_handler.py
+"""
+消息处理器 - 处理微信客服消息并提供AI对话回复
+"""
 import logging
 import xml.etree.ElementTree as ET
 import time
 from typing import Dict, Any
 from .message_classifier import classifier
 from .message_formatter import text_extractor
-from ..services.ai_service import profile_extractor
+from ..services.ai_service import chat_service
 
 logger = logging.getLogger(__name__)
-
-# 智能选择数据库
-from ..database.database_simple import db
 
 def parse_message(xml_data: str) -> Dict[str, Any]:
     """解析XML消息数据"""
@@ -27,108 +27,18 @@ def parse_message(xml_data: str) -> Dict[str, Any]:
         logger.error(f"消息解析失败: {e}")
         return {}
 
-def process_message(message: Dict[str, Any]) -> None:
+def process_message_and_reply(message: Dict[str, Any]) -> str:
     """
-    统一的消息处理流程 - 用于用户画像提取
+    处理消息并生成AI回复
 
-    流程: 消息 → 分类 → 转换为纯文本 → AI提取用户画像 → 存储/显示画像
+    流程: 消息 → 分类 → 转换为纯文本 → AI对话 → 返回回复
+
+    Args:
+        message: 消息字典
+
+    Returns:
+        str: AI回复内容，如果失败返回空字符串
     """
-    start_time = time.time()
-    try:
-        user_id = message.get('FromUserName')
-        message_id = message.get('MsgId', '')
-        if not user_id:
-            logger.warning("消息中缺少用户ID，跳过处理")
-            return
-
-        print(f"📨 收到消息 - 用户: {user_id}")
-
-        # 步骤1: 分类消息类型
-        message_type = classifier.classify_message(message)
-        print(f"🔍 消息分类: {message_type}")
-
-        # 步骤2: 提取纯文本内容
-        text_content = text_extractor.extract_text(message, message_type)
-        print(f"📝 已提取文本内容")
-        logger.info(f"提取的文本内容: {text_content[:300]}...")
-
-        # 步骤3: AI提取用户画像
-        print(f"🤖 正在分析用户画像...")
-        is_chat_record = (message_type == 'chat_record')
-        if is_chat_record:
-            print(f"📋 检测到聊天记录，将分析聊天记录中主要对话者的用户画像（排除转发者，仅返回一人）")
-        profile_result = profile_extractor.extract_user_profile(text_content, is_chat_record)
-
-        if profile_result.get('success', False):
-            profile_data = profile_result.get('data', {})
-            summary = profile_data.get('summary', '')
-            user_profiles = profile_data.get('user_profiles', [])
-
-            print(f"✅ 用户画像分析成功")
-            print(f"📋 消息总结: {summary}")
-
-            if user_profiles:
-                print(f"👤 提取到 {len(user_profiles)} 个用户画像:")
-                for i, profile in enumerate(user_profiles, 1):
-                    print(f"\n=== 用户画像 {i} ===")
-                    for key, value in profile.items():
-                        if value and value != "未知":
-                            key_name = {
-                                'name': '姓名',
-                                'gender': '性别',
-                                'age': '年龄',
-                                'phone': '电话',
-                                'location': '所在地',
-                                'marital_status': '婚育状况',
-                                'education': '学历',
-                                'company': '公司',
-                                'position': '职位',
-                                'asset_level': '资产水平',
-                                'personality': '性格'
-                            }.get(key, key)
-                            print(f"  {key_name}: {value}")
-
-                    # 保存到数据库
-                    try:
-                        profile_id = db.save_user_profile(
-                            external_userid=user_id,
-                            profile_data=profile,
-                            raw_message=text_content,
-                            message_type=message_type,
-                            ai_response=profile_data
-                        )
-
-                        if profile_id:
-                            print(f"💾 用户画像已保存到数据库 (ID: {profile_id})")
-                        else:
-                            print("⚠️ 用户画像保存失败")
-
-                    except Exception as save_error:
-                        logger.error(f"保存用户画像到数据库失败: {save_error}")
-                        print(f"❌ 数据库保存失败: {save_error}")
-            else:
-                print("📋 未能从消息中提取到明确的用户画像信息")
-
-            logger.info(f"用户画像分析结果: {profile_data}")
-
-        else:
-            error_msg = profile_result.get('error', '未知错误')
-            print(f"❌ 用户画像分析失败: {error_msg}")
-            logger.error(f"用户画像分析失败: {profile_result}")
-
-        print(f"✅ 消息处理完成 - 类型: {message_type}")
-
-    except Exception as e:
-        logger.error(f"消息处理过程中发生错误: {e}", exc_info=True)
-        print(f"❌ 消息处理失败: {e}")
-
-def process_message_and_get_result(message: Dict[str, Any]) -> str:
-    """
-    处理消息并返回格式化的分析结果文本，用于发送给用户
-
-    返回: 格式化的用户画像分析结果文本
-    """
-    start_time = time.time()
     try:
         user_id = message.get('FromUserName')
         if not user_id:
@@ -143,110 +53,59 @@ def process_message_and_get_result(message: Dict[str, Any]) -> str:
 
         # 步骤2: 提取纯文本内容
         text_content = text_extractor.extract_text(message, message_type)
-        print(f"📝 已提取文本内容")
+        print(f"📝 已提取文本内容: {text_content[:100]}...")
         logger.info(f"提取的文本内容: {text_content[:300]}...")
 
-        # 步骤3: AI提取用户画像
-        print(f"🤖 正在分析用户画像...")
-        is_chat_record = (message_type == 'chat_record')
-        if is_chat_record:
-            print(f"📋 检测到聊天记录，将分析聊天记录中主要对话者的用户画像（排除转发者，仅返回一人）")
-        profile_result = profile_extractor.extract_user_profile(text_content, is_chat_record)
+        # 步骤3: AI对话回复
+        print(f"🤖 正在生成AI回复...")
+        chat_result = chat_service.chat(
+            user_message=text_content,
+            user_id=user_id
+        )
 
-        if profile_result.get('success', False):
-            profile_data = profile_result.get('data', {})
-            summary = profile_data.get('summary', '')
-            user_profiles = profile_data.get('user_profiles', [])
-
-            print(f"✅ 用户画像分析成功")
-            logger.info(f"用户画像分析结果: {profile_data}")
-
-            # 构建格式化的回复文本
-            result_text = "🤖 AI分析结果\n\n"
-
-            if summary:
-                result_text += f"📋 消息总结:\n{summary}\n\n"
-
-            if user_profiles:
-                result_text += f"👤 用户画像分析 (共{len(user_profiles)}个):\n\n"
-
-                for i, profile in enumerate(user_profiles, 1):
-                    result_text += f"=== 用户画像 {i} ===\n"
-
-                    key_mapping = {
-                        'name': '姓名',
-                        'gender': '性别',
-                        'age': '年龄',
-                        'phone': '电话',
-                        'location': '所在地',
-                        'marital_status': '婚育状况',
-                        'education': '学历',
-                        'company': '公司',
-                        'position': '职位',
-                        'asset_level': '资产水平',
-                        'personality': '性格'
-                    }
-
-                    # 只显示有值且不为"未知"的字段
-                    valid_fields = []
-                    for key, value in profile.items():
-                        if value and value != "未知":
-                            key_name = key_mapping.get(key, key)
-                            valid_fields.append(f"{key_name}: {value}")
-
-                    if valid_fields:
-                        result_text += "\n".join(valid_fields)
-                    else:
-                        result_text += "暂无明确信息"
-
-                    result_text += "\n\n"
-
-                    # 保存到数据库
-                    try:
-                        profile_id = db.save_user_profile(
-                            external_userid=user_id,
-                            profile_data=profile,
-                            raw_message=text_content,
-                            message_type=message_type,
-                            ai_response=profile_data
-                        )
-
-                        if profile_id:
-                            logger.info(f"💾 用户画像已保存到数据库 (ID: {profile_id})")
-                        else:
-                            logger.warning("用户画像保存失败")
-
-                    except Exception as save_error:
-                        logger.error(f"保存用户画像到数据库失败: {save_error}")
-            else:
-                result_text += "📋 未能从消息中提取到明确的用户画像信息。\n\n"
-
-            result_text += "---\n✨ 由AI智能分析生成"
-
-            print(f"✅ 消息处理完成 - 类型: {message_type}")
-            return result_text
-
+        if chat_result.get('success', False):
+            reply = chat_result.get('reply', '')
+            print(f"✅ AI回复成功: {reply[:100]}...")
+            logger.info(f"AI回复内容: {reply}")
+            return reply
         else:
-            error_msg = profile_result.get('error', '未知错误')
-            print(f"❌ 用户画像分析失败: {error_msg}")
-            logger.error(f"用户画像分析失败: {profile_result}")
-
-            return f"❌ 消息分析失败: {error_msg}\n请稍后再试或联系技术支持。"
+            error_msg = chat_result.get('error', '未知错误')
+            print(f"❌ AI回复失败: {error_msg}")
+            logger.error(f"AI回复失败: {error_msg}")
+            return "抱歉，我现在遇到了一些问题，请稍后再试。"
 
     except Exception as e:
         logger.error(f"消息处理过程中发生错误: {e}", exc_info=True)
         print(f"❌ 消息处理失败: {e}")
-        return f"❌ 消息处理出现异常: {str(e)}\n请稍后再试或联系技术支持。"
+        return "抱歉，处理您的消息时出现了错误，请稍后再试。"
 
 def classify_and_handle_message(message: Dict[str, Any]) -> None:
     """
-    处理普通消息的入口函数
+    处理普通消息的入口函数（用于后台异步处理）
+
+    注意：这个函数只处理消息，不发送回复
     """
-    process_message(message)
+    try:
+        user_id = message.get('FromUserName')
+        if not user_id:
+            logger.warning("消息中缺少用户ID，跳过处理")
+            return
+
+        # 处理并获取回复（但不发送，由调用方决定是否发送）
+        reply = process_message_and_reply(message)
+        if reply:
+            logger.info(f"消息处理完成，生成回复: {reply[:100]}...")
+        else:
+            logger.warning("未生成有效回复")
+
+    except Exception as e:
+        logger.error(f"消息处理失败: {e}", exc_info=True)
 
 def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
     """
-    处理微信客服事件消息 - 简化版本，只获取最新一条消息（无验证码绑定）
+    处理微信客服事件消息 - AI对话版本
+
+    流程: 拉取消息 → 解析文本 → AI对话 → 发送回复
     """
     try:
         # 防重复处理机制 - 使用Redis持久化
@@ -289,8 +148,8 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
         from ..services.wework_client import wework_client
 
         # 拉取所有消息，返回最新的1条
-        print("🔄 拉取所有消息，获取最新的...")
-        logger.info("开始调用sync_kf_messages接口拉取所有消息")
+        print("🔄 拉取最新消息...")
+        logger.info("开始调用sync_kf_messages接口拉取最新消息")
         messages = wework_client.sync_kf_messages(token=token, open_kf_id=open_kfid, get_latest_only=True)
         logger.info(f"sync_kf_messages调用完成，共获取到 {len(messages) if messages else 0} 条消息")
         print(f"共获取到 {len(messages) if messages else 0} 条消息")
@@ -302,24 +161,24 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
             # 只处理最新的一条消息
             latest_msg = messages[0]
 
-            # 转换消息格式（直接使用 external_userid，无需绑定检查）
+            # 转换消息格式
             converted_msg = wework_client._convert_kf_message(latest_msg)
 
             if converted_msg:
                 print(f"📝 处理消息: {latest_msg.get('msgid', '')}")
 
-                # 处理消息并获取用户画像结果
-                profile_result = process_message_and_get_result(converted_msg)
+                # 处理消息并获取AI回复
+                ai_reply = process_message_and_reply(converted_msg)
 
-                # 发送分析结果给用户
-                if profile_result:
+                # 发送AI回复给用户
+                if ai_reply:
                     external_userid = latest_msg.get('external_userid', '')
                     if external_userid:
                         try:
-                            print("📤 发送分析结果给用户...")
-                            wework_client.send_text_message(external_userid, open_kfid, profile_result)
-                            print("✅ 分析结果已发送给用户")
-                            logger.info(f"分析结果已发送给用户 {external_userid}")
+                            print("📤 发送AI回复给用户...")
+                            wework_client.send_text_message(external_userid, open_kfid, ai_reply)
+                            print("✅ AI回复已发送给用户")
+                            logger.info(f"AI回复已发送给用户 {external_userid}")
                         except Exception as send_error:
                             logger.error(f"发送消息给用户失败: {send_error}")
                             print(f"❌ 发送消息失败: {send_error}")
@@ -327,7 +186,7 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
                         logger.warning("缺少用户ID，无法发送回复")
                         print("⚠️ 缺少用户ID，无法发送回复")
                 else:
-                    print("⚠️ 没有生成分析结果，不发送回复")
+                    print("⚠️ 没有生成AI回复，不发送")
             else:
                 logger.error("消息转换失败")
                 print("❌ 消息转换失败")

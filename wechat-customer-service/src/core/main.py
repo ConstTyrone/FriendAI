@@ -1,7 +1,7 @@
 # main.py
 """
-微信客服用户画像提取系统 - 简化版
-只包含微信客服消息处理核心功能
+微信客服AI对话机器人
+处理微信客服消息并提供智能AI对话回复
 """
 
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
@@ -15,7 +15,6 @@ import time
 
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
-from ..database.database_simple import db
 
 # 配置日志
 logging.basicConfig(
@@ -29,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 创建FastAPI应用
-app = FastAPI(title="微信客服用户画像系统（简化版）", version="1.0.0")
+app = FastAPI(title="微信客服AI对话机器人", version="2.0.0")
 
 # 添加CORS中间件
 app.add_middleware(
@@ -44,13 +43,15 @@ app.add_middleware(
 async def root():
     """根路径"""
     return {
-        "name": "微信客服用户画像系统",
-        "version": "1.0.0",
-        "description": "简化版 - 专注于微信客服消息处理和AI用户画像分析",
+        "name": "微信客服AI对话机器人",
+        "version": "2.0.0",
+        "description": "智能微信客服对话机器人 - 支持多媒体消息解析和AI智能回复",
         "features": {
-            "redis_state_management": "✅ 已启用",
-            "async_processing": "✅ 已启用",
-            "ai_analysis": "✅ 通义千问"
+            "redis_state_management": "✅ Redis状态管理",
+            "async_processing": "✅ 异步消息处理",
+            "ai_chatbot": "✅ 通义千问AI对话",
+            "multi_media_support": "✅ 文本/语音/图片/文件解析",
+            "context_memory": "✅ 对话上下文记忆"
         }
     }
 
@@ -79,17 +80,22 @@ async def health_check():
             "message": str(e)
         }
 
-    # 检查数据库连接
+    # 检查AI服务
     try:
-        test_conn = db.get_connection()
-        test_conn.__enter__()
-        test_conn.__exit__(None, None, None)
-        health_status["components"]["database"] = {
-            "status": "healthy",
-            "type": "sqlite"
-        }
+        from ..services.ai_service import chat_service
+        if chat_service.api_key and chat_service.api_endpoint:
+            health_status["components"]["ai_service"] = {
+                "status": "healthy",
+                "provider": "通义千问"
+            }
+        else:
+            health_status["components"]["ai_service"] = {
+                "status": "unhealthy",
+                "message": "AI配置缺失"
+            }
+            health_status["status"] = "degraded"
     except Exception as e:
-        health_status["components"]["database"] = {
+        health_status["components"]["ai_service"] = {
             "status": "unhealthy",
             "message": str(e)
         }
@@ -242,5 +248,5 @@ async def wechat_callback(request: Request, msg_signature: str, timestamp: str, 
     return await wework_callback(request, msg_signature, timestamp, nonce)
 
 
-logger.info("FastAPI应用启动完成 - 微信客服用户画像系统（简化版）")
-logger.info("已注册端点: GET/POST /wework/callback, GET/POST /wechat/callback")
+logger.info("FastAPI应用启动完成 - 微信客服AI对话机器人")
+logger.info("已注册端点: GET/POST /wework/callback, GET/POST /wechat/callback, GET /health")
