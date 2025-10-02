@@ -188,12 +188,12 @@
             <!-- 图表 -->
             <div class="charts-grid">
                 <div class="chart-card">
-                    <div class="chart-title">消息类型分布</div>
-                    <canvas id="messageTypeChart"></canvas>
+                    <div class="chart-title">功能使用分布</div>
+                    <canvas id="featureChart"></canvas>
                 </div>
                 <div class="chart-card">
-                    <div class="chart-title">功能使用统计</div>
-                    <canvas id="featureChart"></canvas>
+                    <div class="chart-title">AI对话输入方式</div>
+                    <canvas id="inputTypeChart"></canvas>
                 </div>
             </div>
 
@@ -208,8 +208,8 @@
     </div>
 
     <script>
-        let messageTypeChart = null;
         let featureChart = null;
+        let inputTypeChart = null;
 
         async function loadData() {
             try {
@@ -231,28 +231,22 @@
                 const typesRes = await fetch('/stats/message-types');
                 const types = await typesRes.json();
 
-                // 绘制消息类型饼图
-                const messageCtx = document.getElementById('messageTypeChart');
-                if (messageTypeChart) {
-                    messageTypeChart.destroy();
+                // 绘制功能使用饼图（主要图表 - 业务维度）
+                const featureCtx = document.getElementById('featureChart');
+                if (featureChart) {
+                    featureChart.destroy();
                 }
-                messageTypeChart = new Chart(messageCtx, {
+                featureChart = new Chart(featureCtx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['文本', '语音', '图片', '文件', '表情包'],
+                        labels: ['AI对话', '表情包生成'],
                         datasets: [{
                             data: [
-                                types.text || 0,
-                                types.voice || 0,
-                                types.image || 0,
-                                types.file || 0,
-                                types.emoticon || 0
+                                stats.ai_chats || 0,
+                                stats.emoticons || 0
                             ],
                             backgroundColor: [
                                 '#667eea',
-                                '#764ba2',
-                                '#f093fb',
-                                '#4facfe',
                                 '#43e97b'
                             ]
                         }]
@@ -267,32 +261,28 @@
                     }
                 });
 
-                // 绘制功能使用柱状图
-                const featureCtx = document.getElementById('featureChart');
-                if (featureChart) {
-                    featureChart.destroy();
+                // 绘制AI对话输入方式柱状图（次要图表 - 输入维度）
+                const inputCtx = document.getElementById('inputTypeChart');
+                if (inputTypeChart) {
+                    inputTypeChart.destroy();
                 }
-                featureChart = new Chart(featureCtx, {
+                inputTypeChart = new Chart(inputCtx, {
                     type: 'bar',
                     data: {
-                        labels: ['文本消息', '语音消息', '图片消息', '文件消息', 'AI对话', '表情包'],
+                        labels: ['文本输入', '语音输入', '图片输入', '文件输入'],
                         datasets: [{
-                            label: '使用次数',
+                            label: 'AI对话输入次数',
                             data: [
                                 types.text || 0,
                                 types.voice || 0,
                                 types.image || 0,
-                                types.file || 0,
-                                stats.ai_chats || 0,
-                                types.emoticon || 0
+                                types.file || 0
                             ],
                             backgroundColor: [
                                 '#667eea',
                                 '#764ba2',
                                 '#f093fb',
-                                '#4facfe',
-                                '#fa709a',
-                                '#43e97b'
+                                '#4facfe'
                             ]
                         }]
                     },

@@ -90,9 +90,6 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
         message_type = classifier.classify_message(message)
         print(f"🔍 消息分类: {message_type}")
 
-        # 记录消息类型埋点
-        audit_db.record_message(user_id, message_type)
-
         # 步骤2: 提取纯文本内容
         text_content = text_extractor.extract_text(message, message_type)
         print(f"📝 已提取文本内容: {text_content[:100]}...")
@@ -114,8 +111,8 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
                 print(f"✅ 表情包生成成功: {emotion} - 共{len(images)}张图片")
                 logger.info(f"表情包生成成功: {emotion} - {len(images)}张图片")
 
-                # 记录表情包生成活动
-                audit_db.record_message(user_id, 'emoticon')
+                # 记录表情包生成活动（业务类型=表情包，输入类型=文本）
+                audit_db.record_message(user_id, business_type='emoticon', input_type='text')
 
                 # 返回多张图片
                 return {
@@ -145,8 +142,8 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
             print(f"✅ AI回复成功: {reply[:100]}...")
             logger.info(f"AI回复内容: {reply}")
 
-            # 记录AI对话活动
-            audit_db.record_message(user_id, 'ai_chat')
+            # 记录AI对话活动（业务类型=AI对话，输入类型=原始消息类型）
+            audit_db.record_message(user_id, business_type='ai_chat', input_type=message_type)
 
             return {
                 'type': 'text',

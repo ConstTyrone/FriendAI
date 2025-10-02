@@ -83,14 +83,16 @@ class AuditDatabase:
     def record_message(
         self,
         external_userid: str,
-        message_type: str = 'text'
+        business_type: str,
+        input_type: str = None
     ) -> bool:
         """
         记录用户消息活动
 
         Args:
             external_userid: 用户ID
-            message_type: 消息类型 (text, voice, image, file, ai_chat, emoticon)
+            business_type: 业务类型 ('ai_chat' 或 'emoticon')
+            input_type: 输入类型 ('text', 'voice', 'image', 'file')，可选
 
         Returns:
             是否记录成功
@@ -116,18 +118,20 @@ class AuditDatabase:
                         'message_count': 'message_count + 1'
                     }
 
-                    # 根据消息类型增加对应计数
-                    if message_type == 'ai_chat':
+                    # 根据业务类型增加对应计数
+                    if business_type == 'ai_chat':
                         update_fields['ai_chat_count'] = 'ai_chat_count + 1'
-                    elif message_type == 'emoticon':
+                    elif business_type == 'emoticon':
                         update_fields['emoticon_count'] = 'emoticon_count + 1'
-                    elif message_type == 'text':
+
+                    # 根据输入类型增加对应计数（如果提供）
+                    if input_type == 'text':
                         update_fields['text_message_count'] = 'text_message_count + 1'
-                    elif message_type == 'voice':
+                    elif input_type == 'voice':
                         update_fields['voice_message_count'] = 'voice_message_count + 1'
-                    elif message_type == 'image':
+                    elif input_type == 'image':
                         update_fields['image_message_count'] = 'image_message_count + 1'
-                    elif message_type == 'file':
+                    elif input_type == 'file':
                         update_fields['file_message_count'] = 'file_message_count + 1'
 
                     # 构建UPDATE语句
@@ -147,12 +151,12 @@ class AuditDatabase:
                     )
                 else:
                     # 插入新用户
-                    ai_count = 1 if message_type == 'ai_chat' else 0
-                    emoticon_count = 1 if message_type == 'emoticon' else 0
-                    text_count = 1 if message_type == 'text' else 0
-                    voice_count = 1 if message_type == 'voice' else 0
-                    image_count = 1 if message_type == 'image' else 0
-                    file_count = 1 if message_type == 'file' else 0
+                    ai_count = 1 if business_type == 'ai_chat' else 0
+                    emoticon_count = 1 if business_type == 'emoticon' else 0
+                    text_count = 1 if input_type == 'text' else 0
+                    voice_count = 1 if input_type == 'voice' else 0
+                    image_count = 1 if input_type == 'image' else 0
+                    file_count = 1 if input_type == 'file' else 0
 
                     cursor.execute('''
                         INSERT INTO user_activity (
