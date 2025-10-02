@@ -200,15 +200,19 @@ class MessageTextExtractor:
     
     def _extract_voice_content(self, message: Dict[str, Any]) -> str:
         """提取语音消息内容（通过语音识别转文字）"""
-        context = self._get_user_context(message)
         media_id = message.get('MediaId', '')
 
         # 使用多媒体处理器进行语音转文字
         from ..services.media_processor import media_processor
         logger.info(f"🎤 开始处理语音消息: {media_id}")
         voice_text = media_processor.speech_to_text(media_id)
-        
+
         if voice_text and not any(keyword in voice_text for keyword in ["[语音", "失败", "错误", "异常"]):
+            # 对于表情包相关的语音，直接返回识别内容
+            if any(kw in voice_text for kw in ['表情包', '生成', '图片']):
+                return voice_text
+            # 其他语音消息保留上下文
+            context = self._get_user_context(message)
             return f"{context}发送了语音消息，语音内容为：\n{voice_text}"
         elif "ASR SDK未安装" in str(voice_text):
             return f"{context}发送了语音消息（MediaID: {media_id}）。语音识别服务未启用，请安装阿里云ASR SDK。"

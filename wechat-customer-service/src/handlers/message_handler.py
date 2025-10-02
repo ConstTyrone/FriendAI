@@ -374,27 +374,23 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
                             content = reply_result.get('content', '')
 
                             if reply_type == 'images':
-                                # 发送多张图片（双模型对比）
+                                # 发送多张图片（三模型对比）
                                 images = content  # List[{'path': '...', 'model_name': '...'}]
                                 emotion = reply_result.get('emotion', '')
                                 errors = reply_result.get('errors', [])
 
                                 print(f"🖼️ 准备发送{len(images)}张表情包图片...")
 
-                                # 先发送说明文本
-                                intro_text = f"✨ 为您生成了【{emotion}】表情包，使用三个AI模型对比："
-                                wework_client.send_text_message(external_userid, open_kfid, intro_text)
-
-                                # 依次发送每张图片
+                                # 依次发送每张图片（标注+图片合并为一条消息）
                                 for idx, img_info in enumerate(images, 1):
                                     image_path = img_info.get('path', '')
                                     model_name = img_info.get('model_name', '未知模型')
 
-                                    # 发送标注
-                                    label_text = f"【{idx}】{model_name}"
+                                    # 先发送标注文本
+                                    label_text = f"✨【{emotion}】{model_name}"
                                     wework_client.send_text_message(external_userid, open_kfid, label_text)
 
-                                    # 上传并发送图片
+                                    # 紧接着发送图片
                                     media_id = wework_client.upload_temp_media(image_path, 'image')
                                     wework_client.send_image_message(external_userid, open_kfid, media_id)
 
