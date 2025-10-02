@@ -20,8 +20,9 @@ class SeeDreamVideoService:
     def __init__(self):
         # 复用SeeDream的API Key
         self.api_key = config.seedream_api_key
-        # 火山引擎视频生成API端点
-        self.api_url = "https://ark.cn-beijing.volces.com/api/v3/contents/generations"
+        # 火山引擎视频生成API端点（异步接口）
+        self.api_url = "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks"
+        self.query_url = "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks"
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
@@ -33,23 +34,24 @@ class SeeDreamVideoService:
         image_url: Optional[str] = None,
         duration: str = "5s",
         resolution: str = "720p",
-        model: str = "doubao-seedance-1.0-pro"
+        model: str = "doubao-seedance-1-0-pro-250528"
     ) -> dict:
         """
-        生成视频（支持文本生成视频和图片生成视频）
+        生成视频（异步接口：创建任务 → 轮询查询 → 下载）
 
         Args:
             prompt (str): 文本提示词
             image_url (str, optional): 图片URL，如提供则为图生视频
             duration (str): 视频时长，可选 "5s" 或 "10s"
-            resolution (str): 分辨率，可选 "480p" 或 "720p"
-            model (str): 模型名称，默认 doubao-seedance-1.0-pro
+            resolution (str): 分辨率，可选 "480p" 或 "720p" 或 "1080p"
+            model (str): 模型名称，默认 doubao-seedance-1-0-pro-250528
 
         Returns:
             dict: {
                 'success': bool,
                 'video_url': str,    # 生成的视频URL
                 'video_path': str,   # 下载后的本地路径
+                'task_id': str,      # 任务ID
                 'error': str         # 错误信息（如果失败）
             }
         """
@@ -58,78 +60,85 @@ class SeeDreamVideoService:
             if image_url:
                 logger.info(f"📷 使用参考图片: {image_url}")
 
-            # 构建请求体
+            # 步骤1: 创建视频生成任务
+            logger.info(f"📤 创建视频生成任务...")
+
+            # 构建请求体（根据火山引擎API文档）
             payload = {
                 "model": model,
-                "content_generation_request": {
-                    "text": prompt[:800],  # 限制最大长度
-                    "duration": duration,
-                    "resolution": resolution
-                }
+                "prompt": prompt[:800],  # 限制最大长度
+                "duration": duration,
+                "resolution": resolution
             }
 
             # 如果提供了图片URL，添加图片参数
             if image_url:
-                payload["content_generation_request"]["image_url"] = image_url
+                payload["image_url"] = image_url
 
-            # 调用API（同步接口）
-            logger.info(f"📤 发送请求到火山引擎...")
+            # 创建任务
             response = requests.post(
                 self.api_url,
                 json=payload,
                 headers=self.headers,
-                timeout=120  # 视频生成需要更长时间
+                timeout=30
             )
 
             if response.status_code != 200:
-                error_msg = f"API请求失败: {response.status_code} - {response.text}"
+                error_msg = f"创建任务失败: {response.status_code} - {response.text}"
                 logger.error(error_msg)
                 return {
                     'success': False,
                     'error': error_msg
                 }
 
-            result = response.json()
-            logger.info(f"📥 Seedance API响应: status_code={response.status_code}")
+            task_result = response.json()
+            logger.info(f"📥 任务创建响应: {task_result}")
 
             # 检查是否有错误
-            if 'error' in result:
-                error_msg = f"API返回错误: {result['error'].get('message', '未知错误')}"
+            if 'error' in task_result:
+                error_msg = f"API返回错误: {task_result['error'].get('message', '未知错误')}"
                 logger.error(error_msg)
                 return {
                     'success': False,
                     'error': error_msg
                 }
 
-            # 提取视频URL
-            # Seedance返回格式可能是: {"data": {"video_url": "http://..."}} 或类似结构
-            video_url = None
-            if 'data' in result:
-                video_url = result['data'].get('video_url') or result['data'].get('url')
-            elif 'video_url' in result:
-                video_url = result['video_url']
+            # 提取任务ID
+            task_id = task_result.get('task_id') or task_result.get('data', {}).get('task_id')
 
-            if video_url:
-                # 下载视频到本地
-                video_path = self._download_video(video_url)
-
-                logger.info(f"✅ Seedance视频生成成功: {video_path}")
+            if not task_id:
+                error_msg = f"未获取到任务ID: {task_result}"
+                logger.error(error_msg)
                 return {
-                    'success': True,
-                    'video_url': video_url,
-                    'video_path': video_path
+                    'success': False,
+                    'error': error_msg
                 }
 
-            # 如果没有找到视频URL
-            error_msg = f"API未返回视频URL: {result}"
-            logger.error(error_msg)
+            logger.info(f"✅ 任务已创建: {task_id}")
+
+            # 步骤2: 轮询查询任务状态
+            logger.info(f"⏳ 开始轮询任务状态...")
+            video_url = self._poll_task_status(task_id)
+
+            if not video_url:
+                return {
+                    'success': False,
+                    'error': '任务超时或失败'
+                }
+
+            # 步骤3: 下载视频
+            video_path = self._download_video(video_url)
+
+            logger.info(f"✅ Seedance视频生成成功: {video_path}")
             return {
-                'success': False,
-                'error': error_msg
+                'success': True,
+                'video_url': video_url,
+                'video_path': video_path,
+                'task_id': task_id
             }
 
         except requests.Timeout:
-            error_msg = "视频生成API请求超时（120秒）"
+            error_msg = "视频生成API请求超时"
             logger.error(error_msg)
             return {
                 'success': False,
@@ -142,6 +151,64 @@ class SeeDreamVideoService:
                 'success': False,
                 'error': error_msg
             }
+
+    def _poll_task_status(self, task_id: str, max_wait: int = 120) -> Optional[str]:
+        """
+        轮询查询任务状态，直到完成或超时
+
+        Args:
+            task_id: 任务ID
+            max_wait: 最大等待时间（秒）
+
+        Returns:
+            str: 视频URL，失败返回None
+        """
+        start_time = time.time()
+        poll_interval = 5  # 每5秒查询一次
+
+        while time.time() - start_time < max_wait:
+            try:
+                # 查询任务状态
+                query_url = f"{self.query_url}/{task_id}"
+                response = requests.get(
+                    query_url,
+                    headers=self.headers,
+                    timeout=10
+                )
+
+                if response.status_code != 200:
+                    logger.warning(f"查询任务状态失败: {response.status_code}")
+                    time.sleep(poll_interval)
+                    continue
+
+                result = response.json()
+                status = result.get('status') or result.get('data', {}).get('status')
+
+                logger.info(f"📊 任务状态: {status}")
+
+                if status == 'completed' or status == 'success':
+                    # 任务完成，提取视频URL
+                    video_url = result.get('video_url') or result.get('data', {}).get('video_url')
+                    if video_url:
+                        logger.info(f"✅ 任务完成，获得视频URL")
+                        return video_url
+                elif status == 'failed' or status == 'error':
+                    # 任务失败
+                    error_msg = result.get('error', {}).get('message', '未知错误')
+                    logger.error(f"❌ 任务失败: {error_msg}")
+                    return None
+                else:
+                    # 任务进行中，继续等待
+                    elapsed = int(time.time() - start_time)
+                    logger.info(f"⏳ 任务进行中... ({elapsed}s/{max_wait}s)")
+                    time.sleep(poll_interval)
+
+            except Exception as e:
+                logger.error(f"查询任务异常: {e}")
+                time.sleep(poll_interval)
+
+        logger.error(f"❌ 任务超时（{max_wait}秒）")
+        return None
 
     def _download_video(self, video_url: str) -> str:
         """
