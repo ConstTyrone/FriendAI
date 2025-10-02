@@ -794,35 +794,77 @@ class MediaProcessor:
         """通过文件头部魔术数字检测文件类型"""
         if not file_data or len(file_data) < 4:
             return '.tmp'
-        
+
         # 获取文件头部字节
         header = file_data[:16] if len(file_data) >= 16 else file_data
-        
+
         # PDF文件检测
         if file_data.startswith(b'%PDF'):
             logger.info("🔍 检测到PDF文件头部")
             return '.pdf'
-        
+
         # JPG/JPEG文件检测
         if header.startswith(b'\xff\xd8\xff'):
             return '.jpg'
-        
+
         # PNG文件检测
         if header.startswith(b'\x89PNG\r\n\x1a\n'):
             return '.png'
-        
-        # Word文档检测 (.docx)
-        if header.startswith(b'PK\x03\x04') and b'word/' in file_data[:1024]:
-            return '.docx'
-        
-        # Excel文档检测 (.xlsx)
-        if header.startswith(b'PK\x03\x04') and b'xl/' in file_data[:1024]:
-            return '.xlsx'
-        
-        # 老版本Word文档 (.doc)
+
+        # Office Open XML格式检测 (ZIP容器: docx/xlsx/pptx)
+        if header.startswith(b'PK\x03\x04'):
+            logger.info("🔍 检测到ZIP格式文件 (可能是Office文档)")
+
+            # 尝试解析ZIP内容判断具体类型
+            try:
+                import zipfile
+                import io
+
+                # 创建内存ZIP文件
+                zip_buffer = io.BytesIO(file_data)
+                with zipfile.ZipFile(zip_buffer, 'r') as zip_ref:
+                    file_list = zip_ref.namelist()
+
+                    # Word文档特征: 包含word/目录
+                    if any('word/' in f for f in file_list):
+                        logger.info("✅ 识别为Word文档 (.docx)")
+                        return '.docx'
+
+                    # Excel文档特征: 包含xl/目录
+                    if any('xl/' in f for f in file_list):
+                        logger.info("✅ 识别为Excel文档 (.xlsx)")
+                        return '.xlsx'
+
+                    # PowerPoint文档特征: 包含ppt/目录
+                    if any('ppt/' in f for f in file_list):
+                        logger.info("✅ 识别为PowerPoint文档 (.pptx)")
+                        return '.pptx'
+
+                    logger.warning(f"ZIP文件但无法识别Office类型，文件列表: {file_list[:5]}")
+                    return '.zip'
+
+            except Exception as e:
+                logger.warning(f"ZIP内容解析失败: {e}，尝试简单字节检测")
+
+                # ZIP解析失败时的备用检测方案
+                search_size = min(len(file_data), 2048)  # 搜索前2KB
+                if b'word/' in file_data[:search_size]:
+                    logger.info("✅ 通过字节匹配识别为Word文档")
+                    return '.docx'
+                elif b'xl/' in file_data[:search_size]:
+                    logger.info("✅ 通过字节匹配识别为Excel文档")
+                    return '.xlsx'
+                elif b'ppt/' in file_data[:search_size]:
+                    logger.info("✅ 通过字节匹配识别为PowerPoint文档")
+                    return '.pptx'
+
+                return '.zip'
+
+        # 老版本Word文档 (.doc) - 使用OLE复合文档格式
         if header.startswith(b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1'):
+            logger.info("🔍 检测到老版本Office文档 (.doc/.xls)")
             return '.doc'
-        
+
         # TXT文件检测（简单检测是否为纯文本）
         try:
             file_data[:1024].decode('utf-8')
@@ -833,7 +875,7 @@ class MediaProcessor:
                 return '.txt'
             except:
                 pass
-        
+
         logger.warning(f"无法识别文件类型，文件头部: {header.hex()}")
         return '.tmp'
     
