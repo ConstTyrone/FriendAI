@@ -66,7 +66,7 @@ class SeeDreamVideoService:
             # 构建请求体（根据火山引擎API文档）
             payload = {
                 "model": model,
-                "prompt": prompt[:800],  # 限制最大长度
+                "content": prompt[:800],  # 火山引擎API使用content而不是prompt
                 "duration": duration,
                 "resolution": resolution
             }
