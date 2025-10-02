@@ -248,5 +248,68 @@ async def wechat_callback(request: Request, msg_signature: str, timestamp: str, 
     return await wework_callback(request, msg_signature, timestamp, nonce)
 
 
+@app.get("/stats")
+async def get_statistics():
+    """
+    获取系统统计数据
+
+    返回：
+    - total_users: 总用户数
+    - active_today: 今日活跃用户数（DAU）
+    - total_messages: 总消息数
+    - ai_chats: AI对话总数
+    - emoticons: 表情包总数
+    - top_users: 最活跃用户排行（前10）
+    """
+    try:
+        from ..database.audit_database import audit_db
+
+        # 获取总体统计
+        stats = audit_db.get_total_stats()
+
+        # 获取活跃用户排行
+        top_users = audit_db.get_top_users(limit=10)
+
+        return {
+            "status": "success",
+            "data": {
+                "overview": stats,
+                "top_users": top_users
+            },
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"获取统计数据失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取统计数据失败: {str(e)}")
+
+
+@app.get("/stats/user/{external_userid}")
+async def get_user_statistics(external_userid: str):
+    """
+    获取单个用户的统计数据
+
+    参数：
+    - external_userid: 用户ID
+    """
+    try:
+        from ..database.audit_database import audit_db
+
+        user_stats = audit_db.get_user_stats(external_userid)
+
+        if user_stats:
+            return {
+                "status": "success",
+                "data": user_stats,
+                "timestamp": time.time()
+            }
+        else:
+            raise HTTPException(status_code=404, detail="用户不存在")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取用户统计失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取用户统计失败: {str(e)}")
+
+
 logger.info("FastAPI应用启动完成 - 微信客服AI对话机器人")
-logger.info("已注册端点: GET/POST /wework/callback, GET/POST /wechat/callback, GET /health")
+logger.info("已注册端点: GET/POST /wework/callback, GET/POST /wechat/callback, GET /health, GET /stats")

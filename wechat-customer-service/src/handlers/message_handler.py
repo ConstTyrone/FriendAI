@@ -10,6 +10,7 @@ from .message_classifier import classifier
 from .message_formatter import text_extractor
 from ..services.ai_service import chat_service
 from ..services.emoticon_service import emoticon_service
+from ..database.audit_database import audit_db
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,9 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
             return {'type': 'text', 'content': ''}
 
         print(f"📨 收到消息 - 用户: {user_id}")
+
+        # 记录用户活动（埋点）
+        audit_db.record_message(user_id, 'text')
 
         # 步骤0: 检测是否为菜单点击消息
         menu_id = message.get('MenuId', '')
@@ -110,6 +114,9 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
                 print(f"✅ 表情包生成成功: {emotion} - 共{len(images)}张图片")
                 logger.info(f"表情包生成成功: {emotion} - {len(images)}张图片")
 
+                # 记录表情包生成活动
+                audit_db.record_message(user_id, 'emoticon')
+
                 # 返回多张图片
                 return {
                     'type': 'images',  # 注意：改为复数形式
@@ -137,6 +144,10 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
             reply = chat_result.get('reply', '')
             print(f"✅ AI回复成功: {reply[:100]}...")
             logger.info(f"AI回复内容: {reply}")
+
+            # 记录AI对话活动
+            audit_db.record_message(user_id, 'ai_chat')
+
             return {
                 'type': 'text',
                 'content': reply
