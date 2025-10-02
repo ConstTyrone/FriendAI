@@ -101,7 +101,9 @@ class ChatService:
                 }
 
             result = response.json()
-            logger.info(f"AI API响应: {result}")
+            # 记录响应状态和摘要信息
+            choices_count = len(result.get('choices', []))
+            logger.info(f"AI API响应: status_code={response.status_code}, choices_count={choices_count}")
 
             # 提取AI回复
             if 'choices' in result and len(result['choices']) > 0:

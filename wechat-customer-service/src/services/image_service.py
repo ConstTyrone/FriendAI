@@ -76,7 +76,8 @@ class ImageGenerationService:
                 }
 
             result = response.json()
-            logger.info(f"📥 API响应: {result}")
+            # 记录响应状态，不输出完整响应（避免base64图片数据污染日志）
+            logger.info(f"📥 Gemini API响应: status_code={response.status_code}, has_choices={('choices' in result)}")
 
             # 提取生成的图片
             if 'choices' in result and len(result['choices']) > 0:

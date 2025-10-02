@@ -94,7 +94,8 @@ class QwenImageService:
                 }
 
             result = response.json()
-            logger.info(f"📥 API响应: {result}")
+            # 记录响应状态，不输出完整响应（避免base64图片数据污染日志）
+            logger.info(f"📥 通义千问API响应: status_code={response.status_code}, has_output={('output' in result)}")
 
             # 检查是否有错误
             if 'code' in result and result['code']:
