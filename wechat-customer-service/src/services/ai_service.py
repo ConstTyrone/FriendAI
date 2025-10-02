@@ -40,6 +40,12 @@ class ChatService:
         try:
             logger.info(f"收到用户消息: {user_message[:100]}...")
 
+            # 输入长度限制（防止超长输入导致超时）
+            max_input_length = 10000
+            if len(user_message) > max_input_length:
+                logger.warning(f"用户消息过长({len(user_message)}字符)，截断到{max_input_length}字符")
+                user_message = user_message[:max_input_length] + "\n\n[内容过长，已截断。如需完整分析，请分段发送]"
+
             # 构建对话消息列表
             messages = []
 
@@ -57,11 +63,25 @@ class ChatService:
                 })
 
             # 从Redis获取历史对话（如果有用户ID）
+            # 智能调整历史对话数量：长文本时减少历史，避免超时
             if user_id:
                 try:
                     from .redis_state_manager import state_manager
-                    # 获取最近10轮对话（20条消息）
-                    history = state_manager.get_conversation_history(user_id, max_messages=20)
+
+                    # 根据当前消息长度智能调整历史对话数量
+                    if len(user_message) > 3000:
+                        # 超长消息：只加载2轮历史（4条消息）
+                        max_history = 4
+                        logger.info(f"检测到长文本消息({len(user_message)}字符)，减少历史对话到{max_history//2}轮")
+                    elif len(user_message) > 1500:
+                        # 较长消息：加载5轮历史（10条消息）
+                        max_history = 10
+                        logger.info(f"检测到较长消息({len(user_message)}字符)，加载{max_history//2}轮历史对话")
+                    else:
+                        # 普通消息：加载完整10轮历史（20条消息）
+                        max_history = 20
+
+                    history = state_manager.get_conversation_history(user_id, max_messages=max_history)
                     if history:
                         messages.extend(history)
                         logger.info(f"从Redis加载对话历史: user_id={user_id}, count={len(history)}")
@@ -76,20 +96,20 @@ class ChatService:
 
             # 调用通义千问API
             payload = {
-                "model": "qwen-plus",  # 或 qwen-turbo, qwen-max
+                "model": "qwen3-max",  # 使用qwen3-max模型（最新最强）
                 "messages": messages,
                 "temperature": 0.7,
                 "top_p": 0.8,
                 "max_tokens": 1500
             }
 
-            logger.info(f"调用AI API，消息数: {len(messages)}")
+            logger.info(f"调用AI API (qwen3-max)，消息数: {len(messages)}, 消息长度: {len(user_message)}字符")
 
             response = requests.post(
                 f"{self.api_endpoint}/chat/completions",
                 headers=self.headers,
                 json=payload,
-                timeout=30
+                timeout=60  # 增加超时时间到60秒
             )
 
             if response.status_code != 200:
