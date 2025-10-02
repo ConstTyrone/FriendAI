@@ -99,17 +99,23 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
             print(f"🎨 检测到表情包生成请求")
             logger.info(f"检测到表情包生成请求: {text_content}")
 
-            # 调用表情包生成服务
+            # 调用表情包生成服务（双模型对比）
             emoticon_result = emoticon_service.create_emoticon(text_content)
 
             if emoticon_result.get('success', False):
-                image_path = emoticon_result.get('image_path', '')
+                images = emoticon_result.get('images', [])
                 emotion = emoticon_result.get('emotion', '')
-                print(f"✅ 表情包生成成功: {emotion} - {image_path}")
-                logger.info(f"表情包生成成功: {emotion} - {image_path}")
+                errors = emoticon_result.get('errors', [])
+
+                print(f"✅ 表情包生成成功: {emotion} - 共{len(images)}张图片")
+                logger.info(f"表情包生成成功: {emotion} - {len(images)}张图片")
+
+                # 返回多张图片
                 return {
-                    'type': 'image',
-                    'content': image_path
+                    'type': 'images',  # 注意：改为复数形式
+                    'content': images,  # 格式: [{'path': '...', 'model_name': '...'}, ...]
+                    'emotion': emotion,
+                    'errors': errors
                 }
             else:
                 error_msg = emoticon_result.get('error', '表情包生成失败')
@@ -356,12 +362,45 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
                             reply_type = reply_result.get('type', 'text')
                             content = reply_result.get('content', '')
 
-                            if reply_type == 'image':
-                                # 发送图片消息
+                            if reply_type == 'images':
+                                # 发送多张图片（双模型对比）
+                                images = content  # List[{'path': '...', 'model_name': '...'}]
+                                emotion = reply_result.get('emotion', '')
+                                errors = reply_result.get('errors', [])
+
+                                print(f"🖼️ 准备发送{len(images)}张表情包图片...")
+
+                                # 先发送说明文本
+                                intro_text = f"✨ 为您生成了【{emotion}】表情包，使用两个AI模型对比："
+                                wework_client.send_text_message(external_userid, open_kfid, intro_text)
+
+                                # 依次发送每张图片
+                                for idx, img_info in enumerate(images, 1):
+                                    image_path = img_info.get('path', '')
+                                    model_name = img_info.get('model_name', '未知模型')
+
+                                    # 发送标注
+                                    label_text = f"【{idx}】{model_name}"
+                                    wework_client.send_text_message(external_userid, open_kfid, label_text)
+
+                                    # 上传并发送图片
+                                    media_id = wework_client.upload_temp_media(image_path, 'image')
+                                    wework_client.send_image_message(external_userid, open_kfid, media_id)
+
+                                    print(f"✅ 已发送 {model_name} 生成的图片")
+
+                                # 如果有部分失败，发送错误提示
+                                if errors:
+                                    error_text = "⚠️ 部分模型生成失败:\n" + "\n".join(errors)
+                                    wework_client.send_text_message(external_userid, open_kfid, error_text)
+
+                                print(f"✅ 所有图片已发送给用户")
+                                logger.info(f"{len(images)}张表情包图片已发送给用户 {external_userid}")
+
+                            elif reply_type == 'image':
+                                # 发送单张图片（兼容旧格式）
                                 print("🖼️ 上传并发送图片给用户...")
-                                # 上传图片获取media_id
                                 media_id = wework_client.upload_temp_media(content, 'image')
-                                # 发送图片消息
                                 wework_client.send_image_message(external_userid, open_kfid, media_id)
                                 print("✅ 图片已发送给用户")
                                 logger.info(f"图片已发送给用户 {external_userid}")

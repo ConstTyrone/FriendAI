@@ -3,13 +3,15 @@
 表情包生成服务 - 智能识别情绪并生成可爱表情包
 触发方式：关键词"表情包"
 风格：AI自由发挥，Q版卡通可爱风格
+支持双模型对比：Gemini 2.5 Flash vs 通义千问 Qwen-Image-Plus
 """
 import re
 import json
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from .ai_service import chat_service
 from .image_service import image_service
+from .qwen_image_service import qwen_image_service
 from ..config.config import config
 
 logger = logging.getLogger(__name__)
@@ -186,7 +188,7 @@ class EmoticonService:
 
     def create_emoticon(self, user_text: str) -> Dict:
         """
-        完整的表情包生成流程
+        完整的表情包生成流程 - 使用双模型对比
 
         Args:
             user_text: 用户输入文本
@@ -194,9 +196,9 @@ class EmoticonService:
         Returns:
             dict: {
                 'success': bool,
-                'image_path': str,  # 生成的图片路径
-                'emotion': str,     # 识别的情绪
-                'error': str        # 错误信息（如果失败）
+                'images': List[dict],  # 生成的图片列表，每个包含 {path, model_name}
+                'emotion': str,        # 识别的情绪
+                'error': str           # 错误信息（如果失败）
             }
         """
         try:
@@ -215,24 +217,63 @@ class EmoticonService:
 
             prompt = prompt_result.get('prompt', '')
 
-            # 3. 调用图片生成服务
-            logger.info(f"🖼️ 开始生成表情包图片...")
-            image_result = image_service.generate_image(prompt=prompt)
+            # 3. 同时使用两个模型生成图片
+            logger.info(f"🖼️ 开始使用双模型生成表情包...")
 
-            if image_result.get('success', False):
-                image_path = image_result.get('image_path', '')
-                logger.info(f"✅ 表情包生成成功: {image_path}")
+            images = []
+            errors = []
+
+            # 3.1 使用 Gemini 2.5 Flash 生成
+            logger.info("🔹 Gemini 2.5 Flash 生成中...")
+            gemini_result = image_service.generate_image(prompt=prompt)
+
+            if gemini_result.get('success', False):
+                image_path = gemini_result.get('image_path', '')
+                logger.info(f"✅ Gemini 生成成功: {image_path}")
+                images.append({
+                    'path': image_path,
+                    'model_name': 'Gemini 2.5 Flash'
+                })
+            else:
+                error_msg = gemini_result.get('error', '生成失败')
+                logger.error(f"❌ Gemini 生成失败: {error_msg}")
+                errors.append(f"Gemini: {error_msg}")
+
+            # 3.2 使用通义千问生成
+            logger.info("🔹 通义千问 Qwen-Image-Plus 生成中...")
+            qwen_result = qwen_image_service.generate_image(
+                prompt=prompt,
+                watermark=False,  # 不添加水印
+                prompt_extend=True  # 开启智能改写
+            )
+
+            if qwen_result.get('success', False):
+                image_path = qwen_result.get('image_path', '')
+                logger.info(f"✅ 通义千问生成成功: {image_path}")
+                images.append({
+                    'path': image_path,
+                    'model_name': '通义千问 Qwen-Image-Plus'
+                })
+            else:
+                error_msg = qwen_result.get('error', '生成失败')
+                logger.error(f"❌ 通义千问生成失败: {error_msg}")
+                errors.append(f"通义千问: {error_msg}")
+
+            # 4. 返回结果
+            if images:
+                logger.info(f"✅ 成功生成 {len(images)} 张表情包")
                 return {
                     'success': True,
-                    'image_path': image_path,
-                    'emotion': emotion
+                    'images': images,
+                    'emotion': emotion,
+                    'errors': errors if errors else None  # 如果有部分失败，也返回
                 }
             else:
-                error_msg = image_result.get('error', '图片生成失败')
-                logger.error(f"❌ 表情包图片生成失败: {error_msg}")
+                error_msg = "所有模型都生成失败: " + "; ".join(errors)
+                logger.error(f"❌ {error_msg}")
                 return {
                     'success': False,
-                    'error': f"图片生成失败: {error_msg}"
+                    'error': error_msg
                 }
 
         except Exception as e:
