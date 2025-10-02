@@ -29,7 +29,7 @@ class SeeDreamImageService:
     def generate_image(
         self,
         prompt: str,
-        model: str = "doubao-seedream-4-0",
+        model: str = "doubao-seedream-4-0-250828",
         size: str = "1024x1024",
         n: int = 1
     ) -> dict:
@@ -38,7 +38,7 @@ class SeeDreamImageService:
 
         Args:
             prompt (str): 文本提示词
-            model (str): 模型名称，默认 doubao-seedream-4-0
+            model (str): 模型名称，默认 doubao-seedream-4-0-250828
             size (str): 图片尺寸，支持：
                 - "1024x1024" (默认)
                 - "2048x2048" (2K)

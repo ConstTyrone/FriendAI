@@ -119,7 +119,7 @@ SEEDREAM_API_KEY=4f3d9b80-3a62-4ef8-9902-5d6742113c91
 
 **火山引擎 SeeDream-4**
 - API端点：`https://ark.cn-beijing.volces.com/api/v3/images/generations`
-- 模型：`doubao-seedream-4-0`
+- 模型：`doubao-seedream-4-0-250828`
 - 超时时间：60秒
 - 支持分辨率：1024x1024, 2048x2048, 4096x4096
 - 生成速度：约10-15秒（秒级2K）
