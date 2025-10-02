@@ -202,10 +202,11 @@ class SeeDreamVideoService:
 
                 logger.info(f"📊 任务状态: {status}")
 
-                if status == 'completed':
+                if status == 'completed' or status == 'succeeded':
                     # 任务完成，提取视频URL
-                    video_data = result.get('video', {})
-                    video_url = video_data.get('url')
+                    # API返回格式: {'content': {'video_url': '...'}}
+                    content_data = result.get('content', {})
+                    video_url = content_data.get('video_url')
                     if video_url:
                         logger.info(f"✅ 任务完成，获得视频URL")
                         return video_url
