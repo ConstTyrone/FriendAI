@@ -64,9 +64,15 @@ class MessageTextExtractor:
     
     def _extract_text_content(self, message: Dict[str, Any]) -> str:
         """提取文本消息内容"""
-        context = self._get_user_context(message)
         content = message.get('Content', '')
-        
+
+        # 对于简短的命令性消息（如表情包请求），直接返回内容
+        # 避免添加冗长的用户上下文信息
+        if len(content) < 50 or any(kw in content for kw in ['表情包', '/表情包', '来个表情包']):
+            return content
+
+        # 对于较长的消息，保留上下文信息用于画像分析
+        context = self._get_user_context(message)
         return f"{context}发送了以下文本消息：\n{content}"
     
     def _extract_image_content(self, message: Dict[str, Any]) -> str:

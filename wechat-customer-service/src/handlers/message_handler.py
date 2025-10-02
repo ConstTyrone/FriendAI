@@ -382,7 +382,7 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
                                 print(f"🖼️ 准备发送{len(images)}张表情包图片...")
 
                                 # 先发送说明文本
-                                intro_text = f"✨ 为您生成了【{emotion}】表情包，使用两个AI模型对比："
+                                intro_text = f"✨ 为您生成了【{emotion}】表情包，使用三个AI模型对比："
                                 wework_client.send_text_message(external_userid, open_kfid, intro_text)
 
                                 # 依次发送每张图片
