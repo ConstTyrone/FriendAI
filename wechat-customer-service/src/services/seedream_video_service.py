@@ -181,14 +181,16 @@ class SeeDreamVideoService:
             try:
                 # 查询任务状态
                 query_url = f"{self.query_url}/{task_id}"
+                logger.info(f"🔍 查询URL: {query_url}")
                 response = requests.get(
                     query_url,
                     headers=self.headers,
                     timeout=10
                 )
 
+                logger.info(f"📡 HTTP状态码: {response.status_code}")
                 if response.status_code != 200:
-                    logger.warning(f"查询任务状态失败: {response.status_code}")
+                    logger.warning(f"查询任务状态失败: {response.status_code} - {response.text}")
                     time.sleep(poll_interval)
                     continue
 
