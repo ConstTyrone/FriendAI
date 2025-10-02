@@ -114,8 +114,8 @@ class SeeDreamVideoService:
                     'error': error_msg
                 }
 
-            # 提取任务ID
-            task_id = task_result.get('task_id') or task_result.get('data', {}).get('task_id')
+            # 提取任务ID（API返回的是id字段）
+            task_id = task_result.get('id') or task_result.get('task_id') or task_result.get('data', {}).get('id')
 
             if not task_id:
                 error_msg = f"未获取到任务ID: {task_result}"
@@ -193,25 +193,32 @@ class SeeDreamVideoService:
                     continue
 
                 result = response.json()
-                status = result.get('status') or result.get('data', {}).get('status')
+                logger.info(f"📥 轮询响应: {result}")
+
+                # API返回格式: {"id": "...", "status": "...", "video": {"url": "..."}}
+                status = result.get('status')
 
                 logger.info(f"📊 任务状态: {status}")
 
-                if status == 'completed' or status == 'success':
+                if status == 'completed':
                     # 任务完成，提取视频URL
-                    video_url = result.get('video_url') or result.get('data', {}).get('video_url')
+                    video_data = result.get('video', {})
+                    video_url = video_data.get('url')
                     if video_url:
                         logger.info(f"✅ 任务完成，获得视频URL")
                         return video_url
-                elif status == 'failed' or status == 'error':
+                    else:
+                        logger.error(f"❌ 任务完成但未找到视频URL: {result}")
+                        return None
+                elif status == 'failed':
                     # 任务失败
                     error_msg = result.get('error', {}).get('message', '未知错误')
                     logger.error(f"❌ 任务失败: {error_msg}")
                     return None
                 else:
-                    # 任务进行中，继续等待
+                    # 任务进行中（queued, generating等），继续等待
                     elapsed = int(time.time() - start_time)
-                    logger.info(f"⏳ 任务进行中... ({elapsed}s/{max_wait}s)")
+                    logger.info(f"⏳ 任务状态: {status} ({elapsed}s/{max_wait}s)")
                     time.sleep(poll_interval)
 
             except Exception as e:
