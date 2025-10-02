@@ -64,16 +64,27 @@ class SeeDreamVideoService:
             logger.info(f"📤 创建视频生成任务...")
 
             # 构建请求体（根据火山引擎API文档）
+            # content参数必须是数组格式，包含text和/或image_url对象
+            content = [
+                {
+                    "type": "text",
+                    "text": f"{prompt[:800]} --duration {duration.replace('s', '')} --ratio adaptive --rs {resolution}"
+                }
+            ]
+
+            # 如果提供了图片URL，添加到content数组
+            if image_url:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": image_url
+                    }
+                })
+
             payload = {
                 "model": model,
-                "content": prompt[:800],  # 火山引擎API使用content而不是prompt
-                "duration": duration,
-                "resolution": resolution
+                "content": content
             }
-
-            # 如果提供了图片URL，添加图片参数
-            if image_url:
-                payload["image_url"] = image_url
 
             # 创建任务
             response = requests.post(
