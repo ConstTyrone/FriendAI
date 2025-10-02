@@ -381,16 +381,16 @@ def handle_wechat_kf_event(message: Dict[str, Any]) -> None:
 
                                 print(f"🖼️ 准备发送{len(images)}张表情包图片...")
 
-                                # 依次发送每张图片（标注+图片合并为一条消息）
+                                # 先发送一条说明消息，列出所有模型
+                                model_labels = "\n".join([f"✨【{emotion}】{img['model_name']}" for img in images])
+                                wework_client.send_text_message(external_userid, open_kfid, model_labels)
+
+                                # 依次发送每张图片
                                 for idx, img_info in enumerate(images, 1):
                                     image_path = img_info.get('path', '')
                                     model_name = img_info.get('model_name', '未知模型')
 
-                                    # 先发送标注文本
-                                    label_text = f"✨【{emotion}】{model_name}"
-                                    wework_client.send_text_message(external_userid, open_kfid, label_text)
-
-                                    # 紧接着发送图片
+                                    # 上传并发送图片
                                     media_id = wework_client.upload_temp_media(image_path, 'image')
                                     wework_client.send_image_message(external_userid, open_kfid, media_id)
 
