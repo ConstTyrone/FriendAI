@@ -1,13 +1,14 @@
-# 双模型表情包生成对比功能
+# 三模型表情包生成对比功能
 
 ## 功能概述
 
-系统现已支持同时使用两个AI图片生成模型来生成表情包，方便对比效果：
+系统现已支持同时使用三个AI图片生成模型来生成表情包，方便对比效果：
 
 1. **Gemini 2.5 Flash Image Preview** (Google)
 2. **通义千问 Qwen-Image-Plus** (阿里云)
+3. **SeeDream-4** (火山引擎/字节跳动)
 
-当用户请求生成表情包时，系统会自动使用两个模型生成图片，并依次发送给用户进行对比。
+当用户请求生成表情包时，系统会自动使用三个模型生成图片，并依次发送给用户进行对比。
 
 ## 使用方式
 
@@ -19,10 +20,11 @@
 - `/表情包 加油`
 
 系统会：
-1. 发送说明文本："✨ 为您生成了【开心】表情包，使用两个AI模型对比："
-2. 依次发送两张图片：
+1. 发送说明文本："✨ 为您生成了【开心】表情包，使用三个AI模型对比："
+2. 依次发送三张图片：
    - 【1】Gemini 2.5 Flash
    - 【2】通义千问 Qwen-Image-Plus
+   - 【3】火山引擎 SeeDream-4
 
 ### 测试脚本
 
@@ -49,16 +51,26 @@ python test_dual_model.py
      - `watermark`: 是否添加水印（默认关闭）
      - `prompt_extend`: 智能改写（默认开启）
 
+2. **src/services/seedream_image_service.py**
+   - 火山引擎 SeeDream-4 图片生成服务
+   - 使用火山方舟 API（`/api/v3/images/generations`）
+   - 模型：`doubao-seedream-4-0`
+   - 支持参数：
+     - `size`: 图片尺寸（支持1024x1024, 2048x2048, 4096x4096）
+     - `n`: 生成数量（默认1）
+
 ### 修改文件
 
 1. **src/services/emoticon_service.py**
+   - 导入 SeeDream 服务
    - `create_emoticon()` 返回格式改为多图片：
      ```python
      {
          'success': True,
          'images': [
              {'path': '...', 'model_name': 'Gemini 2.5 Flash'},
-             {'path': '...', 'model_name': '通义千问 Qwen-Image-Plus'}
+             {'path': '...', 'model_name': '通义千问 Qwen-Image-Plus'},
+             {'path': '...', 'model_name': '火山引擎 SeeDream-4'}
          ],
          'emotion': '开心',
          'errors': []  # 部分失败时的错误信息
@@ -76,19 +88,41 @@ python test_dual_model.py
 
 ### 环境变量
 
-系统使用现有的通义千问配置（无需新增）：
+系统需要配置三个模型的API Key：
 
 ```bash
 # .env 文件
-QWEN_API_KEY=sk-xxxxxx  # 阿里云百炼API Key
+# Gemini 2.5 Flash
+IMAGE_API_URL=https://genaiapi.cloudsway.net/v1/ai/hiMUPFhuWCQtVMpp/chat/completions
+IMAGE_API_TOKEN=405O8mEjMUXeJlht83JA
+
+# 阿里云通义千问
+QWEN_API_KEY=sk-xxxxxx
+
+# 火山引擎 SeeDream-4
+SEEDREAM_API_KEY=4f3d9b80-3a62-4ef8-9902-5d6742113c91
 ```
 
-### 阿里云通义千问配置
+### 模型配置详情
 
-- **API端点**: `https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation`
-- **模型**: `qwen-image-plus`
-- **超时时间**: 60秒
-- **图片有效期**: 24小时（自动下载到本地）
+**Gemini 2.5 Flash**
+- API端点：自定义代理URL
+- 超时时间：60秒
+- 生成速度：约10-15秒
+
+**阿里云通义千问**
+- API端点：`https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation`
+- 模型：`qwen-image-plus`
+- 超时时间：60秒
+- 图片有效期：24小时（自动下载到本地）
+- 生成速度：约15-20秒
+
+**火山引擎 SeeDream-4**
+- API端点：`https://ark.cn-beijing.volces.com/api/v3/images/generations`
+- 模型：`doubao-seedream-4-0`
+- 超时时间：60秒
+- 支持分辨率：1024x1024, 2048x2048, 4096x4096
+- 生成速度：约10-15秒（秒级2K）
 
 ## 对比维度
 
@@ -124,10 +158,11 @@ QWEN_API_KEY=sk-xxxxxx  # 阿里云百炼API Key
 ### 生成时间
 - **Gemini 2.5 Flash**: ~10-15秒
 - **通义千问**: ~15-20秒
-- **总计**: 约25-35秒（并发执行可能更快）
+- **火山引擎 SeeDream-4**: ~10-15秒
+- **总计**: 约30-50秒（并发执行可能更快）
 
 ### 容错处理
-- 如果某个模型失败，另一个成功，仍会发送成功的图片
+- 如果某个模型失败，其他成功，仍会发送成功的图片
 - 部分失败时会发送错误提示
 - 所有模型都失败时，返回错误消息
 
@@ -136,10 +171,11 @@ QWEN_API_KEY=sk-xxxxxx  # 阿里云百炼API Key
 - 文件命名格式：
   - Gemini: `generated_{timestamp}.png`
   - 通义千问: `qwen_generated_{timestamp}.png`
+  - 火山引擎: `seedream_generated_{timestamp}.png`
 
 ## 后续优化方向
 
-1. **并发生成**: 同时调用两个API，减少总耗时
+1. **并发生成**: 同时调用三个API，减少总耗时
 2. **缓存机制**: 相同prompt的结果缓存
 3. **用户投票**: 收集用户反馈，统计哪个模型效果更好
 4. **模型切换**: 根据统计结果，优先使用效果好的模型
@@ -147,8 +183,8 @@ QWEN_API_KEY=sk-xxxxxx  # 阿里云百炼API Key
 
 ## 常见问题
 
-### Q: 两个模型都需要API Key吗？
-A: 不需要。Gemini使用已配置的 `IMAGE_API_URL` 和 `IMAGE_API_TOKEN`，通义千问使用 `QWEN_API_KEY`，都是已有配置。
+### Q: 三个模型都需要API Key吗？
+A: 是的。Gemini使用已配置的 `IMAGE_API_URL` 和 `IMAGE_API_TOKEN`，通义千问使用 `QWEN_API_KEY`，火山引擎使用 `SEEDREAM_API_KEY`。
 
 ### Q: 可以只使用一个模型吗？
 A: 可以。修改 `emoticon_service.py` 中的 `create_emoticon()` 方法，注释掉不需要的模型即可。
@@ -165,11 +201,14 @@ A: 可以。在 `qwen_image_service.py` 中修改 `size` 参数，支持的分�
 用户: 表情包：开心
 
 系统回复:
-✨ 为您生成了【开心】表情包，使用两个AI模型对比：
+✨ 为您生成了【开心】表情包，使用三个AI模型对比：
 
 【1】Gemini 2.5 Flash
 [图片1]
 
 【2】通义千问 Qwen-Image-Plus
 [图片2]
+
+【3】火山引擎 SeeDream-4
+[图片3]
 ```

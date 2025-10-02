@@ -3,7 +3,7 @@
 表情包生成服务 - 智能识别情绪并生成可爱表情包
 触发方式：关键词"表情包"
 风格：AI自由发挥，Q版卡通可爱风格
-支持双模型对比：Gemini 2.5 Flash vs 通义千问 Qwen-Image-Plus
+支持三模型对比：Gemini 2.5 Flash vs 通义千问 Qwen-Image-Plus vs 火山引擎 SeeDream-4
 """
 import re
 import json
@@ -12,6 +12,7 @@ from typing import Optional, Dict, List
 from .ai_service import chat_service
 from .image_service import image_service
 from .qwen_image_service import qwen_image_service
+from .seedream_image_service import seedream_image_service
 from ..config.config import config
 
 logger = logging.getLogger(__name__)
@@ -188,7 +189,7 @@ class EmoticonService:
 
     def create_emoticon(self, user_text: str) -> Dict:
         """
-        完整的表情包生成流程 - 使用双模型对比
+        完整的表情包生成流程 - 使用三模型对比
 
         Args:
             user_text: 用户输入文本
@@ -217,8 +218,8 @@ class EmoticonService:
 
             prompt = prompt_result.get('prompt', '')
 
-            # 3. 同时使用两个模型生成图片
-            logger.info(f"🖼️ 开始使用双模型生成表情包...")
+            # 3. 同时使用三个模型生成图片
+            logger.info(f"🖼️ 开始使用三模型生成表情包...")
 
             images = []
             errors = []
@@ -258,6 +259,25 @@ class EmoticonService:
                 error_msg = qwen_result.get('error', '生成失败')
                 logger.error(f"❌ 通义千问生成失败: {error_msg}")
                 errors.append(f"通义千问: {error_msg}")
+
+            # 3.3 使用火山引擎 SeeDream-4 生成
+            logger.info("🔹 火山引擎 SeeDream-4 生成中...")
+            seedream_result = seedream_image_service.generate_image(
+                prompt=prompt,
+                size="1024x1024"  # 使用1024尺寸
+            )
+
+            if seedream_result.get('success', False):
+                image_path = seedream_result.get('image_path', '')
+                logger.info(f"✅ SeeDream 生成成功: {image_path}")
+                images.append({
+                    'path': image_path,
+                    'model_name': '火山引擎 SeeDream-4'
+                })
+            else:
+                error_msg = seedream_result.get('error', '生成失败')
+                logger.error(f"❌ SeeDream 生成失败: {error_msg}")
+                errors.append(f"SeeDream: {error_msg}")
 
             # 4. 返回结果
             if images:

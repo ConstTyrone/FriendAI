@@ -23,6 +23,9 @@ class Config:
         self.image_api_url = os.getenv('IMAGE_API_URL', 'https://genaiapi.cloudsway.net/v1/ai/hiMUPFhuWCQtVMpp/chat/completions')
         self.image_api_token = os.getenv('IMAGE_API_TOKEN', '405O8mEjMUXeJlht83JA')
 
+        # 火山引擎 SeeDream 配置
+        self.seedream_api_key = os.getenv('SEEDREAM_API_KEY', '4f3d9b80-3a62-4ef8-9902-5d6742113c91')
+
         # 表情包服务配置
         self.emoticon_enabled = os.getenv('EMOTICON_ENABLED', 'true').lower() == 'true'  # 是否启用表情包功能
 
