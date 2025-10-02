@@ -55,9 +55,6 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
 
         print(f"📨 收到消息 - 用户: {user_id}")
 
-        # 记录用户活动（埋点）
-        audit_db.record_message(user_id, 'text')
-
         # 步骤0: 检测是否为菜单点击消息
         menu_id = message.get('MenuId', '')
         if menu_id:
@@ -92,6 +89,9 @@ def process_message_and_reply(message: Dict[str, Any], open_kfid: str = None) ->
         # 步骤1: 分类消息类型
         message_type = classifier.classify_message(message)
         print(f"🔍 消息分类: {message_type}")
+
+        # 记录消息类型埋点
+        audit_db.record_message(user_id, message_type)
 
         # 步骤2: 提取纯文本内容
         text_content = text_extractor.extract_text(message, message_type)

@@ -7,6 +7,7 @@
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 import xml.etree.ElementTree as ET
 import urllib.parse
 import logging
@@ -15,6 +16,7 @@ import time
 
 from ..services.wework_client import wework_client
 from ..handlers.message_handler import classify_and_handle_message, parse_message, handle_wechat_kf_event
+from ..database.audit_database import audit_db
 
 # 配置日志
 logging.basicConfig(
@@ -38,6 +40,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载静态文件
+import os
+static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static')
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/")
 async def root():
@@ -229,11 +237,45 @@ async def classify_and_handle_message_async(message: dict):
     """异步处理普通消息"""
     try:
         logger.info("🔄 开始异步处理普通消息")
-        # 调用同步处理函数（在后台线程中执行）
         classify_and_handle_message(message)
         logger.info("✅ 普通消息处理完成")
     except Exception as e:
         logger.error(f"❌ 异步处理普通消息失败: {e}", exc_info=True)
+
+
+@app.get("/stats")
+async def get_stats():
+    """获取系统统计数据"""
+    try:
+        stats = audit_db.get_total_stats()
+        return JSONResponse(content=stats)
+    except Exception as e:
+        logger.error(f"获取统计数据失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/stats/message-types")
+async def get_message_type_distribution():
+    """获取消息类型分布"""
+    try:
+        distribution = audit_db.get_message_type_distribution()
+        return JSONResponse(content=distribution)
+    except Exception as e:
+        logger.error(f"获取消息类型分布失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/stats/top-users")
+async def get_top_users_stats(limit: int = 10):
+    """获取Top活跃用户"""
+    try:
+        top_users = audit_db.get_top_users(limit=limit)
+        return JSONResponse(content={'users': top_users})
+    except Exception as e:
+        logger.error(f"获取Top用户失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 @app.get("/wechat/callback")

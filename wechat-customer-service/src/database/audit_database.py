@@ -44,9 +44,31 @@ class AuditDatabase:
                         message_count INTEGER DEFAULT 0,
                         ai_chat_count INTEGER DEFAULT 0,
                         emoticon_count INTEGER DEFAULT 0,
+                        text_message_count INTEGER DEFAULT 0,
+                        voice_message_count INTEGER DEFAULT 0,
+                        image_message_count INTEGER DEFAULT 0,
+                        file_message_count INTEGER DEFAULT 0,
                         last_active_date TEXT NOT NULL
                     )
                 ''')
+
+                # 为已存在的表添加新字段（如果不存在）
+                try:
+                    cursor.execute('ALTER TABLE user_activity ADD COLUMN text_message_count INTEGER DEFAULT 0')
+                except:
+                    pass  # 字段已存在
+                try:
+                    cursor.execute('ALTER TABLE user_activity ADD COLUMN voice_message_count INTEGER DEFAULT 0')
+                except:
+                    pass
+                try:
+                    cursor.execute('ALTER TABLE user_activity ADD COLUMN image_message_count INTEGER DEFAULT 0')
+                except:
+                    pass
+                try:
+                    cursor.execute('ALTER TABLE user_activity ADD COLUMN file_message_count INTEGER DEFAULT 0')
+                except:
+                    pass
 
                 # 创建索引
                 cursor.execute('CREATE INDEX IF NOT EXISTS idx_last_active_date ON user_activity(last_active_date)')
@@ -68,7 +90,7 @@ class AuditDatabase:
 
         Args:
             external_userid: 用户ID
-            message_type: 消息类型 (text, ai_chat, emoticon)
+            message_type: 消息类型 (text, voice, image, file, ai_chat, emoticon)
 
         Returns:
             是否记录成功
@@ -99,15 +121,24 @@ class AuditDatabase:
                         update_fields['ai_chat_count'] = 'ai_chat_count + 1'
                     elif message_type == 'emoticon':
                         update_fields['emoticon_count'] = 'emoticon_count + 1'
+                    elif message_type == 'text':
+                        update_fields['text_message_count'] = 'text_message_count + 1'
+                    elif message_type == 'voice':
+                        update_fields['voice_message_count'] = 'voice_message_count + 1'
+                    elif message_type == 'image':
+                        update_fields['image_message_count'] = 'image_message_count + 1'
+                    elif message_type == 'file':
+                        update_fields['file_message_count'] = 'file_message_count + 1'
 
                     # 构建UPDATE语句
+                    counter_fields = ['message_count', 'ai_chat_count', 'emoticon_count',
+                                     'text_message_count', 'voice_message_count',
+                                     'image_message_count', 'file_message_count']
                     set_clause = ', '.join([
-                        f"{k} = {v}" if k in ['message_count', 'ai_chat_count', 'emoticon_count']
-                        else f"{k} = ?"
+                        f"{k} = {v}" if k in counter_fields else f"{k} = ?"
                         for k, v in update_fields.items()
                     ])
-                    params = [v for k, v in update_fields.items()
-                             if k not in ['message_count', 'ai_chat_count', 'emoticon_count']]
+                    params = [v for k, v in update_fields.items() if k not in counter_fields]
                     params.append(external_userid)
 
                     cursor.execute(
@@ -118,14 +149,21 @@ class AuditDatabase:
                     # 插入新用户
                     ai_count = 1 if message_type == 'ai_chat' else 0
                     emoticon_count = 1 if message_type == 'emoticon' else 0
+                    text_count = 1 if message_type == 'text' else 0
+                    voice_count = 1 if message_type == 'voice' else 0
+                    image_count = 1 if message_type == 'image' else 0
+                    file_count = 1 if message_type == 'file' else 0
 
                     cursor.execute('''
                         INSERT INTO user_activity (
                             external_userid, first_visit, last_visit,
                             message_count, ai_chat_count, emoticon_count,
+                            text_message_count, voice_message_count,
+                            image_message_count, file_message_count,
                             last_active_date
-                        ) VALUES (?, ?, ?, 1, ?, ?, ?)
-                    ''', (external_userid, now, now, ai_count, emoticon_count, today))
+                        ) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (external_userid, now, now, ai_count, emoticon_count,
+                          text_count, voice_count, image_count, file_count, today))
 
                 conn.commit()
                 return True
@@ -169,12 +207,29 @@ class AuditDatabase:
                 cursor.execute('SELECT SUM(emoticon_count) as total FROM user_activity')
                 emoticons = cursor.fetchone()['total'] or 0
 
+                # 各类型消息统计
+                cursor.execute('SELECT SUM(text_message_count) as total FROM user_activity')
+                text_messages = cursor.fetchone()['total'] or 0
+
+                cursor.execute('SELECT SUM(voice_message_count) as total FROM user_activity')
+                voice_messages = cursor.fetchone()['total'] or 0
+
+                cursor.execute('SELECT SUM(image_message_count) as total FROM user_activity')
+                image_messages = cursor.fetchone()['total'] or 0
+
+                cursor.execute('SELECT SUM(file_message_count) as total FROM user_activity')
+                file_messages = cursor.fetchone()['total'] or 0
+
                 return {
                     'total_users': total_users,
                     'active_today': dau,
                     'total_messages': total_messages,
                     'ai_chats': ai_chats,
-                    'emoticons': emoticons
+                    'emoticons': emoticons,
+                    'text_messages': text_messages,
+                    'voice_messages': voice_messages,
+                    'image_messages': image_messages,
+                    'file_messages': file_messages
                 }
 
         except Exception as e:
@@ -184,7 +239,51 @@ class AuditDatabase:
                 'active_today': 0,
                 'total_messages': 0,
                 'ai_chats': 0,
-                'emoticons': 0
+                'emoticons': 0,
+                'text_messages': 0,
+                'voice_messages': 0,
+                'image_messages': 0,
+                'file_messages': 0
+            }
+
+    def get_message_type_distribution(self) -> Dict[str, int]:
+        """
+        获取消息类型分布
+
+        Returns:
+            各类型消息数量
+        """
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute('''
+                    SELECT
+                        SUM(text_message_count) as text_count,
+                        SUM(voice_message_count) as voice_count,
+                        SUM(image_message_count) as image_count,
+                        SUM(file_message_count) as file_count,
+                        SUM(emoticon_count) as emoticon_count
+                    FROM user_activity
+                ''')
+
+                row = cursor.fetchone()
+                return {
+                    'text': row['text_count'] or 0,
+                    'voice': row['voice_count'] or 0,
+                    'image': row['image_count'] or 0,
+                    'file': row['file_count'] or 0,
+                    'emoticon': row['emoticon_count'] or 0
+                }
+
+        except Exception as e:
+            logger.error(f"获取消息类型分布失败: {e}")
+            return {
+                'text': 0,
+                'voice': 0,
+                'image': 0,
+                'file': 0,
+                'emoticon': 0
             }
 
     def get_top_users(self, limit: int = 10) -> List[Dict[str, Any]]:
